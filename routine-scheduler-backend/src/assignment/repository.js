@@ -319,7 +319,12 @@ export async function getTheoryAssignment() {
     SELECT 
       c.course_id, 
       c."name", 
-      COUNT(cs.section) AS section_count,
+      c.class_per_week,
+      -- An optional course counts its section-sized groups, not every section
+      -- it is open to.
+      CASE WHEN c.optional = 1 THEN c.optional_section_count
+           ELSE COUNT(cs.section)
+      END AS section_count,
       (
         SELECT to_json(array_agg(row_to_json(t))) AS teachers
         FROM (
@@ -332,7 +337,7 @@ export async function getTheoryAssignment() {
     FROM courses c
     LEFT JOIN courses_sections cs ON c.course_id = cs.course_id
     WHERE c.course_id LIKE 'CSE%' AND c.type = 0
-    GROUP BY c.course_id, c."name"
+    GROUP BY c.course_id, c."name", c.class_per_week, c.optional, c.optional_section_count
     ORDER BY c.course_id;
   `;
   const client = await connect();
@@ -571,7 +576,8 @@ export async function getTeacherSessionalAssignment(initial) {
 
 export async function getSessionalTeachers(course_id, section) {
   const query = `
-    SELECT t.initial, t.name, t.email, t.full_time_status, t.seniority_rank
+    SELECT t.initial, t.name, t.email, t.full_time_status, t.seniority_rank,
+      tsa.share::float AS share
     FROM teacher_sessional_assignment tsa
     INNER JOIN teachers t ON tsa.initial = t.initial
     WHERE course_id = $1
@@ -943,9 +949,11 @@ export async function setTeacherSessionalAssignmentDB(assignment) {
   if (assignment.initial === "None") {
     return;
   }
+  // 0.5 when the teacher shares one lab slot with another teacher
+  const share = Number(assignment.share) === 0.5 ? 0.5 : 1;
   const query = `
-    INSERT INTO teacher_sessional_assignment (initial, course_id, session, batch, section)
-    VALUES ($1, $2, (SELECT value FROM configs WHERE key='CURRENT_SESSION'), $3, $4)
+    INSERT INTO teacher_sessional_assignment (initial, course_id, session, batch, section, share)
+    VALUES ($1, $2, (SELECT value FROM configs WHERE key='CURRENT_SESSION'), $3, $4, $5)
   `;
   const updateScheduleQuery = `
   UPDATE schedule_assignment
@@ -962,7 +970,7 @@ export async function setTeacherSessionalAssignmentDB(assignment) {
   const client = await connect();
 
   try {
-    const result = await client.query(query, values);
+    const result = await client.query(query, [...values, share]);
     if (result.rowCount <= 0) throw new HttpError(400, "Insertion Failed");
     await client.query(updateScheduleQuery, values);
     return result.rows;
@@ -1046,70 +1054,62 @@ export async function calculateTeacherTotalCredit(initial) {
     }
 
     // Get all sessional assignments for the teacher
+    // A sessional counts once per course; a teacher sharing a lab slot with
+    // another teacher (share 0.5) gets half of it.
     const sessionalQuery = `
-      SELECT DISTINCT tsa.course_id, c.class_per_week
+      SELECT tsa.course_id, c.class_per_week, MAX(tsa.share)::float AS share
       FROM teacher_sessional_assignment tsa
       JOIN courses c ON tsa.course_id = c.course_id AND tsa.session = c.session
-      WHERE tsa.initial = $1 
+      WHERE tsa.initial = $1
       AND tsa.session = (SELECT value FROM configs WHERE key='CURRENT_SESSION')
       AND c.type = 1
+      GROUP BY tsa.course_id, c.class_per_week
     `;
     const sessionalResult = await client.query(sessionalQuery, [initial]);
 
     // Add sessional credits
     for (const sessional of sessionalResult.rows) {
+      const share = sessional.share || 1;
       if (sessional.class_per_week === 0.75){
-          totalCredit += 4 * (sessional.class_per_week || 0);
+          totalCredit += 4 * (sessional.class_per_week || 0) * share;
       }else{
-          totalCredit += 2 * (sessional.class_per_week || 0);
+          totalCredit += 2 * (sessional.class_per_week || 0) * share;
       }
     }
 
-    // Get all theory assignments for the teacher
+    // A theory course carries credit x sections of load, shared equally by all
+    // of its teachers however the sections are split between them: a 3-credit
+    // course with 3 sections and 2 teachers gives each teacher 9 / 2 = 4.5.
+    // An optional course counts its section-sized groups, not every section it
+    // is open to.
     const theoryQuery = `
-      SELECT DISTINCT cs.course_id, cs.section, ac.class_per_week
+      SELECT
+        cs.course_id,
+        MAX(c.class_per_week) AS class_per_week,
+        CASE WHEN MAX(c.optional) = 1 THEN MAX(c.optional_section_count)
+             ELSE COUNT(DISTINCT cs.section)
+        END AS section_count,
+        (
+          SELECT COUNT(DISTINCT t)
+          FROM courses_sections cs2, unnest(cs2.teachers) AS t
+          WHERE cs2.course_id = cs.course_id AND cs2.session = cs.session
+        ) AS teacher_count
       FROM courses_sections cs
-      JOIN all_courses ac ON cs.course_id = ac.course_id
-      WHERE $1 = ANY(cs.teachers)
-      AND cs.session = (SELECT value FROM configs WHERE key='CURRENT_SESSION')
+      JOIN courses c ON c.course_id = cs.course_id AND c.session = cs.session
+      WHERE cs.session = (SELECT value FROM configs WHERE key='CURRENT_SESSION')
       AND cs.course_id ~ '[13579]$'
       AND cs.course_id LIKE 'CSE%'
-      AND ac.type = 0
+      AND c.type = 0
+      GROUP BY cs.course_id, cs.session
+      HAVING bool_or($1 = ANY(cs.teachers))
     `;
     const theoryResult = await client.query(theoryQuery, [initial]);
 
-    // For each theory assignment, calculate credit based on number of teachers for that specific course section
     for (const theory of theoryResult.rows) {
-      // Count total teachers assigned to the same course section
-      const teacherCountQuery = `
-        SELECT array_length(teachers, 1) as teacher_count
-        FROM courses_sections
-        WHERE course_id = $1 AND section = $2
-        AND session = (SELECT value FROM configs WHERE key='CURRENT_SESSION')
-      `;
-      const teacherCountResult = await client.query(teacherCountQuery, [
-        theory.course_id,
-        theory.section,
-      ]);
-
-      const teacherCount =
-        parseInt(teacherCountResult.rows[0].teacher_count) || 1;
-      const courseCredit = theory.class_per_week || 0;
-
-      // Add proportional credit for this course section
-      if (initial === "MMA") {
-        console.log(
-          "Theory Course:",
-          theory.course_id,
-          "Section:",
-          theory.section,
-          "Credit:",
-          courseCredit,
-          "Teacher Count:",
-          teacherCount
-        );
-      }
-      totalCredit += courseCredit / teacherCount;
+      const courseLoad =
+        (theory.class_per_week || 0) * (parseInt(theory.section_count) || 0);
+      const teacherCount = parseInt(theory.teacher_count) || 1;
+      totalCredit += courseLoad / teacherCount;
     }
 
     return {
@@ -1235,6 +1235,7 @@ export async function getSessionalDistributionDB() {
         ac.class_per_week,
         cs.section,
         tsa.initial,
+        tsa.share::float AS share,
         t.name as teacher_name,
         t.surname as teacher_surname,
         sa.day,
@@ -1278,6 +1279,7 @@ export async function getSessionalDistributionDB() {
           initial: row.initial,
           name: row.teacher_name,
           surname: row.teacher_surname || "Unknown",
+          share: row.share,
         });
       }
 

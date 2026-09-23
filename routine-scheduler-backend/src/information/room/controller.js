@@ -21,12 +21,16 @@ export async function addRoom(req, res, next) {
   const type = req.body.type;
   const active = req.body.active;
   const lab_type = req.body.lab_type || null;
+  const room_number = req.body.room_number || null;
+  const full_name = req.body.full_name || null;
 
   const rooms = {
     room: room,
     type: type,
     active: active,
     lab_type: lab_type,
+    room_number: room_number,
+    full_name: full_name,
   };
 
   try {
@@ -43,12 +47,16 @@ export async function editRoom(req, res, next) {
   const type = req.body.type;
   const active = req.body.active;
   const lab_type = req.body.lab_type || null;
+  const room_number = req.body.room_number || null;
+  const full_name = req.body.full_name || null;
 
   const rooms = {
     room: room,
     type: type,
     active: active,
     lab_type: lab_type,
+    room_number: room_number,
+    full_name: full_name,
   };
 
   try {

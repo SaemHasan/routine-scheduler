@@ -17,10 +17,12 @@ export async function saveRoom(rooms) {
   const active = rooms.active;
   // Only lab rooms are software or hardware labs.
   const lab_type = type === 0 ? null : rooms.lab_type;
+  const room_number = rooms.room_number;
+  const full_name = rooms.full_name;
 
   const query =
-    "INSERT INTO rooms (room, type, active, lab_type) VALUES ($1, $2, $3, $4)";
-  const values = [room, type, active, lab_type];
+    "INSERT INTO rooms (room, type, active, lab_type, room_number, full_name) VALUES ($1, $2, $3, $4, $5, $6)";
+  const values = [room, type, active, lab_type, room_number, full_name];
 
   const client = await connect();
   const results = await client.query(query, values);
@@ -38,16 +40,20 @@ export async function updateRoom(rooms) {
   const room = rooms.room;
   const active = rooms.active;
   const lab_type = type === 0 ? null : rooms.lab_type;
+  const room_number = rooms.room_number;
+  const full_name = rooms.full_name;
 
   const query = `
     UPDATE rooms
   SET
     type = $2,
     active = $3,
-    lab_type = $4
+    lab_type = $4,
+    room_number = $5,
+    full_name = $6
   WHERE room = $1
   `;
-  const values = [room, type, active, lab_type];
+  const values = [room, type, active, lab_type, room_number, full_name];
 
   const client = await connect();
   const results = await client.query(query, values);

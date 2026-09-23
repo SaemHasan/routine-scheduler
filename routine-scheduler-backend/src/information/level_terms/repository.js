@@ -175,9 +175,11 @@ async function initializeSectionsTable(levelTerms, session) {
     try {
         await client.query("BEGIN");
         const section_count_query = `
-            select section_count, subsection_count_per_section
-            from section_count
-            where batch = $1 and department = $2;
+            select coalesce(sc.section_count, d.section_count) as section_count,
+                   coalesce(sc.subsection_count_per_section, d.subsection_count_per_section) as subsection_count_per_section
+            from default_section_count d
+            left join section_count sc on sc.department = d.department and sc.batch = $1
+            where d.department = $2;
         `;
         for (const levelTerm of activeLevelTerms) {
             const section_count_values = [parseInt(levelTerm.batch), levelTerm.department];
@@ -225,9 +227,10 @@ async function getAllActiveCourses(levelTerms, session) {
         where ltu.level_term = $1 and ltu.department = $2 and ac.optional = 0;
     `;
     const section_count_query = `
-        select section_count
-        from section_count
-        where batch = $1 and department = $2;
+        select coalesce(sc.section_count, d.section_count) as section_count
+        from default_section_count d
+        left join section_count sc on sc.department = d.department and sc.batch = $1
+        where d.department = $2;
     `;
     const client = await connect();
     let activeCourses = [];
@@ -340,6 +343,43 @@ async function initializeCoursesSectionsTable() {
     } finally {
         client.release();
     }
+}
+
+const hasBatch = (levelTerm) =>
+    levelTerm.batch !== "" &&
+    levelTerm.batch !== undefined &&
+    levelTerm.batch !== null &&
+    Number(levelTerm.batch) !== 0;
+
+/**
+ * Gives each active level-term left without a batch the batch normally in it:
+ * the newest batch is in Level 1, the one before it in Level 2, and so on.
+ */
+export async function fillMissingBatches(levelTerms) {
+    if (levelTerms.every((levelTerm) => !levelTerm.active || hasBatch(levelTerm))) {
+        return levelTerms;
+    }
+
+    const client = await connect();
+    let newest;
+    try {
+        const result = await client.query("SELECT MAX(batch) AS batch FROM section_count");
+        newest = result.rows[0].batch;
+    } finally {
+        client.release();
+    }
+    if (newest === null) {
+        throw new HttpError(400, "No batches are set up yet, so choose a batch for each level-term.");
+    }
+
+    return levelTerms.map((levelTerm) => {
+        if (!levelTerm.active || hasBatch(levelTerm)) return levelTerm;
+        const level = parseInt((levelTerm.level_term.match(/L-(\d+)/) || [])[1], 10);
+        if (!level) {
+            throw new HttpError(400, `Choose a batch for ${levelTerm.level_term} (${levelTerm.department})`);
+        }
+        return { ...levelTerm, batch: newest - (level - 1) };
+    });
 }
 
 export async function initiateDB(levelTerms) {

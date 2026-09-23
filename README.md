@@ -31,13 +31,11 @@ This application solves the complex problem of creating academic schedules while
 
 - Docker and Docker Compose
 
-> **New to Docker?** Check out this [Docker Tutorial](https://github.com/AfzalHossan-2005021/Tutorial/blob/main/Docker_Tutorial.md) to learn about Docker and Docker Compose.
-
 ### Installation and Setup
 
 1. Clone the repository:
    ```bash
-   git clone --recurse-submodules https://github.com/AfzalHossan-2005021/routine-scheduler.git
+   git clone <repository-url>
    cd routine-scheduler
    ```
 

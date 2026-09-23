@@ -8,16 +8,7 @@
     "start": "nodemon index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/alfahadarc/routine-scheduler-backend.git"
-  },
-  "author": "us",
   "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/alfahadarc/routine-scheduler-backend/issues"
-  },
-  "homepage": "https://github.com/alfahadarc/routine-scheduler-backend#readme",
   "dependencies": {
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",

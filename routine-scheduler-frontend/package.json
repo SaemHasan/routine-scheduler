@@ -2,7 +2,6 @@
   "name": "routine-scheduler-frontend",
   "version": "0.1.0",
   "private": true,
-  "author": "Md. Jehadul Karim",
   "description": "This is the frontend of Routine Scheduler",
   "dependencies": {
     "@hello-pangea/dnd": "^18.0.1",

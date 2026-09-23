@@ -1,5 +1,5 @@
 
-import { getAll, removeTeacher, saveTeacher, updateTeacher,findByInitial } from "./repository.js";
+import { getAll, removeTeacher, saveTeacher, updateTeacher, findByInitial, reorderSeniority } from "./repository.js";
 
 
 export async function getAllTeacher(req, res, next) {
@@ -70,7 +70,9 @@ export async function addTeacher(req, res, next) {
 
 
 export async function editTeacher(req, res, next) {
-    const initial = req.params['initial']
+    // The URL names the teacher as it is now; the body may carry a new initial.
+    const old_initial = req.params['initial']
+    const initial = req.body.initial || old_initial
     
     const name = req.body.name
     const surname = req.body.surname
@@ -88,6 +90,7 @@ export async function editTeacher(req, res, next) {
     
     const teacher = {
         initial: initial,
+        old_initial: old_initial,
         name: name,
         surname: surname,
         email: email,
@@ -121,6 +124,15 @@ export async function deleteTeacher(req, res, next) {
         res.status(200).json({ row:rowCount })
 
     }catch(err) {
+        next(err)
+    }
+}
+
+export async function reorderTeachers(req, res, next) {
+    try {
+        await reorderSeniority(req.body.initials)
+        res.status(200).json({ message: "success" })
+    } catch(err) {
         next(err)
     }
 }

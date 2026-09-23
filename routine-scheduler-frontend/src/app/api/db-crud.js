@@ -11,6 +11,9 @@ export const updateTeacher = (initial, teacher) =>
   axios.put(api_url(`/teacher/${initial}`), teacher).then((res) => res.data);
 export const deleteTeacher = (initial) =>
   axios.delete(api_url(`/teacher/${initial}`)).then((res) => res.data);
+// Saves the seniority order: initials listed most senior first.
+export const reorderTeachers = (initials) =>
+  axios.put(api_url("/teacher/seniority"), { initials }).then((res) => res.data);
 
 export const getCourses = () =>
     axios.get(api_url("/course")).then((res) => res.data);

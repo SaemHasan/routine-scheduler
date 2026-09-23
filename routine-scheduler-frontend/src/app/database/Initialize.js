@@ -174,23 +174,29 @@ export default function Initialize() {
     );
   };
 
+  // The batch normally in a level-term: the newest batch is in Level 1, the
+  // one before it in Level 2, and so on.
+  const autoBatch = (levelTerm) => {
+    const level = parseInt((levelTerm.match(/L-(\d+)/) || [])[1], 10);
+    if (!level || !allBatches || allBatches.length === 0) return null;
+    return Math.max(...allBatches.map(Number)) - (level - 1);
+  };
+
   // Handler for activating selected level-terms for all departments
   const handleActivateLevelTerms = () => {
     if (!selectedLevelTerms.length) {
       toast.error("Please select at least one level-term");
       return;
     }
-    // Validate batch inputs
-    for (const lt of selectedLevelTerms) {
-      if (!batchInputs[lt] || batchInputs[lt] === "") {
-        toast.error(`Please select a batch for ${lt}`);
-        return;
-      }
-    }
-    // Update level terms with selected status and batch inputs
+    // Update level terms with selected status and batch inputs; a level-term
+    // left without a batch gets the one its level implies
     const updatedLevelTerms = levelTerms.map((lt) =>
       selectedLevelTerms.includes(lt.level_term)
-        ? { ...lt, active: true, batch: batchInputs[lt.level_term] }
+        ? {
+            ...lt,
+            active: true,
+            batch: batchInputs[lt.level_term] || autoBatch(lt.level_term) || "",
+          }
         : { ...lt, active: false, batch: 0 }
     );
 
@@ -205,7 +211,10 @@ export default function Initialize() {
       .catch((error) => {
         toast.dismiss(submittingToast);
         console.error("Error initializing system:", error);
-        toast.error("Failed to initialize system. Please try again.");
+        toast.error(
+          error?.response?.data?.error?.message ||
+            "Failed to initialize system. Please try again."
+        );
       });
     setTheoryAssignStatus(0);
     setShowActivateModal(false);
@@ -530,7 +539,11 @@ export default function Initialize() {
                                   }
                                   disabled={!selectedLevelTerms.includes(lt)}
                                 >
-                                  <option value="">Select Batch</option>
+                                  <option value="">
+                                    {autoBatch(lt)
+                                      ? `Auto (batch ${autoBatch(lt)})`
+                                      : "Auto"}
+                                  </option>
                                   {allBatches && allBatches.length > 0 ? (
                                     allBatches.map((batch, i) => (
                                       <option key={i} value={batch}>

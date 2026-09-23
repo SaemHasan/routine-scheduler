@@ -2,6 +2,7 @@ import { HttpError } from '../../config/error-handle.js';
 import {
     getAll,
     updateLevelTerms,
+    fillMissingBatches,
     addLevelTermDB,
     deleteLevelTermDB,
     initiateDB,
@@ -16,7 +17,8 @@ export async function getAllLevelTerms(req, res, next){
 
 export async function setLevelTerms(req, res, next) {
     try {
-        const levelTerms = req.body;
+        // A level-term sent without a batch gets the one its level implies.
+        const levelTerms = await fillMissingBatches(req.body);
         await updateLevelTerms(levelTerms);
         await initiateDB(levelTerms);
         res.json({ message: "Initiated successfully" });

@@ -7,10 +7,12 @@ import {
   createTeacher,
   deleteTeacher,
   getTeachers,
+  reorderTeachers,
   updateTeacher,
 } from "../api/db-crud";
 import ConfirmationModal from "../shared/ConfirmationModal";
 import CreatableSelect from "react-select/creatable";
+import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 
 const initial_regex = /^[A-Z]{2,6}$/;
 const email_regex = /^[\w-.]+@([\w-]+\.)+[\w-]{2,}$/;
@@ -49,6 +51,14 @@ const validate = (teacher) => {
 // Teachers with a doctorate supervise Thesis 1 by default.
 const hasDoctorate = (name) => /(^|\s)Dr\./i.test(name || "");
 
+// Credit hours a teacher takes on by default, by designation.
+const DEFAULT_CREDITS = {
+  Professor: 15,
+  "Associate Professor": 15,
+  "Assistant Professor": 18,
+  Lecturer: 21,
+};
+
 const DESIGNATION_SUGGESTIONS = [
   { value: "Professor", label: "Professor" },
   { value: "Associate Professor", label: "Associate Professor" },
@@ -62,6 +72,7 @@ export default function Teachers() {
   const [selectedTeacher, setSelectedTeacher] = useState(null);
   // Once Thesis 1 is toggled by hand, the name no longer decides it.
   const [thesis1Touched, setThesis1Touched] = useState(false);
+  const [savingOrder, setSavingOrder] = useState(false);
   const [showMapCredit, setShowMapCredit] = useState(false);
   const [mapDesignation, setMapDesignation] = useState("");
   const [mapCredit, setMapCredit] = useState("");
@@ -194,6 +205,45 @@ export default function Teachers() {
       53,
       69
     );
+  };
+
+  const reloadTeachers = () =>
+    getTeachers().then((updated) =>
+      setTeachers(updated.sort((a, b) => a.seniority_rank - b.seniority_rank))
+    );
+
+  // Saves a new seniority order; the list's position becomes each rank.
+  const applyOrder = (ordered) => {
+    const previous = teachers;
+    setTeachers(
+      ordered.map((teacher, index) => ({
+        ...teacher,
+        seniority_rank: index + 1,
+      }))
+    );
+    setSavingOrder(true);
+    reorderTeachers(ordered.map((teacher) => teacher.initial))
+      .then(() => toast.success("Seniority updated"))
+      .catch((error) => {
+        setTeachers(previous);
+        toast.error(
+          error?.response?.data?.error?.message || "Failed to update seniority"
+        );
+      })
+      .finally(() => setSavingOrder(false));
+  };
+
+  const moveTeacher = (from, to) => {
+    if (to < 0 || to >= teachers.length || from === to) return;
+    const ordered = [...teachers];
+    const [moved] = ordered.splice(from, 1);
+    ordered.splice(to, 0, moved);
+    applyOrder(ordered);
+  };
+
+  const handleDragEnd = (result) => {
+    if (!result.destination) return;
+    moveTeacher(result.source.index, result.destination.index);
   };
 
   return (
@@ -331,9 +381,32 @@ export default function Teachers() {
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="card-table-body">
+                  <DragDropContext onDragEnd={handleDragEnd}>
+                  <Droppable droppableId="teacher-seniority">
+                    {(dropProvided) => (
+                  <tbody
+                    className="card-table-body"
+                    ref={dropProvided.innerRef}
+                    {...dropProvided.droppableProps}
+                  >
                     {teachers.map((teacher, idx) => (
-                      <tr key={teacher.initial}>
+                      <Draggable
+                        key={teacher.initial}
+                        draggableId={teacher.initial}
+                        index={idx}
+                        isDragDisabled={savingOrder}
+                      >
+                        {(dragProvided, snapshot) => (
+                      <tr
+                        ref={dragProvided.innerRef}
+                        {...dragProvided.draggableProps}
+                        style={{
+                          ...dragProvided.draggableProps.style,
+                          background: snapshot.isDragging
+                            ? "rgba(174, 117, 228, 0.12)"
+                            : undefined,
+                        }}
+                      >
                         <td className="sticky-col">{teacher.initial}</td>
                         <td>
                           <input
@@ -432,37 +505,36 @@ export default function Teachers() {
                           />
                         </td>
                         <td>
-                          <input
-                            type="number"
-                            className="form-input"
-                            value={teacher.seniority_rank}
-                            onChange={(e) => {
-                              const newTeachers = [...teachers];
-                              newTeachers[idx].seniority_rank = Number(
-                                e.target.value
-                              );
-                              setTeachers(newTeachers);
-                            }}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") {
-                                updateTeacher(
-                                  teacher.prev_initial || teacher.initial,
-                                  {
-                                    ...teacher,
-                                    seniority_rank: Number(e.target.value),
-                                  }
-                                )
-                                  .then(() =>
-                                    toast.success(
-                                      "Teacher updated successfully"
-                                    )
-                                  )
-                                  .catch((error) => {
-                                    toast.error("Failed to update teacher");
-                                  });
+                          <div
+                            className="d-flex align-items-center"
+                            style={{ gap: "6px", whiteSpace: "nowrap" }}
+                          >
+                            <span
+                              {...dragProvided.dragHandleProps}
+                              className="mdi mdi-drag"
+                              title="Drag to change seniority"
+                              style={{ fontSize: "20px", cursor: "grab" }}
+                            ></span>
+                            <span style={{ minWidth: "24px", fontWeight: 600 }}>
+                              {teacher.seniority_rank}
+                            </span>
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-link p-0 mdi mdi-arrow-up-bold"
+                              title="Move up (more senior)"
+                              disabled={savingOrder || idx === 0}
+                              onClick={() => moveTeacher(idx, idx - 1)}
+                            ></button>
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-link p-0 mdi mdi-arrow-down-bold"
+                              title="Move down (less senior)"
+                              disabled={
+                                savingOrder || idx === teachers.length - 1
                               }
-                            }}
-                          />
+                              onClick={() => moveTeacher(idx, idx + 1)}
+                            ></button>
+                          </div>
                         </td>
                         <td>
                           <div
@@ -715,8 +787,14 @@ export default function Teachers() {
                           </div>
                         </td>
                       </tr>
+                        )}
+                      </Draggable>
                     ))}
+                    {dropProvided.placeholder}
                   </tbody>
+                    )}
+                  </Droppable>
+                  </DragDropContext>
                 </table>
               </div>
             </div>
@@ -852,11 +930,10 @@ export default function Teachers() {
                         className="form-control"
                         placeholder="Enter Initial"
                         value={selectedTeacher.initial}
-                        disabled={selectedTeacher.prev_initial !== ""}
                         onChange={(e) =>
                           setSelectedTeacher({
                             ...selectedTeacher,
-                            initial: e.target.value,
+                            initial: e.target.value.toUpperCase(),
                           })
                         }
                       />
@@ -952,9 +1029,16 @@ export default function Teachers() {
                         }
                         onChange={(e) => {
                           if (!e) return;
+                          const isNew = selectedTeacher.prev_initial === "";
                           setSelectedTeacher({
                             ...selectedTeacher,
                             designation: e.value,
+                            // A new teacher starts with the usual credit hours
+                            // for the designation; it can still be changed.
+                            teacher_credits_offered:
+                              isNew && DEFAULT_CREDITS[e.value] !== undefined
+                                ? DEFAULT_CREDITS[e.value]
+                                : selectedTeacher.teacher_credits_offered,
                           });
                         }}
                         options={DESIGNATION_SUGGESTIONS}
@@ -978,6 +1062,14 @@ export default function Teachers() {
                         className="form-control"
                         placeholder="Enter Seniority Rank"
                         value={selectedTeacher.seniority_rank}
+                        // An existing teacher is moved with drag-and-drop or
+                        // the arrows in the table, which keep ranks gap-free.
+                        disabled={selectedTeacher.prev_initial !== ""}
+                        title={
+                          selectedTeacher.prev_initial !== ""
+                            ? "Drag the row or use the arrows in the table to change seniority"
+                            : undefined
+                        }
                         onChange={(e) =>
                           setSelectedTeacher({
                             ...selectedTeacher,
@@ -1152,22 +1244,16 @@ export default function Teachers() {
                         toast.error("Failed to add teacher");
                       });
                   } else {
+                    // The URL names the teacher by the old initial; the body
+                    // carries the new one when it was changed.
                     updateTeacher(selectedTeacher.prev_initial, selectedTeacher)
-                      .then((res) => {
-                        const index = teachers.findIndex(
-                          (t) => t.initial === selectedTeacher.prev_initial
-                        );
-                        const newTeachers = [...teachers];
-                        newTeachers[index] = selectedTeacher;
-                        setTeachers(
-                          newTeachers.sort(
-                            (a, b) => a.seniority_rank - b.seniority_rank
-                          )
-                        );
-                        toast.success("Teacher updated successfully");
-                      })
+                      .then(() => reloadTeachers())
+                      .then(() => toast.success("Teacher updated successfully"))
                       .catch((error) => {
-                        toast.error("Failed to update teacher");
+                        toast.error(
+                          error?.response?.data?.error?.message ||
+                            "Failed to update teacher"
+                        );
                       });
                   }
                   setSelectedTeacher(null);

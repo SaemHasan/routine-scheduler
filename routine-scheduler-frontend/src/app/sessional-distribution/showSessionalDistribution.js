@@ -5,6 +5,7 @@ import { getDepartmentalSessionalSchedule, setSessionalSchedules, teacherContrad
 import { getSessionalTeachers } from '../api/theory-assign';
 import { getTeachers, getLabCourses } from '../api/db-crud';
 import { setTeacherSessionalAssignment, deleteTeacherSessionalAssignment } from '../api/theory-assign';
+import { formatSessionalTeachers, isHalf, slotCount } from '../shared/sessionalTeachers';
 import { getSchedules } from '../api/theory-schedule';
 import { Modal, Button } from 'react-bootstrap';
 
@@ -74,12 +75,7 @@ function CourseTeachers({ courseId, section }) {
   return (
     <div style={scheduleTableStyle.teacherBadge}>
       <i className="mdi mdi-account-multiple mr-1"></i>
-      {teachers.map((teacher, index) => (
-        <span key={teacher.initial}>
-          {teacher.initial}
-          {index < teachers.length - 1 ? ', ' : ''}
-        </span>
-      ))}
+      {formatSessionalTeachers(teachers)}
     </div>
   );
 }
@@ -231,6 +227,8 @@ export default function ShowSessionalDistribution() {
   const [showTeachersList, setShowTeachersList] = useState(false);
   const [showRemoveTeacherList, setShowRemoveTeacherList] = useState(false);
   const [assignedTeachers, setAssignedTeachers] = useState([]);
+  // 1 = full lab slot, 0.5 = shares one slot with another teacher
+  const [assignShare, setAssignShare] = useState(1);
   const [selectedTeacherToRemove, setSelectedTeacherToRemove] = useState(null);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [loadingTeachers, setLoadingTeachers] = useState(false);
@@ -418,8 +416,13 @@ export default function ShowSessionalDistribution() {
       const teacherLimit =
         labCourseList.find(c => c.course_id === selectedCourse.course_id)?.teacher_count || 3;
 
-      if (currentTeachers.length >= teacherLimit) {
-        toast(`Warning: There are already ${currentTeachers.length} teachers assigned in course ${selectedCourse.course_id}, which needs ${teacherLimit}`, {
+      // Two half-slot teachers fill one slot
+      const filledSlots = slotCount(currentTeachers);
+      // A half slot waiting for its partner is the natural next pick
+      setAssignShare(filledSlots % 1 === 0.5 ? 0.5 : 1);
+
+      if (filledSlots >= teacherLimit) {
+        toast(`Warning: ${formatSessionalTeachers(currentTeachers)} already fill ${filledSlots} slot(s) in ${selectedCourse.course_id}, which needs ${teacherLimit}`, {
           icon: '⚠️',
           style: {
             background: '#FFF3CD',
@@ -529,10 +532,14 @@ export default function ShowSessionalDistribution() {
         course_id: selectedCourse.course_id,
         batch: selectedCourse.batch,
         section: selectedCourse.section,
+        share: assignShare,
       };
 
       await setTeacherSessionalAssignment(assignment);
-      toast.success(`Teacher ${teacherInitial} assigned to ${selectedCourse.course_id}`);
+      toast.success(
+        `Teacher ${teacherInitial} assigned to ${selectedCourse.course_id}` +
+          (assignShare === 0.5 ? ' (half lab)' : '')
+      );
 
       // Refresh the course data
       const data = await getDepartmentalSessionalSchedule();
@@ -1032,6 +1039,9 @@ export default function ShowSessionalDistribution() {
                               onClick={() => setSelectedTeacherToRemove(teacher.initial)}
                             >
                               {teacher.name} ({teacher.initial})
+                              {isHalf(teacher) && (
+                                <span className="pill optional ms-2">Half lab</span>
+                              )}
                             </div>
                           ))}
                         </div>
@@ -1066,7 +1076,23 @@ export default function ShowSessionalDistribution() {
                       </div>
                     ) : (
                       <div>
-                        <h6 style={{ marginBottom: '15px', color: '#666' }}>Select a Teacher</h6>
+                        <div className="d-flex align-items-center justify-content-between mb-3" style={{ gap: '10px', flexWrap: 'wrap' }}>
+                          <h6 style={{ margin: 0, color: '#666' }}>Select a Teacher</h6>
+                          <div className="segmented-toggle" title="A half lab shares one slot with another teacher; each gets half the credit">
+                            <button
+                              className={assignShare === 1 ? 'active' : ''}
+                              onClick={() => setAssignShare(1)}
+                            >
+                              Full lab
+                            </button>
+                            <button
+                              className={assignShare === 0.5 ? 'active' : ''}
+                              onClick={() => setAssignShare(0.5)}
+                            >
+                              Half lab (shared)
+                            </button>
+                          </div>
+                        </div>
                         <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
                           {teachers.map(teacher => (
                             <div

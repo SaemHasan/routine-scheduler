@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 import { getSessionalDistribution } from '../api/theory-assign';
+import { groupIntoSlots, isHalf } from '../shared/sessionalTeachers';
 
 /**
  * Helper function to format section display for 0.75 credit courses
@@ -106,13 +107,17 @@ export default function SessionalDistribution() {
                         gap: "4px",
                       }}
                     >
-                      {course.teachers_details.map((teacher, idx) => (
+                      {groupIntoSlots(course.teachers_details).map((slot, idx) => (
                         <div
                           key={idx}
                           className="colored-badge-light"
-                          title={`${teacher.name} (${teacher.initial})`}
+                          title={
+                            slot.map((t) => `${t.name} (${t.initial})`).join(" / ") +
+                            (isHalf(slot[0]) ? " — half lab each" : "")
+                          }
                         >
-                          {teacher.surname}
+                          {slot.map((t) => t.surname).join(" / ")}
+                          {isHalf(slot[0]) && " (½)"}
                         </div>
                       ))}
                     </div>

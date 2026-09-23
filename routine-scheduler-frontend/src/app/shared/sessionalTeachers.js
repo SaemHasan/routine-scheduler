@@ -1,0 +1,39 @@
+// A sessional teacher either takes a full lab slot (share 1) or shares one slot
+// with another teacher (share 0.5), each taking half the lab and its credit.
+
+export const isHalf = (teacher) => Number(teacher.share) === 0.5;
+
+/** Lab slots a section's teachers fill: two half-slot teachers make one. */
+export const slotCount = (teachers) =>
+  (teachers || []).reduce(
+    (sum, teacher) => sum + (isHalf(teacher) ? 0.5 : 1),
+    0
+  );
+
+/**
+ * Groups a section's teachers into slots, pairing half-slot teachers in the
+ * order given: [AKMAR½, MN½, SMH, HT] → [["AKMAR", "MN"], ["SMH"], ["HT"]].
+ * An unpaired half-slot teacher is left in a slot of its own.
+ */
+export const groupIntoSlots = (teachers) => {
+  const slots = [];
+  let openHalf = null;
+  (teachers || []).forEach((teacher) => {
+    if (!isHalf(teacher)) {
+      slots.push([teacher]);
+    } else if (openHalf) {
+      openHalf.push(teacher);
+      openHalf = null;
+    } else {
+      openHalf = [teacher];
+      slots.push(openHalf);
+    }
+  });
+  return slots;
+};
+
+/** "AKMAR/MN, SMH, HT" */
+export const formatSessionalTeachers = (teachers) =>
+  groupIntoSlots(teachers)
+    .map((slot) => slot.map((teacher) => teacher.initial).join("/"))
+    .join(", ");

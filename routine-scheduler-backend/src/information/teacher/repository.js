@@ -88,6 +88,8 @@ export async function saveTeacher(teacher) {
 
 export async function updateTeacher(teacher) {
   const initial = teacher.initial;
+  // The teacher's current initial; differs from `initial` when it is renamed.
+  const old_initial = teacher.old_initial || initial;
   const name = teacher.name;
   const surname = teacher.surname;
   const email = teacher.email;
@@ -105,6 +107,7 @@ export async function updateTeacher(teacher) {
   const query = `
       UPDATE teachers
       SET
+        initial = $1,
         name = $2,
         surname = $3,
         email = $4,
@@ -118,7 +121,7 @@ export async function updateTeacher(teacher) {
         offers_thesis_2 = $12,
         offers_msc = $13,
         teacher_credits_offered = $14
-      WHERE initial = $1
+      WHERE initial = $15
     `;
   const values = [
     initial,
@@ -134,17 +137,97 @@ export async function updateTeacher(teacher) {
     offers_thesis_1,
     offers_thesis_2,
     offers_msc,
-    teacher_credits_offered
+    teacher_credits_offered,
+    old_initial
   ];
 
   const client = await connect();
-  const results = await client.query(query, values);
-  client.release();
+  try {
+    await client.query("BEGIN");
 
-  if (results.rowCount <= 0) {
-    throw new HttpError(400, "Update Failed");
-  } else {
-    return results.rowCount; // Return the first found admin
+    const renamed = initial !== old_initial;
+    if (renamed) {
+      const taken = await client.query(
+        "SELECT 1 FROM teachers WHERE initial = $1",
+        [initial]
+      );
+      if (taken.rowCount > 0) {
+        throw new HttpError(409, `Initial ${initial} is already used by another teacher`);
+      }
+    }
+
+    // teacher_assignment and teacher_sessional_assignment follow the rename
+    // through their foreign keys.
+    const results = await client.query(query, values);
+    if (results.rowCount <= 0) {
+      throw new HttpError(400, "Update Failed");
+    }
+
+    if (renamed) {
+      // These hold initials without a foreign key, so they are renamed by hand.
+      await client.query("UPDATE forms SET initial = $1 WHERE initial = $2", [
+        initial,
+        old_initial,
+      ]);
+      await client.query(
+        `UPDATE courses_sections SET teachers = array_replace(teachers, $2, $1)
+         WHERE $2 = ANY(teachers)`,
+        [initial, old_initial]
+      );
+      await client.query(
+        `UPDATE schedule_assignment SET teachers = array_replace(teachers, $2, $1)
+         WHERE $2 = ANY(teachers)`,
+        [initial, old_initial]
+      );
+    }
+
+    await client.query("COMMIT");
+    return results.rowCount;
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+/**
+ * Sets the seniority of every teacher from `initials`, most senior first.
+ * The list must name each teacher exactly once.
+ */
+export async function reorderSeniority(initials) {
+  const client = await connect();
+  try {
+    await client.query("BEGIN");
+
+    const all = await client.query("SELECT initial FROM teachers");
+    const known = new Set(all.rows.map((row) => row.initial));
+    const given = new Set(initials);
+    if (
+      given.size !== initials.length ||
+      given.size !== known.size ||
+      initials.some((initial) => !known.has(initial))
+    ) {
+      throw new HttpError(
+        400,
+        "The seniority order must list every teacher exactly once. Reload the page and try again."
+      );
+    }
+
+    await client.query(
+      `UPDATE teachers t
+       SET seniority_rank = o.rank
+       FROM unnest($1::varchar[]) WITH ORDINALITY AS o(initial, rank)
+       WHERE t.initial = o.initial`,
+      [initials]
+    );
+
+    await client.query("COMMIT");
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
   }
 }
 

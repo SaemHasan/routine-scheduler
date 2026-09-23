@@ -19,6 +19,7 @@ import {
 import Icon from "@mdi/react";
 import CardWithButton from "../shared/CardWithButton";
 import ConfirmationModal from "../shared/ConfirmationModal";
+import TeacherPicker, { courseLoad, formatLoad } from "./TeacherPicker";
 
 export default function TheoryPreference() {
   const [status, setStatus] = useState({
@@ -29,6 +30,8 @@ export default function TheoryPreference() {
   const [selectedTeacher, setSelectedTeacher] = useState(null);
   const [selectedCourse, setSelectedCourse] = useState([]);
   const [allTeachers, setAllTeachers] = useState([]);
+  // Course whose teachers are being picked
+  const [pickerCourseId, setPickerCourseId] = useState(null);
   const [showConfirm, setShowConfirm] = useState(false);
   const [confirmAction, setConfirmAction] = useState("");
   const [selectedTeacherRow, setSelectedTeacherRow] = useState(null);
@@ -157,6 +160,36 @@ export default function TheoryPreference() {
       newPref.splice(source.index, 1);
       setSelectedCourse(newPref);
       return;
+    }
+  };
+
+  // Adds the picked teachers to a course one after another
+  const handleAssignTeachers = async (initials) => {
+    const courseId = pickerCourseId;
+    const loadingToast = toast.loading(
+      `Assigning ${initials.length} teacher${initials.length === 1 ? "" : "s"}...`
+    );
+    const failed = [];
+    for (const initial of initials) {
+      try {
+        await setTeacherAssignment({
+          course_id: courseId,
+          initial,
+          old_initial: "None",
+        });
+      } catch (error) {
+        console.error(`Error adding ${initial}:`, error);
+        failed.push(initial);
+      }
+    }
+    handleGetStatus();
+    getAllTheoryTeacherAssignment().then(setAllTheoryTeacherAssignment);
+    toast.dismiss(loadingToast);
+    if (failed.length > 0) {
+      toast.error(`Could not assign ${failed.join(", ")} to ${courseId}`);
+    } else {
+      toast.success(`Assigned ${initials.join(", ")} to ${courseId}`);
+      setPickerCourseId(null);
     }
   };
 
@@ -777,6 +810,10 @@ export default function TheoryPreference() {
                           Section Count
                         </th>
                         <th style={{ textAlign: "center" }}>
+                          <i className="mdi mdi-scale-balance" />
+                          Load / Teacher
+                        </th>
+                        <th style={{ textAlign: "center" }}>
                           <i className="mdi mdi-clipboard-outline" />
                           Status
                         </th>
@@ -795,20 +832,23 @@ export default function TheoryPreference() {
                             <td className="text-center">
                               {course.section_count}
                             </td>
+                            <td
+                              className="text-center"
+                              title={`${course.class_per_week} credit × ${course.section_count} section(s), shared equally by the course's teachers`}
+                            >
+                              {course.teachers && course.teachers.length > 0
+                                ? formatLoad(
+                                    courseLoad(course) / course.teachers.length
+                                  )
+                                : "—"}
+                            </td>
                             <td className="text-center">
-                              {course.teachers ? (
-                                course.teachers.length <
+                              {course.teachers && course.teachers.length > 0 ? (
+                                course.teachers.length <=
                                 parseInt(course.section_count) ? (
                                   <i
-                                    className="mdi mdi-alert-circle-outline"
-                                    title="Not enough teachers assigned"
-                                    style={{ color: "orange" }}
-                                  />
-                                ) : course.teachers.length ===
-                                  parseInt(course.section_count) ? (
-                                  <i
                                     className="mdi mdi-check-circle-outline"
-                                    title="Teachers assigned correctly"
+                                    title={`${course.teachers.length} teacher(s) share ${course.section_count} section(s)`}
                                     style={{ color: "green" }}
                                   />
                                 ) : (
@@ -832,27 +872,16 @@ export default function TheoryPreference() {
                                   course.teachers.map((teacher) => (
                                     <div
                                       key={`${course.course_id}-${teacher.initial}`}
-                                      style={{
-                                        display: "inline-flex",
-                                        alignItems: "center",
-                                        background: "rgba(174, 117, 228, 0.1)",
-                                        borderRadius: "4px",
-                                        padding: "4px 8px",
-                                        margin: "2px",
-                                        border:
-                                          "1px solid rgba(174, 117, 228, 0.2)",
-                                      }}
+                                      className="entity-chip"
+                                      style={{ margin: "2px", padding: "4px 4px 4px 12px" }}
+                                      title={
+                                        allTeachers.find((t) => t.initial === teacher.initial)?.name
+                                      }
                                     >
-                                      <span
-                                        style={{
-                                          color: "#333",
-                                          fontWeight: "500",
-                                          marginRight: "5px",
-                                        }}
-                                      >
-                                        {teacher.initial}
-                                      </span>
+                                      {teacher.initial}
                                       <button
+                                        className="chip-remove mdi mdi-close"
+                                        title={`Remove ${teacher.initial}`}
                                         onClick={() => {
                                           const loadingToast = toast.loading(
                                             "Removing teacher..."
@@ -884,151 +913,17 @@ export default function TheoryPreference() {
                                               );
                                             });
                                         }}
-                                        style={{
-                                          background: "none",
-                                          border: "none",
-                                          cursor: "pointer",
-                                          display: "flex",
-                                          padding: "2px",
-                                          color: "#dc3545",
-                                        }}
-                                      >
-                                        <i className="mdi mdi-delete-outline" />
-                                      </button>
+                                      ></button>
                                     </div>
                                   ))}
 
-                                <Dropdown>
-                                  <Dropdown.Toggle
-                                    variant="outline-primary"
-                                    id={`dropdown-${course.course_id}`}
-                                    size="sm"
-                                    style={{
-                                      padding: "6px 12px",
-                                      borderRadius: "4px",
-                                      display: "flex",
-                                      alignItems: "center",
-                                      gap: "6px",
-                                      fontSize: "0.95rem",
-                                    }}
-                                  >
-                                    <i className="mdi mdi-plus" />
-                                  </Dropdown.Toggle>
-
-                                  <Dropdown.Menu
-                                    style={{
-                                      padding: "8px",
-                                      borderRadius: "8px",
-                                      boxShadow:
-                                        "0 4px 16px rgba(0, 0, 0, 0.1)",
-                                      border:
-                                        "1px solid rgba(174, 117, 228, 0.2)",
-                                      zIndex: 1,
-                                    }}
-                                  >
-                                    {allTeachers
-                                      .filter((teacher) => {
-                                        // If course.teachers is not defined or not an array, allow all teachers
-                                        if (!Array.isArray(course.teachers))
-                                          return true;
-                                        // Exclude teachers already assigned to this course
-                                        return !course.teachers.some(
-                                          (t) => t.initial === teacher.initial
-                                        );
-                                      })
-                                      .map((teacher) => (
-                                        <Dropdown.Item
-                                          key={teacher.initial}
-                                          style={{
-                                            display: "flex",
-                                            alignItems: "center",
-                                            padding: "8px 12px",
-                                            borderRadius: "4px",
-                                            transition: "background 0.2s ease",
-                                          }}
-                                          onClick={() => {
-                                            // Check if the course has already reached its section limit
-                                            if (
-                                              course.teachers &&
-                                              course.teachers.length >=
-                                                parseInt(course.section_count)
-                                            ) {
-                                              toast.error(
-                                                `The course ${course.course_id} has been assigned more teachers than its section count`
-                                              );
-                                            }
-                                            // Check if the teacher is already assigned to another course
-                                            const isAlreadyAssigned =
-                                              status.assignment.some(
-                                                (c) =>
-                                                  c.teachers &&
-                                                  c.teachers.some(
-                                                    (t) =>
-                                                      t.initial ===
-                                                      teacher.initial
-                                                  )
-                                              );
-                                            if (isAlreadyAssigned) {
-                                              toast.error(
-                                                `${teacher.initial} is already assigned to another course`
-                                              );
-                                            }
-                                            const loadingToast =
-                                              toast.loading(
-                                                "Adding teacher..."
-                                              );
-
-                                            setTeacherAssignment({
-                                              course_id: course.course_id,
-                                              initial: teacher.initial,
-                                              old_initial: "None",
-                                            })
-                                              .then(() => {
-                                                handleGetStatus();
-                                                getAllTheoryTeacherAssignment().then(
-                                                  setAllTheoryTeacherAssignment
-                                                );
-                                                toast.dismiss(loadingToast);
-                                                toast.success(
-                                                  `Added ${teacher.initial} to ${course.course_id}`
-                                                );
-                                              })
-                                              .catch((error) => {
-                                                toast.dismiss(loadingToast);
-                                                toast.error(
-                                                  "Failed to add teacher"
-                                                );
-                                                console.error(
-                                                  "Error adding teacher:",
-                                                  error
-                                                );
-                                              });
-                                          }}
-                                        >
-                                          <span
-                                            style={{
-                                              flex: 1,
-                                              color: "#333",
-                                              fontWeight: "500",
-                                            }}
-                                          >
-                                            {teacher.initial} - {teacher.name}
-                                          </span>
-                                        </Dropdown.Item>
-                                      ))}
-                                    {allTeachers.filter((teacher) => {
-                                      if (!Array.isArray(course.teachers))
-                                        return true;
-                                      return !course.teachers.some(
-                                        (t) => t.initial === teacher.initial
-                                      );
-                                    }).length === 0 && (
-                                      <Dropdown.Item disabled>
-                                        No available teachers
-                                      </Dropdown.Item>
-                                    )}
-                                  </Dropdown.Menu>
-                                </Dropdown>
+                                <button
+                                  className="card-control-button mdi mdi-account-plus-outline"
+                                  style={{ padding: "6px 12px", margin: "2px" }}
+                                  onClick={() => setPickerCourseId(course.course_id)}
+                                >
+                                  Assign
+                                </button>
                               </div>
                             </td>
                           </tr>
@@ -1157,10 +1052,13 @@ export default function TheoryPreference() {
                                   >
                                     <span
                                       style={{
-                                        color: "#333",
-                                        fontWeight: "500",
+                                        color: "rgb(106, 27, 154)",
+                                        fontWeight: "600",
                                         marginRight: "5px",
                                       }}
+                                      title={
+                                        allTeachers.find((t) => t.initial === teacher)?.name
+                                      }
                                     >
                                       {teacher}
                                     </span>
@@ -1314,17 +1212,19 @@ export default function TheoryPreference() {
                                               </Dropdown.Item>
                                             ))
                                       )}
-                                    {allTeachers.filter(
-                                      (teacher) =>
-                                        !section.teachers.includes(
-                                          teacher.initial
+                                    {!(status.assignment || []).some(
+                                      (a) =>
+                                        a.course_id === course.course_id &&
+                                        (a.teachers || []).some(
+                                          (t) =>
+                                            !section.teachers.includes(t.initial)
                                         )
-                                    ).length === 0 && (
+                                    ) && (
                                       <Dropdown.Item
                                         disabled
                                         style={{ color: "#999" }}
                                       >
-                                        No available teachers
+                                        All of this course's teachers are in this section
                                       </Dropdown.Item>
                                     )}
                                   </Dropdown.Menu>
@@ -1341,6 +1241,18 @@ export default function TheoryPreference() {
             </div>
           </div>
         </div>
+      )}
+
+      {pickerCourseId !== null && (
+        <TeacherPicker
+          course={(status.assignment || []).find(
+            (c) => c.course_id === pickerCourseId
+          )}
+          teachers={allTeachers}
+          assignment={status.assignment}
+          onClose={() => setPickerCourseId(null)}
+          onAssign={handleAssignTeachers}
+        />
       )}
 
       {/* Confirmation Modal */}

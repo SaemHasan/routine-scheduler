@@ -94,6 +94,36 @@ export default function Rooms() {
     );
   };
 
+  // Optional text details edited in place in the table; saved on Enter or blur.
+  const renderTextField = (room, index, field, width) => (
+    <input
+      type="text"
+      className="form-input"
+      style={{ maxWidth: width }}
+      placeholder="Optional"
+      value={room[field] || ""}
+      title="Press Enter or leave the field to save"
+      onChange={(e) => {
+        const newRooms = [...rooms];
+        newRooms[index] = { ...room, [field]: e.target.value };
+        setRooms(newRooms);
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") e.target.blur();
+      }}
+      onBlur={(e) => {
+        updateRoom(room.room, {
+          ...room,
+          [field]: e.target.value.trim() || null,
+        })
+          .then(() => toast.success("Room updated successfully"))
+          .catch(() => {
+            toast.error("Failed to update room");
+          });
+      }}
+    />
+  );
+
   useEffect(() => {
     getRooms().then((res) => {
       setRooms(res);
@@ -157,6 +187,8 @@ export default function Rooms() {
                         room: "",
                         type: 0,
                         lab_type: "",
+                        room_number: "",
+                        full_name: "",
                         active: false,
                         prev_room: "",
                       });
@@ -173,6 +205,14 @@ export default function Rooms() {
                       <th>
                         <i className="mdi mdi-door"></i>
                         Room
+                      </th>
+                      <th>
+                        <i className="mdi mdi-text"></i>
+                        Full Name
+                      </th>
+                      <th>
+                        <i className="mdi mdi-map-marker"></i>
+                        Location
                       </th>
                       <th>
                         <i className="mdi mdi-format-list-bulleted-type"></i>
@@ -196,6 +236,12 @@ export default function Rooms() {
                     {rooms.map((room, index) => (
                       <tr key={index}>
                         <td>{room.room}</td>
+                        <td>
+                          {renderTextField(room, index, "full_name", "260px")}
+                        </td>
+                        <td>
+                          {renderTextField(room, index, "room_number", "120px")}
+                        </td>
                         <td>
                           <select
                             className="form-select"
@@ -325,6 +371,48 @@ export default function Rooms() {
                           setSelectedRoom({
                             ...selectedRoom,
                             room: e.target.value,
+                          })
+                        }
+                      />
+                    </FormGroup>
+                  </Col>
+                </Row>
+                <Row>
+                  <Col className="px-2 py-1">
+                    <FormGroup>
+                      <Form.Label className="form-label">
+                        Full Name (optional)
+                      </Form.Label>
+                      <FormControl
+                        type="text"
+                        className="form-control"
+                        placeholder="e.g. Interfacing Lab"
+                        value={selectedRoom.full_name || ""}
+                        onChange={(e) =>
+                          setSelectedRoom({
+                            ...selectedRoom,
+                            full_name: e.target.value,
+                          })
+                        }
+                      />
+                    </FormGroup>
+                  </Col>
+                </Row>
+                <Row>
+                  <Col className="px-2 py-1">
+                    <FormGroup>
+                      <Form.Label className="form-label">
+                        Location (optional)
+                      </Form.Label>
+                      <FormControl
+                        type="text"
+                        className="form-control"
+                        placeholder="e.g. G-07"
+                        value={selectedRoom.room_number || ""}
+                        onChange={(e) =>
+                          setSelectedRoom({
+                            ...selectedRoom,
+                            room_number: e.target.value,
                           })
                         }
                       />
