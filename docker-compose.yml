@@ -1,0 +1,72 @@
+services:
+  frontend:
+    build: ./routine-scheduler-frontend
+    container_name: routine-scheduler-frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    volumes:
+      - ./routine-scheduler-frontend:/app
+      - /app/node_modules
+    # networks:
+    #   - app-network
+
+  backend:
+    build: ./routine-scheduler-backend
+    container_name: routine-scheduler-backend
+    ports:
+      - "4200:4200"
+    env_file:
+      - ./.env
+    volumes:
+      - ./routine-scheduler-backend:/app
+      - /app/node_modules
+    # networks:
+    #   - app-network
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    container_name: routine-scheduler-db
+    image: postgres:15-alpine3.20
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    # networks:
+    #   - app-network
+
+  pgadmin:
+    container_name: pgadmin4
+    image: dpage/pgadmin4
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
+    ports:
+      - "5050:80"
+    # networks:
+    #   - app-network
+    depends_on:
+      - db
+
+# networks:
+#   app-network:
+#     driver: bridge
+
+volumes:
+  db-data:
+    driver: local

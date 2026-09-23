@@ -1,0 +1,43 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Environment variables (keep .env.example)
+.env
+.env.*
+!.env.example
+
+# Frontend production build
+routine-scheduler-frontend/build/
+
+# Routine PDFs the backend generates at runtime
+routine-scheduler-backend/src/pdfgenerator/*.pdf
+
+# Database dumps
+db-backups/*
+!db-backups/.gitkeep
+*.dump
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# Caches
+.cache/
+.eslintcache
+
+# Editors and OS
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db

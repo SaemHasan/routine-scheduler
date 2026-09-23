@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Room Routine</title>
+    <style>
+      @page {
+        size: A4;
+        margin: 0.5in;
+      }
+
+      body {
+        font-family: Arial, sans-serif;
+        font-size: 9pt;
+        line-height: 1.2;
+        margin: 0;
+        padding: 0;
+      }
+
+      .main-header {
+        text-align: center;
+        font-weight: bold;
+        font-size: 14pt;
+        margin-bottom: 5px;
+      }
+
+      .dept-header {
+        text-align: center;
+        font-size: 10pt;
+        margin-bottom: 20px;
+      }
+
+      .section-header {
+        text-align: center;
+        font-weight: bold;
+        font-size: 11pt;
+        margin-top: 15px;
+        margin-bottom: 3px;
+      }
+
+      .routine-date {
+        text-align: center;
+        font-size: 9pt;
+        margin-bottom: 10px;
+      }
+
+      table {
+        border-collapse: collapse;
+        width: 100%;
+        margin-bottom: 20px;
+        font-size: 8pt;
+      }
+
+      th {
+        border: 1px solid #000;
+        background-color: #f0f0f0;
+        text-align: center;
+        padding: 4px 2px;
+        font-weight: bold;
+        font-size: 8pt;
+      }
+
+      td {
+        border: 1px solid #000;
+        text-align: center;
+        padding: 2px 1px;
+        vertical-align: middle;
+        font-size: 7pt;
+        line-height: 1.1;
+      }
+
+      .day-column {
+        width: 50px;
+        font-weight: bold;
+        background-color: #f8f8f8;
+      }
+
+      .time-column {
+        width: 9%;
+        min-width: 45px;
+      }
+
+      .course-cell {
+        font-size: 7pt;
+        line-height: 1;
+      }
+
+      .course-code {
+        font-weight: bold;
+        font-size: 7pt;
+      }
+
+      .room-number {
+        font-size: 7pt;
+      }
+
+      .section-name {
+        font-size: 7pt;
+      }
+
+      .teacher-initials {
+        font-size: 6pt;
+        font-style: italic;
+      }
+
+      .level-term {
+        font-size: 6pt;
+      }
+
+      .multi-course-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 0;
+        padding: 0;
+      }
+
+      .multi-course-row {
+        border-bottom: none;
+      }
+
+      .multi-course-row:last-child {
+        border-bottom: none;
+      }
+
+      .multi-course-cell {
+        padding: 3px 0;
+        border: none;
+        width: 100%;
+        position: relative;
+      }
+
+      .course-divider {
+        height: 1px;
+        background-color: #000;
+        position: absolute;
+        bottom: -1px;
+        left: -1px;
+        right: -1px;
+      }
+
+      .page-break {
+        page-break-before: always;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="main-header">ROOM ROUTINE</div>
+    <div class="routine-date">{{@root.currentSession}}</div>
+    <div class="dept-header">Dept of CSE, BUET</div>
+
+    {{#each datas}} {{#unless @first}}
+    <div class="page-break"></div>
+    {{/unless}}
+    <div class="section-header">{{this.title}}</div>
+
+    {{#if this.isEmpty}}
+    <div
+      style="
+        text-align: center;
+        margin: 10px 0;
+        font-style: italic;
+        color: #666;
+      "
+    >
+      No scheduled classes for this room
+    </div>
+    {{/if}}
+
+    <table width="100%">
+      <thead>
+        <tr>
+          <th class="day-column">Day</th>
+          <th class="time-column">8</th>
+          <th class="time-column">9</th>
+          <th class="time-column">10</th>
+          <th class="time-column">11</th>
+          <th class="time-column">12</th>
+          <th class="time-column">1</th>
+          <th class="time-column">2</th>
+          <th class="time-column">3</th>
+          <th class="time-column">4</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{#each this.schedule}}
+        <tr>
+          <td class="day-column">{{this.day}}</td>
+          {{#each this.appointments}}
+          <td class="course-cell" colspan="{{this.colspan}}">
+            {{#if this.hasMultipleCourses}}
+            <table
+              class="multi-course-table"
+              style="
+                width: 100%;
+                border-collapse: collapse;
+                margin: 0;
+                padding: 0;
+              "
+            >
+              {{#each this.courses}}
+              <tr class="multi-course-row">
+                <td
+                  class="multi-course-cell"
+                  style="
+                    padding: 3px 0;
+                    border: none;
+                    width: 100%;
+                    position: relative;
+                  "
+                >
+                  <div class="course-code">
+                    {{this.course_id}}{{#if this.section}}{{#if
+                    this.showSection}} ({{this.section}}){{/if}}{{/if}}
+                  </div>
+                  <div class="room-number">{{this.section}}</div>
+                  {{#if this.initial}}
+                  <div class="teacher-initials">[ {{this.initial}} ]</div>
+                  {{/if}} {{#if ../this.level_term}}
+                  <div class="level-term">{{../this.level_term}}</div>
+                  {{/if}} {{#unless @last}}
+                  <div
+                    class="course-divider"
+                    style="
+                      height: 1px;
+                      background-color: #000;
+                      position: absolute;
+                      bottom: -1px;
+                      left: -1px;
+                      right: -1px;
+                    "
+                  ></div>
+                  {{/unless}}
+                </td>
+              </tr>
+              {{/each}}
+            </table>
+            {{else}} {{#if this.course_id}}
+            <div class="course-code">{{this.course_id}}</div>
+            <div class="section-name">{{this.section}}</div>
+            {{#if this.initial}}
+            <div class="teacher-initials">[ {{this.initial}} ]</div>
+            {{/if}} {{/if}} {{/if}}
+          </td>
+          {{/each}}
+        </tr>
+        {{/each}}
+      </tbody>
+    </table>
+    {{/each}}
+  </body>
+</html>

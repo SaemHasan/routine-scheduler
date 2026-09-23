@@ -1,0 +1,40 @@
+/* Custom Dropdown Styling */
+
+.custom-select-styled {
+  &:focus {
+    border-color: theme-color(primary) !important;
+    box-shadow: 0 0 0 0.2rem rgba(182, 109, 255, 0.25) !important;
+  }
+  
+  &:hover {
+    border-color: darken(#e4e4e4, 10%) !important;
+  }
+  
+  option {
+    background-color: #fff;
+    color: #3e4b5b;
+    
+    &:hover, &:focus, &:active {
+      background: rgba(182, 109, 255, 0.1) !important;
+    }
+  }
+}
+
+/* Adjustments for select element in various states */
+select.form-control, 
+select.form-select {
+  &.custom-select-styled {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url("data:image/svg+xml;utf8,<svg fill='%23b66dff' height='24' viewBox='0 0 24 24' width='24' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/><path d='M0 0h24v24H0z' fill='none'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 1.5rem;
+    padding-right: 2.5rem !important;
+    
+    &:focus {
+      outline: none;
+    }
+  }
+}

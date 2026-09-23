@@ -1,0 +1,57 @@
+.table-responsive {
+  .table {
+    &.table-bordered {
+      &.table-hover {
+        td {
+          position: relative;
+          min-width: 180px;
+          vertical-align: top;
+          padding: 8px;
+
+          &.has-courses {
+            background-color: rgba(0, 123, 255, 0.05);
+          }
+
+          .scheduled-course {
+            margin-bottom: 8px;
+            padding: 8px;
+            border-radius: 4px;
+            background-color: rgba(255, 255, 255, 0.9);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(0, 123, 255, 0.2);
+
+            &:last-child {
+              margin-bottom: 0;
+            }
+
+            .course-code {
+              font-weight: 600;
+              color: #2196f3;
+              font-size: 0.9rem;
+            }
+
+            .course-section {
+              font-size: 0.85rem;
+              color: #666;
+              margin-top: 2px;
+            }
+
+            .course-teacher {
+              font-size: 0.85rem;
+              color: #666;
+              margin-top: 2px;
+              font-style: italic;
+            }
+          }
+        }
+
+        th {
+          background-color: #f8f9fa;
+          font-weight: 600;
+          text-align: center;
+          min-width: 100px;
+        }
+      }
+    }
+  }
+}
