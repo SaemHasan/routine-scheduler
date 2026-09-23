@@ -142,6 +142,9 @@ CREATE TABLE public.schedule_assignment (
 	department character varying DEFAULT 'CSE'::character varying NOT NULL,
 	room_no character varying,
 	teachers text[] DEFAULT '{}'::text[],
+	-- Sessional placements kept when the sessional scheduler runs again;
+	-- anything placed or changed by hand is locked.
+	locked boolean DEFAULT false NOT NULL,
 	CONSTRAINT schedule_assignment_check CHECK (((day)::text = ANY (ARRAY[('Saturday'::character varying)::text, ('Sunday'::character varying)::text, ('Monday'::character varying)::text, ('Tuesday'::character varying)::text, ('Wednesday'::character varying)::text]))),
 	CONSTRAINT schedule_assignment_pk PRIMARY KEY (department, batch, section, day, "time", course_id),
 	CONSTRAINT schedule_assignment_un UNIQUE (course_id, session, batch, section, day, "time", department),
@@ -163,6 +166,31 @@ CREATE TABLE public.teacher_sessional_assignment (
 	CONSTRAINT teacher_sessional_assignment_pk PRIMARY KEY (initial, course_id, session, batch, section),
 	CONSTRAINT teacher_sessional_assignment_courses_sections_fk FOREIGN KEY (course_id,"session",batch,"section") REFERENCES public.courses_sections(course_id,"session",batch,"section"),
 	CONSTRAINT teacher_sessional_assignment_teachers_fk FOREIGN KEY (initial) REFERENCES public.teachers(initial) ON UPDATE CASCADE
+);
+
+-- Rules the sessional scheduler must follow.
+--   blocked_slot: no sessional for the matching sections on `day` (at the
+--                 period `time`, or all day when it is NULL). department,
+--                 level_term and section narrow it; NULL means all.
+--   course_rooms: course_id may only use `rooms`.
+--   course_together: for course_id, `same_slot` puts all its sections in one
+--                 slot and `shared_room` has each section's subsections
+--                 (A1 and A2) use one room together.
+CREATE TABLE public.sessional_constraints (
+	id serial NOT NULL,
+	kind varchar NOT NULL,
+	department varchar NULL,
+	level_term varchar NULL,
+	section varchar NULL,
+	"day" varchar NULL,
+	"time" int4 NULL,
+	course_id varchar NULL,
+	rooms text[] NULL,
+	same_slot boolean DEFAULT false NOT NULL,
+	shared_room boolean DEFAULT false NOT NULL,
+	note varchar NULL,
+	CONSTRAINT sessional_constraints_pkey PRIMARY KEY (id),
+	CONSTRAINT sessional_constraints_kind_check CHECK (kind IN ('blocked_slot', 'course_rooms', 'course_together'))
 );
 
 CREATE TABLE public.all_courses (
@@ -228,6 +256,14 @@ INSERT INTO public.sessional_types (code, "name", teacher_count, lab_type, sort_
 	('DEPT_PRESENTATION', 'Departmental Presentation', 2, 'SW', 3),
 	('NON_DEPT_SW', 'Non-Departmental Software', 2, 'SW', 4),
 	('NON_DEPT_HW', 'Non-Departmental Hardware', 2, 'HW', 5);
+
+-- Capstone runs for every section at once, one room per section.
+INSERT INTO public.sessional_constraints (kind, course_id, same_slot, shared_room, note) VALUES
+	('course_together', 'CSE450', true, true, 'Capstone project');
+
+-- Tuesday 2 PM was kept free of sessionals in past routines.
+INSERT INTO public.sessional_constraints (kind, "day", "time", note) VALUES
+	('blocked_slot', 'Tuesday', 2, 'Kept free in past routines');
 
 INSERT INTO public.rooms (room,"type",lab_type,full_name,room_number) VALUES
 ('IAC', 1, 'SW', 'BK-IAC Center', 'G-02'),

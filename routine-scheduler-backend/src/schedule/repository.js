@@ -1,5 +1,7 @@
 import { connect } from "../config/database.js";
+import { HttpError } from "../config/error-handle.js";
 import { getTheoryTeacherAssignmentDB } from "../assignment/repository.js";
+import { findSectionClashes } from "../sessional_scheduler/repository.js";
 
 /**
  * Get schedule configuration values (times, days, possibleLabTimes)
@@ -144,10 +146,32 @@ export async function setSessionalSchedule(batch, section, department, schedule)
       AND "time" = $5
     `;
     const db_courses = (await client.query(course_id_query, [batch, section, department, schedule.day, schedule.time])).rows;
+
+    // A section never has two classes at once: theory, labs from the
+    // level-term routine and other sessionals are all checked. `add` (from
+    // the sessional distribution grid) never replaces what is in the cell;
+    // otherwise (the level-term routine) choosing a course replaces it.
+    if (schedule.course_id !== "None") {
+      const clashes = await findSectionClashes(client, {
+        course_id: schedule.course_id,
+        batch,
+        section,
+        department,
+        day: schedule.day,
+        time: schedule.time,
+        replacing: !schedule.add,
+      });
+      if (clashes.length > 0) {
+        throw new HttpError(
+          409,
+          `${schedule.course_id} (${section}) clashes on ${schedule.day} with ${clashes.join(", ")}`
+        );
+      }
+    }
     if(db_courses.length === 0) {
       const insert_query = `
-        INSERT INTO schedule_assignment (batch, "section", "session", course_id, "day", "time", department)
-        VALUES ($1, $2, (SELECT value FROM configs WHERE key='CURRENT_SESSION'), $3, $4, $5, $6)
+        INSERT INTO schedule_assignment (batch, "section", "session", course_id, "day", "time", department, locked)
+        VALUES ($1, $2, (SELECT value FROM configs WHERE key='CURRENT_SESSION'), $3, $4, $5, $6, true)
       `;
       await client.query(insert_query, [batch, section, schedule.course_id, schedule.day, schedule.time, department]);
     } else {
@@ -164,7 +188,7 @@ export async function setSessionalSchedule(batch, section, department, schedule)
       } else {
         const update_query = `
           UPDATE schedule_assignment
-          SET course_id = $1
+          SET course_id = $1, locked = true
           WHERE batch = $2
           AND "section" = $3
           AND department = $4
@@ -231,9 +255,10 @@ export async function getAllScheduleDB() {
 
 export async function getDepartmentalSessionalSchedule() {
   const query = `
-    SELECT sa.course_id, sa.batch, sa."section", sa."day", sa."time", sa.department, c.class_per_week
+    SELECT sa.course_id, sa.batch, sa."section", sa."day", sa."time", sa.department, c.class_per_week,
+      sa.room_no, sa.locked
     FROM schedule_assignment sa
-    JOIN courses c ON sa.course_id = c.course_id
+    JOIN courses c ON sa.course_id = c.course_id AND sa.session = c.session
     WHERE sa.course_id LIKE 'CSE%'
     AND c.type = 1
     AND sa."session" = (SELECT value FROM configs WHERE key='CURRENT_SESSION')

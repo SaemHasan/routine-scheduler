@@ -1150,3 +1150,205 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* --- Automatic sessional scheduler ------------------------------------- */
+.auto-scheduler-intro {
+  color: #5c5c6b;
+  font-size: 0.92rem;
+  margin-bottom: 14px;
+}
+.auto-scheduler-rules {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+.auto-scheduler-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.auto-scheduler-actions .card-control-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.auto-scheduler-result {
+  margin-top: 20px;
+}
+.auto-scheduler-issues {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 16px 0;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: rgba(240, 163, 36, 0.06);
+  border: 1px solid rgba(240, 163, 36, 0.25);
+  font-size: 0.88rem;
+}
+.auto-scheduler-issues .issue {
+  display: flex;
+  gap: 8px;
+  color: #8a6100;
+}
+.auto-scheduler-issues .issue.bad {
+  color: #b02a37;
+  font-weight: 500;
+}
+.auto-scheduler-legend {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin: 12px 0 8px;
+}
+.suggest-grid {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  border: 1px solid rgba(154, 77, 226, 0.25);
+  border-radius: 12px;
+  overflow: hidden;
+  font-size: 0.8rem;
+}
+.suggest-grid th {
+  background: linear-gradient(135deg, rgb(194, 137, 248) 0%, rgb(154, 77, 226) 100%);
+  color: white;
+  text-align: center;
+  padding: 8px;
+  font-weight: 600;
+}
+.suggest-grid td {
+  vertical-align: top;
+  padding: 6px;
+  min-width: 190px;
+  border-top: 1px solid rgba(154, 77, 226, 0.15);
+  border-left: 1px solid rgba(154, 77, 226, 0.1);
+}
+.suggest-grid td.suggest-day {
+  min-width: 90px;
+  font-weight: 700;
+  color: rgb(106, 27, 154);
+  vertical-align: middle;
+  text-align: center;
+  background: #f7f2fd;
+}
+.suggest-usage {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #8a8a99;
+  text-align: right;
+  margin-bottom: 4px;
+}
+.suggest-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  margin-bottom: 3px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.suggest-item .suggest-room {
+  margin-left: auto;
+  font-weight: 500;
+  opacity: 0.85;
+}
+.suggest-item .suggest-dept {
+  font-size: 0.68rem;
+  padding: 0 5px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.08);
+}
+.suggest-item.level-1 { background: rgba(61, 124, 232, 0.1); border-color: rgba(61, 124, 232, 0.3); color: #2c5fb8; }
+.suggest-item.level-2 { background: rgba(26, 167, 154, 0.1); border-color: rgba(26, 167, 154, 0.3); color: #117a70; }
+.suggest-item.level-3 { background: rgba(240, 163, 36, 0.12); border-color: rgba(240, 163, 36, 0.35); color: #9a6406; }
+.suggest-item.level-4 { background: rgba(154, 77, 226, 0.1); border-color: rgba(154, 77, 226, 0.3); color: rgb(122, 45, 196); }
+.suggest-item.level-0 { background: rgba(108, 117, 125, 0.1); border-color: rgba(108, 117, 125, 0.25); color: #555; }
+.auto-scheduler-legend .suggest-item {
+  margin-bottom: 0;
+}
+
+.constraint-form {
+  padding: 12px;
+  border-radius: 12px;
+  background: rgba(154, 77, 226, 0.05);
+  border: 1px solid rgba(154, 77, 226, 0.15);
+  margin-bottom: 14px;
+}
+.constraint-form .card-control-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.constraint-list {
+  max-height: 320px;
+  overflow-y: auto;
+  border: 1px solid rgba(154, 77, 226, 0.15);
+  border-radius: 12px;
+}
+.constraint-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+.constraint-row > i {
+  font-size: 20px;
+  color: rgb(154, 77, 226);
+}
+.constraint-who {
+  margin-left: 10px;
+  color: #6c757d;
+  font-size: 0.88rem;
+}
+.constraint-row .chip-remove {
+  background: none;
+  border: none;
+  color: rgba(220, 53, 69, 0.75);
+  font-size: 18px;
+  cursor: pointer;
+}
+.constraint-row .chip-remove:hover {
+  color: #dc3545;
+}
+
+/* Room and lock controls on the sessional distribution grid */
+.lab-cell-usage {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #8a8a99;
+}
+.lab-item-controls {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  width: 100%;
+  margin-top: 4px;
+}
+.lab-item-controls select {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.75rem;
+  padding: 2px 4px;
+  border-radius: 6px;
+  border: 1px solid rgba(154, 77, 226, 0.3);
+  background: white;
+}
+.lab-item-controls .lock-toggle {
+  background: none;
+  border: none;
+  padding: 0 2px;
+  font-size: 1rem;
+  cursor: pointer;
+  color: #8a8a99;
+}
+.lab-item-controls .lock-toggle.locked {
+  color: rgb(154, 77, 226);
+}

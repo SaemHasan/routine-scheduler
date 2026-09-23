@@ -6,6 +6,9 @@ import { getSessionalTeachers } from '../api/theory-assign';
 import { getTeachers, getLabCourses } from '../api/db-crud';
 import { setTeacherSessionalAssignment, deleteTeacherSessionalAssignment } from '../api/theory-assign';
 import { formatSessionalTeachers, isHalf, slotCount } from '../shared/sessionalTeachers';
+import { getLabRooms } from '../api/db-crud';
+import { setSessionalLock, setSessionalRoom } from '../api/sessional-scheduler';
+import AutoScheduler from './AutoScheduler';
 import { getSchedules } from '../api/theory-schedule';
 import { Modal, Button } from 'react-bootstrap';
 
@@ -234,6 +237,7 @@ export default function ShowSessionalDistribution() {
   const [loadingTeachers, setLoadingTeachers] = useState(false);
   const [courseToRemove, setCourseToRemove] = useState(null);
   const [courseColors, setCourseColors] = useState({}); // Cache for course color styles
+  const [labRooms, setLabRooms] = useState([]);
 
   // Modal Style
   const modalStyle = {
@@ -283,6 +287,63 @@ export default function ShowSessionalDistribution() {
     };
     loadTeachers();
   }, []);
+
+  const reloadSchedules = async () => {
+    const data = await getDepartmentalSessionalSchedule();
+    setAllSessionalSchedules(Array.isArray(data) ? data : []);
+  };
+
+  useEffect(() => {
+    getLabRooms()
+      .then((res) => setLabRooms((res || []).map((r) => r.room).sort()))
+      .catch(() => {});
+  }, []);
+
+  // A room picked by hand also locks the class in place
+  const changeRoom = async (schedule, room) => {
+    const placement = {
+      course_id: schedule.course_id,
+      batch: schedule.batch,
+      section: schedule.section,
+      department: schedule.department,
+    };
+    try {
+      await setSessionalRoom({ ...placement, room });
+      setAllSessionalSchedules((prev) =>
+        prev.map((s) =>
+          s.course_id === schedule.course_id && s.batch === schedule.batch &&
+          s.section === schedule.section && s.department === schedule.department
+            ? { ...s, room_no: room || null, locked: true }
+            : s
+        )
+      );
+    } catch (error) {
+      toast.error('Failed to change the room');
+    }
+  };
+
+  const toggleLock = async (schedule) => {
+    const locked = !schedule.locked;
+    try {
+      await setSessionalLock({
+        course_id: schedule.course_id,
+        batch: schedule.batch,
+        section: schedule.section,
+        department: schedule.department,
+        locked,
+      });
+      setAllSessionalSchedules((prev) =>
+        prev.map((s) =>
+          s.course_id === schedule.course_id && s.batch === schedule.batch &&
+          s.section === schedule.section && s.department === schedule.department
+            ? { ...s, locked }
+            : s
+        )
+      );
+    } catch (error) {
+      toast.error('Failed to update the lock');
+    }
+  };
 
   // Fetch sessional schedules on component mount
   useEffect(() => {
@@ -690,11 +751,29 @@ export default function ShowSessionalDistribution() {
         console.error('Error checking teacher conflicts:', error);
       }
 
-      // Create the schedule for the new course
+      // Normally at most one section's subsections of a course share a slot
+      const subsectionsIn = (s) => (Number(s.class_per_week) === 0.75 ? 2 : 1);
+      const sameCourseHere = sessionalSchedules.filter(
+        (s) => s.day === day && s.time === time && s.course_id === course.course_id
+      );
+      const subsectionCount =
+        sameCourseHere.reduce((n, s) => n + subsectionsIn(s), 0) + subsectionsIn(course);
+      if (subsectionCount > 2) {
+        toast(
+          `${course.course_id} would have ${subsectionCount} subsections in this slot ` +
+            `(${sameCourseHere.map((s) => s.section).join(', ')} already). ` +
+            `At most two should share a slot, except courses like CSE450.`,
+          { icon: '⚠️', duration: 6000 }
+        );
+      }
+
+      // Create the schedule for the new course; `add` never replaces
+      // another class the section already has in this slot
       const schedule = {
         course_id: course.course_id,
         day: day,
-        time: time
+        time: time,
+        add: true,
       };
 
       // This will insert a new record in the database
@@ -710,7 +789,11 @@ export default function ShowSessionalDistribution() {
       toast.success('Course added successfully');
     } catch (error) {
       console.error('Error adding course:', error);
-      toast.error('Failed to add course: ' + (error.message || 'Unknown error'));
+      toast.error(
+        error?.response?.data?.error?.message ||
+          'Failed to add course: ' + (error.message || 'Unknown error'),
+        { duration: 8000 }
+      );
     }
   };
 
@@ -763,6 +846,8 @@ export default function ShowSessionalDistribution() {
         </h3>
       </div>
 
+      <AutoScheduler onApplied={reloadSchedules} />
+
       {/* Control Panel */}
       <div className="row mb-4">
         <div className="col-12">
@@ -811,11 +896,21 @@ export default function ShowSessionalDistribution() {
                         <td style={scheduleTableStyle.dayCell}>{day}</td>
                         {possibleLabTimes.map(time => {
                           const scheduledCourses = getScheduledCourses(day, time);
+                          const roomsInUse = new Set(scheduledCourses.map((s) => s.room_no).filter(Boolean));
                           return (
                             <td key={`${day}-${time}`} style={{
                               ...scheduleTableStyle.courseCell,
                               position: 'relative',
+                              paddingTop: '30px',
                             }}>
+                              {labRooms.length > 0 && (
+                                <div
+                                  className="lab-cell-usage"
+                                  title={`Free: ${labRooms.filter((r) => !roomsInUse.has(r)).join(', ') || 'none'}`}
+                                >
+                                  {roomsInUse.size}/{labRooms.length} labs
+                                </div>
+                              )}
                               <div style={{
                                 position: 'absolute',
                                 top: '8px',
@@ -938,6 +1033,30 @@ export default function ShowSessionalDistribution() {
                                       courseId={schedule.course_id}
                                       section={schedule.section}
                                     />
+                                  </div>
+                                  <div className="lab-item-controls" onClick={(e) => e.stopPropagation()}>
+                                    <select
+                                      value={schedule.room_no || ''}
+                                      title="Lab room"
+                                      onChange={(e) => changeRoom(schedule, e.target.value)}
+                                    >
+                                      <option value="">No room</option>
+                                      {schedule.room_no && !labRooms.includes(schedule.room_no) && (
+                                        <option value={schedule.room_no}>{schedule.room_no}</option>
+                                      )}
+                                      {labRooms.map((room) => (
+                                        <option key={room} value={room}>
+                                          {room}{room !== schedule.room_no && roomsInUse.has(room) ? ' (in use)' : ''}
+                                        </option>
+                                      ))}
+                                    </select>
+                                    <button
+                                      className={`lock-toggle mdi ${schedule.locked ? 'mdi-lock locked' : 'mdi-lock-open-variant-outline'}`}
+                                      title={schedule.locked
+                                        ? 'Locked: the scheduler keeps this class here. Click to unlock.'
+                                        : 'Unlocked: the scheduler may move this class. Click to lock.'}
+                                      onClick={() => toggleLock(schedule)}
+                                    ></button>
                                   </div>
 
                                 </div>

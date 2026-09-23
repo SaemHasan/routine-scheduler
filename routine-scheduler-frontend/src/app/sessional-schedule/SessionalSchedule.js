@@ -59,6 +59,8 @@ export default function SessionalSchedule() {
 
   // UI state
   const [isChanged, setIsChanged] = useState(false);
+  // Bumped to reload the routine from the server, e.g. after a rejected save
+  const [reloadKey, setReloadKey] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
 
   // Modal states for course selection
@@ -490,6 +492,7 @@ export default function SessionalSchedule() {
     allSessionalCourses,
     allSessionalSections,
     selectedDepartment,
+    reloadKey,
   ]);
 
   const getSelectedCourseSlots = useCallback(
@@ -666,8 +669,13 @@ export default function SessionalSchedule() {
             course_id: course_id == "" ? "None" : course_id,
           });
           return { success: true, section, slot };
-        } catch {
-          return { success: false, section, slot };
+        } catch (error) {
+          return {
+            success: false,
+            section,
+            slot,
+            message: error?.response?.data?.error?.message,
+          };
         }
       });
       return Promise.all(saveSectionTasks);
@@ -687,10 +695,18 @@ export default function SessionalSchedule() {
         const successCount = totalCount - failures.length;
         if (failures.length === 0) {
           toast.success("All schedules saved successfully");
-        } else if (failures.length < totalCount) {
-          toast.error(`Saved ${successCount} out of ${totalCount} schedules`);
         } else {
-          toast.error("Failed to save any schedules");
+          // Show why (e.g. a section clash) and reload what was really saved
+          const reasons = failures.map((f) => f.message).filter(Boolean);
+          toast.error(
+            `${
+              failures.length < totalCount
+                ? `Saved ${successCount} out of ${totalCount} schedules.`
+                : "Failed to save any schedules."
+            }${reasons.length ? ` ${reasons.slice(0, 2).join(" · ")}` : ""}`,
+            { duration: 8000 }
+          );
+          setReloadKey((k) => k + 1);
         }
       })
       .catch(() => {

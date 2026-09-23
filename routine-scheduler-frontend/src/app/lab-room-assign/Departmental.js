@@ -9,6 +9,10 @@ import { getRoomAssign, setRoomAssign } from "../api/theory-assign";
 import { getAllSchedule } from "../api/theory-schedule";
 import { useConfig } from "../shared/ConfigContext";
 import { useHistory } from "react-router-dom";
+import {
+  addSchedulerConstraint,
+  getSchedulerConstraints,
+} from "../api/sessional-scheduler";
 
 export default function LabRoomAssign() {
   const history = useHistory();
@@ -29,6 +33,28 @@ export default function LabRoomAssign() {
 
   const selectedCourseRef = useRef(null);
   const selectedRoomRef = useRef(null);
+
+  // Start from the room rules saved for the sessional scheduler
+  useEffect(() => {
+    getSchedulerConstraints()
+      .then((constraints) => {
+        const byCourse = new Map();
+        (constraints || [])
+          .filter((c) => c.kind === "course_rooms")
+          .forEach((c) => {
+            const rooms = byCourse.get(c.course_id) || new Set();
+            (c.rooms || []).forEach((r) => rooms.add(r));
+            byCourse.set(c.course_id, rooms);
+          });
+        setCourseRoom(
+          Array.from(byCourse, ([course_id, rooms]) => ({
+            course_id,
+            rooms: Array.from(rooms),
+          }))
+        );
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     let rooms_, courses_;
@@ -985,9 +1011,22 @@ export default function LabRoomAssign() {
                               }
                             });
 
-                            toast.success(
-                              `Fixed room constraints added for ${courseId}.`
-                            );
+                            // Saved so the sessional scheduler follows it too
+                            addSchedulerConstraint({
+                              kind: "course_rooms",
+                              course_id: courseId,
+                              rooms: newRooms,
+                            })
+                              .then(() =>
+                                toast.success(
+                                  `Fixed room constraints added for ${courseId}.`
+                                )
+                              )
+                              .catch(() =>
+                                toast.error(
+                                  `Could not save the room rule for ${courseId}`
+                                )
+                              );
                             selectedCourseRef.current.value = "";
                             selectedRoomRef.current.selectedIndex = -1;
                           }}
@@ -1002,7 +1041,7 @@ export default function LabRoomAssign() {
                             e.preventDefault();
                             setCourseRoom(() => []);
                             toast.success(
-                              "All constraints cleared successfully."
+                              "Cleared for this page. Saved room rules are managed under Sessional Distribution → Constraints."
                             );
                           }}
                         >
