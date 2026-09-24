@@ -1,5 +1,6 @@
 import pdf from "pdf-creator-node";
 import { connect } from "../config/database.js";
+import { optionalSectionLabelSQL } from "../sessional_scheduler/sectionLabel.js";
 
 /*
  * The sessional distribution as a PDF, laid out like the department's
@@ -67,7 +68,8 @@ async function loadDistribution() {
     const rows = (
       await client.query(
         `SELECT sa.course_id, sa.batch, sa.section, sa.department, sa.day, sa."time", sa.room_no,
-                c.class_per_week
+                c.class_per_week,
+                ${optionalSectionLabelSQL("c", "sa.department", "sa.batch")} AS section_label
          FROM schedule_assignment sa
          JOIN courses c ON c.course_id = sa.course_id AND c.session = sa.session
          WHERE sa.session = ${CURRENT_SESSION} AND c.type = 1 AND sa.course_id LIKE 'CSE%'
@@ -99,7 +101,8 @@ async function loadDistribution() {
         )
         .map((s) => s.section)
         .sort();
-      const section = /^[A-Za-z]+$/.test(r.section) && subs.length ? subs.join("/") : r.section;
+      const section =
+        r.section_label || (/^[A-Za-z]+$/.test(r.section) && subs.length ? subs.join("/") : r.section);
       const own = teachers.filter(
         (t) => t.course_id === r.course_id && t.batch === r.batch && t.section === r.section
       );

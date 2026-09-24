@@ -46,6 +46,7 @@ export async function addCourse(req, res, next) {
   const optional = req.body.optional ? 1 : 0;
   const optional_section_count = req.body.optional_section_count;
   const sessional_type = req.body.sessional_type;
+  const option_group = req.body.option_group;
 
   console.log('DEBUG addCourse: Received data:', {
     course_id, name, type: req.body.type, typeConverted: type
@@ -66,6 +67,7 @@ export async function addCourse(req, res, next) {
     optional: optional,
     optional_section_count: optional_section_count,
     sessional_type: sessional_type,
+    option_group: option_group,
   };
 
   try {
@@ -97,6 +99,7 @@ export async function editCourse(req, res, next) {
   const optional = req.body.optional ? 1 : 0;
   const optional_section_count = req.body.optional_section_count;
   const sessional_type = req.body.sessional_type;
+  const option_group = req.body.option_group;
 
   console.log('DEBUG editCourse: Received data:', {
     course_id_old, course_id, name, type: req.body.type, typeConverted: type
@@ -119,6 +122,7 @@ export async function editCourse(req, res, next) {
     optional: optional,
     optional_section_count: optional_section_count,
     sessional_type: sessional_type,
+    option_group: option_group,
   };
 
   try {

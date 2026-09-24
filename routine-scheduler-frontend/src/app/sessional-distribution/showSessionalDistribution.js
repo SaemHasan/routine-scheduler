@@ -18,9 +18,12 @@ import { Modal, Button } from 'react-bootstrap';
  * Helper function to format section display for 0.75 credit courses
  * @param {string} section - The section (A, B, C, etc.)
  * @param {number} classPerWeek - The class per week value (1 for 0.75 credit, 2 for 1.5 credit)
+ * @param {string} [sectionLabel] - The label the server gives, e.g. A/B/C
  * @returns {string} - Formatted section display
  */
-function formatSectionDisplay(section, classPerWeek) {
+function formatSectionDisplay(section, classPerWeek, sectionLabel) {
+  // A single-group optional course is for every section: (A/B/C)
+  if (sectionLabel) return sectionLabel;
   // For 0.75 credit courses (class_per_week = 0.75), show (A1/A2) format
   if (classPerWeek === 0.75) {
     return `${section}1/${section}2`;
@@ -683,7 +686,7 @@ export default function ShowSessionalDistribution() {
       );
 
       if (existingCourseInSlot) {
-        toast.error(`Section ${formatSectionDisplay(course.section, course.class_per_week)} already has ${existingCourseInSlot.course_id} scheduled at this time slot`);
+        toast.error(`Section ${formatSectionDisplay(course.section, course.class_per_week, course.section_label)} already has ${existingCourseInSlot.course_id} scheduled at this time slot`);
         return;
       }
 
@@ -702,7 +705,7 @@ export default function ShowSessionalDistribution() {
         );
         console.log(theoryConflict);
         if (theoryConflict.length > 0) {
-          toast.error(`Cannot add ${course.course_id} for section ${formatSectionDisplay(course.section,course.class_per_week)}. ${theoryConflict[0].course_id} for section ${formatSectionDisplay(theoryConflict[0].section, theoryConflict[0].class_per_week)} is already scheduled at this time slot.`);
+          toast.error(`Cannot add ${course.course_id} for section ${formatSectionDisplay(course.section, course.class_per_week, course.section_label)}. ${theoryConflict[0].course_id} for section ${formatSectionDisplay(theoryConflict[0].section, theoryConflict[0].class_per_week, theoryConflict[0].section_label)} is already scheduled at this time slot.`);
           return;
         }
       }
@@ -993,7 +996,7 @@ export default function ShowSessionalDistribution() {
                                 
                                 // Determine if this course has permanent teachers based on color
                                 const hasPermTeachers = colorStyles.backgroundColor === '#1714dd2f';
-                                const formattedSection = formatSectionDisplay(schedule.section, schedule.class_per_week);
+                                const formattedSection = formatSectionDisplay(schedule.section, schedule.class_per_week, schedule.section_label);
                                 const tooltipMessage = hasPermTeachers 
                                   ? `${schedule.course_id} - Section ${formattedSection}` 
                                   : "No Full time Teacher Assigned";
@@ -1058,7 +1061,7 @@ export default function ShowSessionalDistribution() {
                                   </div>
                                   <div style={scheduleTableStyle.sectionBadge}>
                                     <i className="mdi mdi-account-group mr-1"></i>
-                                    Section {formatSectionDisplay(schedule.section, schedule.class_per_week)}
+                                    Section {formatSectionDisplay(schedule.section, schedule.class_per_week, schedule.section_label)}
                                   </div>
                                   <div style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
                                     <CourseTeachers
@@ -1134,7 +1137,7 @@ export default function ShowSessionalDistribution() {
                       <i className="mdi mdi-close"></i>
                     </button>
                                         <h5 style={{ marginBottom: '20px', color: '#333' }}>
-                      {selectedCourse.course_id} - Section {formatSectionDisplay(selectedCourse.section, selectedCourse.class_per_week)}
+                      {selectedCourse.course_id} - Section {formatSectionDisplay(selectedCourse.section, selectedCourse.class_per_week, selectedCourse.section_label)}
                     </h5>
 
                     {!showTeachersList && !showRemoveTeacherList ? (
@@ -1494,7 +1497,7 @@ export default function ShowSessionalDistribution() {
                             marginBottom: '4px',
                             letterSpacing: '0.2px',
                           }}>
-                            {course.course_id} <span style={{ color: '#4a5568', fontWeight: '500' }}>({formatSectionDisplay(course.section, course.class_per_week)})</span>
+                            {course.course_id} <span style={{ color: '#4a5568', fontWeight: '500' }}>({formatSectionDisplay(course.section, course.class_per_week, course.section_label)})</span>
                           </div>
                           <div style={{
                             color: '#718096',

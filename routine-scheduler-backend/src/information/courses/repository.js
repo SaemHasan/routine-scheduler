@@ -1,6 +1,7 @@
 import { connect } from "../../config/database.js";
 import { getCurrentSession } from "../../pdfgenerator/repository.js";
 import { HttpError } from "../../config/error-handle.js";
+import { optionalSectionLabelSQL, runsAsGroupSQL } from "../../sessional_scheduler/sectionLabel.js";
 
 export async function getAll() {
   const client = await connect();
@@ -184,6 +185,8 @@ export async function saveCourse(Course) {
   // Only sessional courses have a sessional type.
   const sessional_type =
     Number(type) === 1 ? Course.sessional_type || null : null;
+  // Only optional courses belong to an option
+  const option_group = optional ? parseInt(Course.option_group, 10) || null : null;
 
   const client = await connect();
   try {
@@ -195,8 +198,8 @@ export async function saveCourse(Course) {
 
     // 1. Insert into all_courses table (existing logic)
     const allCoursesQuery = `
-      INSERT INTO all_courses (course_id, name, type, class_per_week, \"from\", \"to\", level_term, optional, optional_section_count, sessional_type)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      INSERT INTO all_courses (course_id, name, type, class_per_week, \"from\", \"to\", level_term, optional, optional_section_count, sessional_type, option_group)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
       ON CONFLICT (course_id, level_term) DO UPDATE
       SET name = EXCLUDED.name,
           type = EXCLUDED.type,
@@ -206,9 +209,10 @@ export async function saveCourse(Course) {
           level_term = EXCLUDED.level_term,
           optional = EXCLUDED.optional,
           optional_section_count = EXCLUDED.optional_section_count,
-          sessional_type = EXCLUDED.sessional_type
+          sessional_type = EXCLUDED.sessional_type,
+          option_group = EXCLUDED.option_group
     `;
-    const allCoursesValues = [course_id, name, type, class_per_week, from, to, level_term, optional, optional_section_count, sessional_type];
+    const allCoursesValues = [course_id, name, type, class_per_week, from, to, level_term, optional, optional_section_count, sessional_type, option_group];
     const allCoursesResult = await client.query(allCoursesQuery, allCoursesValues);
 
     // 2. A new optional course is catalogue-only until somebody activates it;
@@ -224,8 +228,8 @@ export async function saveCourse(Course) {
 
       // 3. Insert into courses table
       const coursesQuery = `
-        INSERT INTO courses (course_id, name, type, session, class_per_week, \"from\", \"to\", level_term, optional, optional_section_count, sessional_type)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        INSERT INTO courses (course_id, name, type, session, class_per_week, \"from\", \"to\", level_term, optional, optional_section_count, sessional_type, option_group)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
         ON CONFLICT (course_id, session) DO UPDATE
         SET name = EXCLUDED.name,
             type = EXCLUDED.type,
@@ -235,9 +239,10 @@ export async function saveCourse(Course) {
             level_term = EXCLUDED.level_term,
             optional = EXCLUDED.optional,
             optional_section_count = EXCLUDED.optional_section_count,
-            sessional_type = EXCLUDED.sessional_type
+            sessional_type = EXCLUDED.sessional_type,
+            option_group = EXCLUDED.option_group
       `;
-      const coursesValues = [course_id, name, type, currentSession, class_per_week, from, to, level_term, optional, optional_section_count, sessional_type];
+      const coursesValues = [course_id, name, type, currentSession, class_per_week, from, to, level_term, optional, optional_section_count, sessional_type, option_group];
       await client.query(coursesQuery, coursesValues);
 
       // 4. Line the course up with its sections
@@ -279,6 +284,8 @@ export async function updateCourse(Course) {
   // Only sessional courses have a sessional type.
   const sessional_type =
     Number(type) === 1 ? Course.sessional_type || null : null;
+  // Only optional courses belong to an option
+  const option_group = optional ? parseInt(Course.option_group, 10) || null : null;
 
   // Get current session
   const currentSession = await getCurrentSession();
@@ -291,7 +298,7 @@ export async function updateCourse(Course) {
     // 1. Update all_courses table
     const allCoursesQuery = `
       UPDATE all_courses
-      SET course_id=$1, name=$2, type=$3, class_per_week=$4, \"from\" = $5, \"to\" = $6, level_term = $7, optional = $8, optional_section_count = $9, sessional_type = $12
+      SET course_id=$1, name=$2, type=$3, class_per_week=$4, \"from\" = $5, \"to\" = $6, level_term = $7, optional = $8, optional_section_count = $9, sessional_type = $12, option_group = $13
       WHERE course_id=$10 AND level_term=$11
     `;
     const allCoursesValues = [
@@ -307,6 +314,7 @@ export async function updateCourse(Course) {
       course_id_old,
       level_term_old,
       sessional_type,
+      option_group,
     ];
     const allCoursesResult = await client.query(allCoursesQuery, allCoursesValues);
 
@@ -330,7 +338,7 @@ export async function updateCourse(Course) {
       //    courses_sections through the foreign key, so the sections follow.
       const coursesUpdateQuery = `
         UPDATE courses
-        SET course_id=$1, name=$2, type=$3, class_per_week=$4, \"from\" = $5, \"to\" = $6, level_term = $7, optional = $8, optional_section_count = $9, sessional_type = $12
+        SET course_id=$1, name=$2, type=$3, class_per_week=$4, \"from\" = $5, \"to\" = $6, level_term = $7, optional = $8, optional_section_count = $9, sessional_type = $12, option_group = $13
         WHERE course_id=$10 AND session = $11
       `;
       const coursesUpdateValues = [
@@ -346,14 +354,15 @@ export async function updateCourse(Course) {
         course_id_old,
         currentSession,
         sessional_type,
+        option_group,
       ];
       const coursesUpdateResult = await client.query(coursesUpdateQuery, coursesUpdateValues);
 
       // If course doesn't exist in courses table, insert it
       if (coursesUpdateResult.rowCount === 0) {
         const coursesInsertQuery = `
-          INSERT INTO courses (course_id, name, type, session, class_per_week, \"from\", \"to\", level_term, optional, optional_section_count, sessional_type)
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+          INSERT INTO courses (course_id, name, type, session, class_per_week, \"from\", \"to\", level_term, optional, optional_section_count, sessional_type, option_group)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
           ON CONFLICT (course_id, session) DO UPDATE
           SET name = EXCLUDED.name,
               type = EXCLUDED.type,
@@ -363,9 +372,10 @@ export async function updateCourse(Course) {
               level_term = EXCLUDED.level_term,
               optional = EXCLUDED.optional,
               optional_section_count = EXCLUDED.optional_section_count,
-              sessional_type = EXCLUDED.sessional_type
+              sessional_type = EXCLUDED.sessional_type,
+              option_group = EXCLUDED.option_group
         `;
-        const coursesInsertValues = [course_id, name, type, currentSession, class_per_week, from, to, level_term, optional, optional_section_count, sessional_type];
+        const coursesInsertValues = [course_id, name, type, currentSession, class_per_week, from, to, level_term, optional, optional_section_count, sessional_type, option_group];
         await client.query(coursesInsertQuery, coursesInsertValues);
       }
 
@@ -421,8 +431,8 @@ export async function setCourseActive(course_id, level_term, active) {
 
     if (active) {
       await client.query(
-        `INSERT INTO courses (course_id, name, type, session, class_per_week, "from", "to", level_term, optional, optional_section_count, sessional_type)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        `INSERT INTO courses (course_id, name, type, session, class_per_week, "from", "to", level_term, optional, optional_section_count, sessional_type, option_group)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
          ON CONFLICT (course_id, session) DO UPDATE
          SET name = EXCLUDED.name,
              type = EXCLUDED.type,
@@ -432,7 +442,8 @@ export async function setCourseActive(course_id, level_term, active) {
              level_term = EXCLUDED.level_term,
              optional = EXCLUDED.optional,
              optional_section_count = EXCLUDED.optional_section_count,
-             sessional_type = EXCLUDED.sessional_type`,
+             sessional_type = EXCLUDED.sessional_type,
+             option_group = EXCLUDED.option_group`,
         [
           course.course_id,
           course.name,
@@ -445,6 +456,7 @@ export async function setCourseActive(course_id, level_term, active) {
           course.optional,
           course.optional_section_count,
           course.sessional_type,
+          course.option_group,
         ]
       );
 
@@ -536,9 +548,10 @@ export async function removeCourse(course_id, level_term) {
 export async function getAllLab() {
   const query =`
     SELECT cs.course_id, cs.section, cs.batch , c.name, s.level_term, s.department,c.class_per_week,
-      c.sessional_type, st.teacher_count, st.lab_type
+      c.sessional_type, st.teacher_count, st.lab_type,
+      ${optionalSectionLabelSQL("c", "cs.department", "cs.batch")} AS section_label
     FROM courses_sections cs
-    JOIN courses c ON cs.course_id = c.course_id
+    JOIN courses c ON cs.course_id = c.course_id AND cs.session = c.session
     join sections s using (batch, section, department)
     -- A course with no sessional type set counts as a software sessional.
     LEFT JOIN sessional_types st ON st.code = COALESCE(
@@ -546,6 +559,8 @@ export async function getAllLab() {
       CASE WHEN c."to" = 'CSE' THEN 'DEPT_SW' ELSE 'NON_DEPT_SW' END
     )
     WHERE cs.course_id LIKE 'CSE%' and c.type=1
+      -- An optional lab runs only as its groups, not in every section
+      AND ${runsAsGroupSQL("c", "cs")}
     ORDER BY cs.course_id, cs.section`;
   const client = await connect();
   const results = await client.query(query);

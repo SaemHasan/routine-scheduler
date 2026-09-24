@@ -8,7 +8,8 @@ const VIEWS = [
 ];
 
 const sectionLabel = (s) =>
-  Number(s.class_per_week) === 0.75 ? `${s.section}1/${s.section}2` : s.section;
+  s.section_label ||
+  (Number(s.class_per_week) === 0.75 ? `${s.section}1/${s.section}2` : s.section);
 const classLabel = (s) => `${s.course_id}(${sectionLabel(s)})`;
 const byCourse = (a, b) =>
   a.course_id.localeCompare(b.course_id) || a.section.localeCompare(b.section);

@@ -2,6 +2,7 @@ import { connect } from "../config/database.js";
 import { HttpError } from "../config/error-handle.js";
 import { getTheoryTeacherAssignmentDB } from "../assignment/repository.js";
 import { findSectionClashes } from "../sessional_scheduler/repository.js";
+import { optionalSectionLabelSQL } from "../sessional_scheduler/sectionLabel.js";
 
 /**
  * Get schedule configuration values (times, days, possibleLabTimes)
@@ -273,7 +274,8 @@ export async function getAllScheduleDB() {
 export async function getDepartmentalSessionalSchedule() {
   const query = `
     SELECT sa.course_id, sa.batch, sa."section", sa."day", sa."time", sa.department, c.class_per_week,
-      sa.room_no, sa.locked, c."name", s.level_term
+      sa.room_no, sa.locked, c."name", s.level_term,
+      ${optionalSectionLabelSQL("c", "sa.department", "sa.batch")} AS section_label
     FROM schedule_assignment sa
     JOIN courses c ON sa.course_id = c.course_id AND sa.session = c.session
     LEFT JOIN sections s

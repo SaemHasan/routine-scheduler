@@ -8,6 +8,7 @@ import {
   editCourse,
   getCourses,
   getActiveCourseIds,
+  getLevelTerms,
   getSections,
   getSessionalTypes,
   setCourseActive,
@@ -18,20 +19,26 @@ import {
   getAllLevelTermsName,
   getHostedDepartments,
 } from "../api/academic-config";
+import { getThesisSetup } from "../api/thesis";
 import ConfirmationModal from "../shared/ConfirmationModal";
 
 const THEORY = 0;
 const SESSIONAL = 1;
-// Thesis runs in L-4 T-1 (Thesis 1) and L-4 T-2 (Thesis 2). It is not
-// scheduled; supervisors come from each teacher's Thesis 1/2 settings.
+// Thesis is not scheduled in sections. Which thesis (1 or 2) a level-term
+// takes is set for the active level-terms (Database → Thesis); supervisors
+// come from each teacher's Thesis 1/2 settings.
 const THESIS = 2;
 
 const TYPE_LABELS = { [THEORY]: "Theory", [SESSIONAL]: "Sessional", [THESIS]: "Thesis" };
 
-const typeLabel = (course) =>
-  course.type === THESIS && /T-([12])/.test(course.level_term || "")
-    ? `Thesis ${course.level_term.match(/T-([12])/)[1]}`
-    : TYPE_LABELS[course.type] || "Unknown";
+// A course belongs to the level-term of the department it is offered to
+const levelTermKey = (department, levelTerm) => `${department}|${levelTerm}`;
+
+const typeLabel = (course, levelTerms) => {
+  if (course.type !== THESIS) return TYPE_LABELS[course.type] || "Unknown";
+  const lt = levelTerms.get(levelTermKey(course.to, course.level_term));
+  return lt && lt.active && lt.thesis ? `Thesis ${lt.thesis}` : "Thesis";
+};
 
 const emptyCourse = {
   course_id: "",
@@ -43,6 +50,7 @@ const emptyCourse = {
   level_term: "",
   optional: 0,
   optional_section_count: 1,
+  option_group: "",
   sessional_type: "",
 };
 
@@ -109,6 +117,9 @@ export default function Courses() {
   const [typeFilter, setTypeFilter] = useState("");
   const [fromFilter, setFromFilter] = useState("");
   const [showActiveOnly, setShowActiveOnly] = useState(false);
+  // Courses of inactive level-terms stay in the catalogue, out of sight
+  const [showAllLevelTerms, setShowAllLevelTerms] = useState(false);
+  const [levelTerms, setLevelTerms] = useState(new Map());
   const [sort, setSort] = useState({ key: "course_id", direction: "asc" });
 
   const [selectedCourse, setSelectedCourse] = useState(null);
@@ -152,16 +163,29 @@ export default function Courses() {
       setLoading(true);
       await reloadCourseData();
       try {
-        const [hosted, depts, levelTerms, sections, types] = await Promise.all([
+        const [hosted, depts, levelTermNames, sections, types, lts, thesis] = await Promise.all([
           getHostedDepartments(),
           getDepartments(),
           getAllLevelTermsName(),
           getSections(),
           getSessionalTypes(),
+          getLevelTerms(),
+          getThesisSetup().catch(() => ({ levelTerms: [] })),
         ]);
+        const thesisOf = new Map(
+          (thesis.levelTerms || []).map((lt) => [levelTermKey(lt.department, lt.level_term), lt.thesis])
+        );
+        setLevelTerms(
+          new Map(
+            (lts || []).map((lt) => {
+              const key = levelTermKey(lt.department, lt.level_term);
+              return [key, { ...lt, thesis: thesisOf.get(key) || null }];
+            })
+          )
+        );
         setAllHostedDepartments(hosted || []);
         setAllDepartmentNames(depts || []);
-        setAllLevelTermNames(levelTerms || []);
+        setAllLevelTermNames(levelTermNames || []);
         setAllSections(sections || []);
         setSessionalTypes(types || []);
       } catch (error) {
@@ -176,9 +200,29 @@ export default function Courses() {
 
   /* ------------------------------------------------------------- derived */
 
+  // With no level-term active yet (a fresh start), every course shows
+  const anyActiveLevelTerm = [...levelTerms.values()].some((lt) => lt.active);
+  const scopeToActive = !showAllLevelTerms && anyActiveLevelTerm;
+  const scopedCourses = useMemo(
+    () =>
+      scopeToActive
+        ? courses.filter(
+            (course) => levelTerms.get(levelTermKey(course.to, course.level_term))?.active
+          )
+        : courses,
+    [courses, levelTerms, scopeToActive]
+  );
+  const levelTermOptions = useMemo(
+    () =>
+      scopeToActive
+        ? allLevelTermNames.filter((name) => scopedCourses.some((c) => c.level_term === name))
+        : allLevelTermNames,
+    [allLevelTermNames, scopedCourses, scopeToActive]
+  );
+
   const visibleCourses = useMemo(() => {
     const term = search.trim().toLowerCase();
-    const filtered = courses.filter((course) => {
+    const filtered = scopedCourses.filter((course) => {
       if (showActiveOnly && !activeCourseIds.has(course.course_id)) {
         return false;
       }
@@ -209,7 +253,7 @@ export default function Courses() {
       return String(left ?? "").localeCompare(String(right ?? "")) * factor;
     });
   }, [
-    courses,
+    scopedCourses,
     activeCourseIds,
     showActiveOnly,
     levelTermFilter,
@@ -221,12 +265,12 @@ export default function Courses() {
 
   const stats = useMemo(
     () => ({
-      total: courses.length,
-      theory: courses.filter((c) => c.type === THEORY).length,
-      sessional: courses.filter((c) => c.type === SESSIONAL).length,
-      active: courses.filter((c) => activeCourseIds.has(c.course_id)).length,
+      total: scopedCourses.length,
+      theory: scopedCourses.filter((c) => c.type === THEORY).length,
+      sessional: scopedCourses.filter((c) => c.type === SESSIONAL).length,
+      active: scopedCourses.filter((c) => activeCourseIds.has(c.course_id)).length,
     }),
-    [courses, activeCourseIds]
+    [scopedCourses, activeCourseIds]
   );
 
   const filtersActive =
@@ -326,6 +370,7 @@ export default function Courses() {
       ...course,
       optional: course.optional ? 1 : 0,
       optional_section_count: course.optional_section_count || 1,
+      option_group: course.option_group || "",
       sessional_type: course.sessional_type || "",
       course_id_old: course.course_id,
       level_term_old: course.level_term,
@@ -535,16 +580,34 @@ export default function Courses() {
                 <div className="card-control-button-container">
                   <div className="segmented-toggle">
                     <button
-                      className={showActiveOnly ? "" : "active"}
-                      onClick={() => setShowActiveOnly(false)}
+                      className={!showActiveOnly && !showAllLevelTerms ? "active" : ""}
+                      title="Courses of the active level-terms"
+                      onClick={() => {
+                        setShowActiveOnly(false);
+                        setShowAllLevelTerms(false);
+                      }}
                     >
-                      All Courses
+                      Active Level-Terms
                     </button>
                     <button
                       className={showActiveOnly ? "active" : ""}
-                      onClick={() => setShowActiveOnly(true)}
+                      title="Courses running this session"
+                      onClick={() => {
+                        setShowActiveOnly(true);
+                        setShowAllLevelTerms(false);
+                      }}
                     >
-                      Active Only
+                      Running Only
+                    </button>
+                    <button
+                      className={!showActiveOnly && showAllLevelTerms ? "active" : ""}
+                      title="The whole catalogue, every level-term"
+                      onClick={() => {
+                        setShowActiveOnly(false);
+                        setShowAllLevelTerms(true);
+                      }}
+                    >
+                      All Courses
                     </button>
                   </div>
                   <button
@@ -584,7 +647,7 @@ export default function Courses() {
                     onChange={(e) => setLevelTermFilter(e.target.value)}
                   >
                     <option value="">All</option>
-                    {allLevelTermNames.map((levelTerm) => (
+                    {levelTermOptions.map((levelTerm) => (
                       <option key={levelTerm} value={levelTerm}>
                         {levelTerm}
                       </option>
@@ -770,6 +833,7 @@ export default function Courses() {
                                 <i className="mdi mdi-star-outline"></i>
                                 Optional · {course.optional_section_count}{" "}
                                 section(s)
+                                {course.option_group ? ` · Option ${course.option_group}` : ""}
                               </span>
                             ) : null}
                             {activeCourseIds.has(course.course_id) && (
@@ -798,7 +862,7 @@ export default function Courses() {
                                     : "mdi-flask-outline"
                                 }`}
                               ></i>
-                              {typeLabel(course)}
+                              {typeLabel(course, levelTerms)}
                             </span>
                             {course.type === SESSIONAL && (
                               <div
@@ -1257,7 +1321,32 @@ export default function Courses() {
                         )}
                       </FormGroup>
                     </Col>
-                    <Col md={8} className="px-2 py-1">
+                    <Col md={3} className="px-2 py-1">
+                      <FormGroup>
+                        <Form.Label className="form-label">Option</Form.Label>
+                        <Form.Select
+                          className="form-select"
+                          value={selectedCourse.option_group}
+                          onChange={(e) =>
+                            setSelectedCourse({
+                              ...selectedCourse,
+                              option_group: e.target.value,
+                            })
+                          }
+                        >
+                          <option value="">None</option>
+                          {[1, 2, 3].map((n) => (
+                            <option key={n} value={n}>
+                              Option {n}
+                            </option>
+                          ))}
+                        </Form.Select>
+                        <div className="field-hint">
+                          All courses of an option run in the same slot.
+                        </div>
+                      </FormGroup>
+                    </Col>
+                    <Col md={5} className="px-2 py-1">
                       <Form.Label className="form-label">Capacity</Form.Label>
                       <div className="dotted-border-div" style={{ fontStyle: "normal" }}>
                         {eligibleSections.length === 0 ? (

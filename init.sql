@@ -44,6 +44,9 @@ CREATE TABLE public.courses (
     -- For sessional courses: a sessional_types code, which sets how many
     -- teachers each section gets. NULL for theory courses.
     sessional_type varchar NULL,
+    -- For optional courses: the option (1, 2, …) it is one choice of. Every
+    -- course of an option runs in the same slot, since students take one.
+    option_group int4 NULL,
 	CONSTRAINT courses_pk PRIMARY KEY (course_id, session),
 	CONSTRAINT courses_sessional_type_fk FOREIGN KEY (sessional_type) REFERENCES public.sessional_types(code) ON UPDATE CASCADE ON DELETE SET NULL
 );
@@ -227,6 +230,7 @@ CREATE TABLE public.all_courses (
 	-- enrol from every section, so this is a capacity, not a set of sections.
 	optional_section_count int4 DEFAULT 0 NOT NULL,
 	sessional_type varchar NULL,
+	option_group int4 NULL,
 	CONSTRAINT all_courses_pk PRIMARY KEY (course_id, level_term),
 	CONSTRAINT all_courses_sessional_type_fk FOREIGN KEY (sessional_type) REFERENCES public.sessional_types(code) ON UPDATE CASCADE ON DELETE SET NULL
 );

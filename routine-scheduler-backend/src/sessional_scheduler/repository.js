@@ -199,10 +199,11 @@ export async function loadProblemDB() {
     };
 
     // Every sessional class CSE runs this session
-    const unitRows = (
+    const allUnitRows = (
       await client.query(
         `SELECT cs.course_id, cs.batch, cs.section, cs.department, s.level_term,
-                c.name, c.class_per_week, c.sessional_type, st.lab_type
+                c.name, c.class_per_week, c.sessional_type, st.lab_type,
+                c.optional, c.optional_section_count, c.option_group
          FROM courses_sections cs
          JOIN courses c ON c.course_id = cs.course_id AND c.session = cs.session
          JOIN sections s ON s.department = cs.department AND s.batch = cs.batch AND s.section = cs.section
@@ -216,6 +217,50 @@ export async function loadProblemDB() {
          ORDER BY s.level_term, cs.course_id, cs.department, cs.section`
       )
     ).rows;
+
+    // An optional course runs as its number of section-sized groups, not in
+    // every section it is open to: groups take the first sections' names
+    // (A, B, …; A1/A2 for a 1.5-credit course).
+    const courseLetters = new Map();
+    for (const r of allUnitRows) {
+      if (!r.optional) continue;
+      const k = `${r.course_id}|${r.department}|${r.batch}`;
+      if (!courseLetters.has(k)) courseLetters.set(k, new Set());
+      courseLetters.get(k).add(letterOf(r.section));
+    }
+    const groupLetters = new Map();
+    for (const [k, letters] of courseLetters) {
+      const row = allUnitRows.find((r) => `${r.course_id}|${r.department}|${r.batch}` === k);
+      const sorted = [...letters].sort();
+      const n = Math.min(sorted.length, Math.max(1, parseInt(row.optional_section_count, 10) || 1));
+      groupLetters.set(k, new Set(sorted.slice(0, n)));
+    }
+    const unitRows = allUnitRows.filter(
+      (r) =>
+        !r.optional ||
+        groupLetters.get(`${r.course_id}|${r.department}|${r.batch}`).has(letterOf(r.section))
+    );
+
+    // The classes of an elective option (or of an optional course that has no
+    // option) run at once, one block for the whole level-term. The block's
+    // first class stands for all the students; the others occupy no section,
+    // so they never clash with each other.
+    const optionBlockOf = (r) =>
+      r.optional ? `option|${r.department}|${r.batch}|${r.option_group ?? r.course_id}` : null;
+    const blockLeader = new Map();
+    for (const r of unitRows) {
+      const block = optionBlockOf(r);
+      if (block && !blockLeader.has(block)) blockLeader.set(block, `${r.course_id}|${r.department}|${r.batch}|${r.section}`);
+    }
+    const allSubsectionsOf = (department, batch) => {
+      const subs = sectionRows
+        .filter((s) => s.department === department && s.batch === batch && s.type === 1 && !isMainSection(s.section))
+        .map((s) => `${department}|${batch}|${s.section}`);
+      if (subs.length) return subs;
+      return sectionRows
+        .filter((s) => s.department === department && s.batch === batch)
+        .map((s) => `${department}|${batch}|${s.section}`);
+    };
 
     const unitKey = (r) => `${r.course_id}|${r.department}|${r.batch}|${r.section}`;
     const unitKeys = new Set(unitRows.map(unitKey));
@@ -331,19 +376,36 @@ export async function loadProblemDB() {
 
     const units = unitRows.map((row) => {
       const key = unitKey(row);
-      const coverKeys = coverKeysFor(row.department, row.batch, row.section);
+      const block = optionBlockOf(row);
+      const coverKeys = block
+        ? blockLeader.get(block) === key
+          ? allSubsectionsOf(row.department, row.batch)
+          : []
+        : coverKeysFor(row.department, row.batch, row.section);
       const main = isMainSection(row.section);
       const subs = subsOf.get(`${row.department}|${row.batch}|${row.section}`);
-      const displaySection = main && subs && subs.length ? subs.join("/") : row.section;
+      // A single-group optional lab is for every section: CSE414(A/B/C)
+      const singleOptional =
+        row.optional && (parseInt(row.optional_section_count, 10) || 1) <= 1;
+      const displaySection = singleOptional
+        ? [...new Set(sectionRows
+            .filter((s) => s.department === row.department && s.batch === row.batch)
+            .map((s) => letterOf(s.section)))].sort().join("/")
+        : main && subs && subs.length
+          ? subs.join("/")
+          : row.section;
       const teachers = unitTeachers.get(key) || [];
 
+      // Every class of an option block is taken by students of all the
+      // sections, so each one keeps clear of all their classes and blocks
+      const busyKeys = block ? allSubsectionsOf(row.department, row.batch) : coverKeys;
       const blocked = {};
       const clashSlots = {};
       slots.forEach((slot, i) => {
         // The section's own classes: theory, and labs already in the
         // level-term routine (e.g. EEE164)
         let busyWith = null;
-        for (const k of coverKeys) {
+        for (const k of busyKeys) {
           for (const h of slot.hours) {
             busyWith = busyWith || sectionBusy.get(`${k}|${slot.day}|${h}`);
           }
@@ -356,7 +418,7 @@ export async function loadProblemDB() {
           if (c.time !== null && !slot.hours.includes(Number(c.time))) continue;
           if (c.department && c.department !== row.department) continue;
           if (c.level_term && c.level_term !== row.level_term) continue;
-          if (!sectionMatches(c.section, row.section)) continue;
+          if (!block && !sectionMatches(c.section, row.section)) continue;
           blocked[i] = `blocked for ${describeScope(c)}${c.note ? ` (${c.note})` : ""}`;
           return;
         }
@@ -402,13 +464,16 @@ export async function loadProblemDB() {
         // course run for another department with a single section: there the
         // subsections go in different slots. A course rule can put all of a
         // course's sections in one slot instead.
-        groupKey: sameSlotCourses.has(row.course_id)
+        groupKey: block
+          ? block
+          : sameSlotCourses.has(row.course_id)
           ? `${row.course_id}|${row.department}|${row.batch}|all`
           : main
             ? key
             : `${row.course_id}|${row.department}|${row.batch}|${letterOf(row.section)}`,
-        groupMode:
-          !sameSlotCourses.has(row.course_id) &&
+        groupMode: block
+          ? "same"
+          : !sameSlotCourses.has(row.course_id) &&
           row.department !== "CSE" &&
           sectionsOfCourse.get(`${row.course_id}|${row.department}|${row.batch}`).size === 1
             ? "apart"
@@ -439,7 +504,7 @@ export async function loadProblemDB() {
         courseKey: row.course_id,
         // Preferred slots from a "preferred days" rule, or null
         preferred: preferredByCourse.get(row.course_id) || null,
-        courseSlotLimit: sameSlotCourses.has(row.course_id)
+        courseSlotLimit: block || sameSlotCourses.has(row.course_id)
           ? null
           : Math.max(2, (subsOf.get(`${row.department}|${row.batch}|${letterOf(row.section)}`) || []).length),
         blocked,
@@ -463,7 +528,9 @@ export async function loadProblemDB() {
  * Classes the section already has that overlap `course_id` placed at
  * day/time: theory, labs from the level-term routine and other sessionals.
  * A whole section (A) overlaps its subsections (A1, A2); A1 and A2 do not
- * overlap each other. With `replacing`, the row at the same section, day and
+ * overlap each other. An optional lab is taken by students of every section,
+ * so it overlaps the whole batch, except the other labs of its option, which
+ * run side by side. With `replacing`, the row at the same section, day and
  * time is ignored, since placing there replaces it. Returns readable
  * descriptions.
  */
@@ -477,7 +544,7 @@ export async function findSectionClashes(
   const times = (cfg ? JSON.parse(cfg.value) : [8, 9, 10, 11, 12, 1, 2, 3, 4]).map(Number);
   const course = (
     await client.query(
-      `SELECT type FROM courses WHERE course_id = $1 AND session = ${CURRENT_SESSION}`,
+      `SELECT type, optional, option_group FROM courses WHERE course_id = $1 AND session = ${CURRENT_SESSION}`,
       [course_id]
     )
   ).rows[0];
@@ -494,11 +561,15 @@ export async function findSectionClashes(
     return [sec, ...subs.filter((s) => letterOf(s) === sec && !isMainSection(s))];
   };
 
+  // The option an optional lab belongs to (itself, when it has none)
+  const optionOf = (c, id) =>
+    c && Number(c.type) === 1 && c.optional ? String(c.option_group ?? id) : null;
+  const myOption = optionOf(course, course_id);
   const mine = new Set(expand(section));
   const myHours = hoursOf(course ? course.type : 1, time);
   const rows = (
     await client.query(
-      `SELECT sa.course_id, sa.section, sa."time", c.type
+      `SELECT sa.course_id, sa.section, sa."time", c.type, c.optional, c.option_group
        FROM schedule_assignment sa
        LEFT JOIN courses c ON c.course_id = sa.course_id AND c.session = sa.session
        WHERE sa.session = ${CURRENT_SESSION}
@@ -509,9 +580,19 @@ export async function findSectionClashes(
 
   const clashes = [];
   for (const row of rows) {
-    // Replacing the cell's class is fine, but never a thesis hour
-    if (replacing && row.type !== 2 && row.section === section && Number(row.time) === Number(time)) continue;
-    if (!expand(row.section).some((s) => mine.has(s))) continue;
+    const theirOption = optionOf(row, row.course_id);
+    if (myOption !== null && myOption === theirOption) continue;
+    // Replacing the cell's class is fine, but never a thesis hour, nor
+    // another option's lab, which the students take as well
+    if (
+      replacing &&
+      row.type !== 2 &&
+      myOption === null &&
+      theirOption === null &&
+      row.section === section &&
+      Number(row.time) === Number(time)
+    ) continue;
+    if (myOption === null && theirOption === null && !expand(row.section).some((s) => mine.has(s))) continue;
     const theirs = hoursOf(row.type, row.time);
     if (!theirs.some((h) => myHours.includes(h))) continue;
     clashes.push(`${row.course_id} (${row.section}) at ${row.time}:00`);

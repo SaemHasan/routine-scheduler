@@ -31,7 +31,8 @@
  *   units: [{
  *     key, label, course_id, batch, section, department, level_term,
  *     groupKey,          // classes placed together (or apart)
- *     groupMode,         // 'together': one slot; 'apart': different slots
+ *     groupMode,         // 'together': one slot; 'apart': different slots;
+ *                        // 'same': must share one slot (an elective option)
  *     roomShareKey,      // classes that share one room at once, or null
  *     spreadKey,         // sections of one course, kept on nearby days
  *     roomsKey,          // classes of one course, kept in as few rooms as possible
@@ -218,7 +219,9 @@ export function solve(problem, options = {}) {
     return ids;
   };
   const slotKey = (u, i) => `slot:${u.groupKey ?? `unit:${i}`}`;
-  const slotIds = addGroups(slotKey, (u) => (u.groupMode === "apart" ? "apart" : "together"));
+  const slotIds = addGroups(slotKey, (u) =>
+    u.groupMode === "apart" ? "apart" : u.groupMode === "same" ? "same" : "together"
+  );
   addGroups((u) => (u.roomShareKey ? `room:${u.roomShareKey}` : null), () => "room");
   addGroups((u) => (u.spreadKey ? `days:${u.spreadKey}` : null), () => "days");
   const roomsIds = addGroups((u) => (u.roomsKey ? `rooms:${u.roomsKey}` : null), () => "rooms");
@@ -505,6 +508,8 @@ export function solve(problem, options = {}) {
     }
     if (kind === "apart") return W.pairSplit * (placed - counts.size);
     if (kind === "room") return W.shareRoom * (placed - best);
+    // The classes of an elective option must run at once
+    if (kind === "same") return W.hard * (placed - best);
     return W.pairSplit * (placed - best);
   }
 
@@ -689,7 +694,9 @@ export function solve(problem, options = {}) {
       const kind = roomOpen[u] ? 0.7 : rand();
       let list = null;
 
-      if (kind < 0.45 && groups[slotGroupOf[u]].kind === "together") {
+      const blockKind = groups[slotGroupOf[u]].kind;
+      // An elective option only ever changes slot as a whole
+      if ((kind < 0.45 && blockKind === "together") || (kind < 0.65 && blockKind === "same")) {
         // Move the whole group to another slot
         const s = randomSlot();
         list = groups[slotGroupOf[u]].members.filter((m) => fixedSlot[m] < 0).map((m) => [m, s]);
@@ -890,6 +897,8 @@ export function solve(problem, options = {}) {
         else warnings.push(`${where} should share one room`);
       } else if (slotsUsed.size === 1) {
         subsectionGroupsOk++;
+      } else if (kind === "same") {
+        conflicts.push(`${where} are one elective option but not in the same slot`);
       } else {
         warnings.push(`${where} are not in the same slot`);
       }
