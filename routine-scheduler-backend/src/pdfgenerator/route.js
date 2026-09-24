@@ -27,6 +27,8 @@ import {
   serveCourseTeacherPDF,
   serveCourseLoadPDF,
   downloadBook,
+  downloadCourseLoadPlan,
+  courseLoadPlanSummary,
 } from "./controller.js";
 
 import { sessionalDistributionPDF } from "./sessionalDistribution.js";
@@ -39,6 +41,11 @@ router.get("/sessionalDistribution", sessionalDistributionPDF);
 // Any routine book at once: levelTerm, teacher, partTimeTeacher, room,
 // department, courseTeacher, courseLoad, sessionalDistribution
 router.get("/book/:kind", downloadBook);
+router.get("/book/:kind/:value", downloadBook);
+
+// The course load plan: the Course Load workbook, and its numbers
+router.get("/courseLoadPlan", downloadCourseLoadPlan);
+router.get("/courseLoadPlan/summary", courseLoadPlanSummary);
 
 router.get("/allInitial", getAllInitial);
 router.get("/allRooms", getAllIRooms);

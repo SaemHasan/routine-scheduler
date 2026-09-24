@@ -14,8 +14,8 @@ export function termTitle(session) {
   return `${month} ${year}`;
 }
 
-// Teachers in the order they were assigned (the lead first), pairing
-// half-lab teachers: KRV, ADR, IAH/STP
+// A lab's teachers, most senior first (as given), two half-lab teachers
+// sharing one slot where the senior of them stands: KRV, ADR, IAH/STP
 export function teacherLine(teachers) {
   const slots = [];
   let openHalf = null;
@@ -31,4 +31,18 @@ export function teacherLine(teachers) {
     }
   }
   return slots.map((s) => s.join("/")).join(", ");
+}
+
+// Room order for lists and the room routine: theory rooms (103, 104, …),
+// then rooms for theory and labs, then labs; the department's own rooms
+// before other departments' (written "(EEE) PEL"); names in natural order.
+const TYPE_RANK = { 0: 0, 2: 1, 1: 2 };
+export function compareRooms(a, b) {
+  const rank = (r) => TYPE_RANK[r.type] ?? 3;
+  const external = (r) => (/^\(/.test(r.room) ? 1 : 0);
+  return (
+    rank(a) - rank(b) ||
+    external(a) - external(b) ||
+    a.room.localeCompare(b.room, undefined, { numeric: true, sensitivity: "base" })
+  );
 }

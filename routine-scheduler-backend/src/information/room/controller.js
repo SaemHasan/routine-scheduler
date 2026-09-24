@@ -23,13 +23,6 @@ export async function addRoom(req, res, next) {
   const lab_type = req.body.lab_type || null;
   const room_number = req.body.room_number || null;
   const full_name = req.body.full_name || null;
-  // Position in room lists and the room routine; blank for no position
-  const sort_order =
-    req.body.sort_order === undefined
-      ? undefined
-      : Number.isInteger(parseInt(req.body.sort_order, 10))
-      ? parseInt(req.body.sort_order, 10)
-      : null;
 
   const rooms = {
     room: room,
@@ -38,7 +31,6 @@ export async function addRoom(req, res, next) {
     lab_type: lab_type,
     room_number: room_number,
     full_name: full_name,
-    sort_order: sort_order,
   };
 
   try {
@@ -57,13 +49,6 @@ export async function editRoom(req, res, next) {
   const lab_type = req.body.lab_type || null;
   const room_number = req.body.room_number || null;
   const full_name = req.body.full_name || null;
-  // Position in room lists and the room routine; blank for no position
-  const sort_order =
-    req.body.sort_order === undefined
-      ? undefined
-      : Number.isInteger(parseInt(req.body.sort_order, 10))
-      ? parseInt(req.body.sort_order, 10)
-      : null;
 
   const rooms = {
     room: room,
@@ -72,7 +57,6 @@ export async function editRoom(req, res, next) {
     lab_type: lab_type,
     room_number: room_number,
     full_name: full_name,
-    sort_order: sort_order,
   };
 
   try {

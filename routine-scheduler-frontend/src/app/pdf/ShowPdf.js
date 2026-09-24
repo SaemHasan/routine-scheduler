@@ -2,10 +2,7 @@ import { useEffect, useState } from "react";
 import { Form } from "react-bootstrap";
 import {
   getAllInitial,
-  getPdfForStudent,
-  getPdfForTeacher,
   getAllRooms,
-  getPdfForRoom,
   getAllLevelTerms,
   regeneratePdfLevelTerm,
   regenerateRoom,
@@ -13,14 +10,10 @@ import {
   regenerateAllLevelTerms,
   regenerateAllTeachers,
   regenerateAllRooms,
-  getPdfForAllLevelTerms,
-  getPdfForAllTeachers,
-  getPdfForAllRooms,
   getAllDepartments,
-  getPdfForDepartment,
-  getPdfForAllDepartments,
   regenerateDepartment,
   regenerateAllDepartments,
+  getRoutineBook,
 } from "../api/pdf";
 import { toast } from "react-hot-toast";
 import { sendMail } from "../api/pdf";
@@ -57,10 +50,22 @@ export default function ShowPdf() {
   const [lvlTerm, setLvlTerm] = useState("All Level-Term");
   const [selectedDepartment, setSelectedDepartment] =
     useState("All Departments");
-  const [pdfData, setpdfData] = useState("");
+  const [pdfData, setpdfData] = useState(null);
+  const [pdfUrl, setPdfUrl] = useState("");
+
+  useEffect(() => {
+    if (!pdfData) {
+      setPdfUrl("");
+      return;
+    }
+    const url = URL.createObjectURL(pdfData);
+    setPdfUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [pdfData]);
 
   const handleSelect = (e) => {
     const selectedOption = e.target.value;
+    setpdfData(null);
     setForStudent(false);
     setForTeacher(false);
     setForRoom(false);
@@ -86,6 +91,7 @@ export default function ShowPdf() {
 
   const handleDropdownChange = (e, type) => {
     const value = e.target.value;
+    setpdfData(null);
     if (type === "levelTerm") {
       setLvlTerm(value);
     } else if (type === "teacher") {
@@ -112,11 +118,11 @@ export default function ShowPdf() {
           return;
         }
         if (lvlTerm === "All Level-Term") {
-          pdfPromise = getPdfForAllLevelTerms();
+          pdfPromise = getRoutineBook("levelTerm");
           selectedType = "student";
           selectedValue = "All Level-Term";
         } else {
-          pdfPromise = getPdfForStudent(lvlTerm, "a");
+          pdfPromise = getRoutineBook("levelTerm", lvlTerm);
           selectedType = "student";
           selectedValue = lvlTerm;
         }
@@ -127,11 +133,11 @@ export default function ShowPdf() {
           return;
         }
         if (selectedInitial === "All Teacher") {
-          pdfPromise = getPdfForAllTeachers();
+          pdfPromise = getRoutineBook("teacher");
           selectedType = "teacher";
           selectedValue = "All Teacher";
         } else {
-          pdfPromise = getPdfForTeacher(selectedInitial);
+          pdfPromise = getRoutineBook("teacher", selectedInitial);
           selectedType = "teacher";
           selectedValue = selectedInitial;
         }
@@ -142,11 +148,11 @@ export default function ShowPdf() {
           return;
         }
         if (selectedRoom === "All rooms") {
-          pdfPromise = getPdfForAllRooms();
+          pdfPromise = getRoutineBook("room");
           selectedType = "room";
           selectedValue = "All rooms";
         } else {
-          pdfPromise = getPdfForRoom(selectedRoom);
+          pdfPromise = getRoutineBook("room", selectedRoom);
           selectedType = "room";
           selectedValue = selectedRoom;
         }
@@ -157,11 +163,11 @@ export default function ShowPdf() {
           return;
         }
         if (selectedDepartment === "All Departments") {
-          pdfPromise = getPdfForAllDepartments();
+          pdfPromise = getRoutineBook("department");
           selectedType = "department";
           selectedValue = "All Departments";
         } else {
-          pdfPromise = getPdfForDepartment(selectedDepartment);
+          pdfPromise = getRoutineBook("department", selectedDepartment);
           selectedType = "department";
           selectedValue = selectedDepartment;
         }
@@ -172,14 +178,13 @@ export default function ShowPdf() {
       }
 
       pdfPromise
-        .then((res) => {
-          if (!res || res.status === 404 || res.length === 0) {
+        .then(({ blob }) => {
+          if (!blob || blob.size === 0) {
             toast.dismiss(toastId);
             toast.error(`No ${selectedType} PDF found for ${selectedValue}`);
             return;
           }
-          const pdfBlob = new Blob([res], { type: "application/pdf" });
-          setpdfData(pdfBlob);
+          setpdfData(blob);
           toast.dismiss(toastId);
           toast.success("PDF loaded successfully");
         })
@@ -295,25 +300,13 @@ export default function ShowPdf() {
         .then((res) => {
           toast.dismiss(toastId);
 
-          // Handle response for consolidated "All" operations
-          if (selectedValue.includes("all")) {
-            const totalCount = res.totalCount || 0;
-
-            if (totalCount > 0) {
-              toast.success(
-                `Consolidated PDF generated successfully with ${totalCount} ${selectedType} schedules!`
-              );
-              // Auto-load the consolidated PDF after regeneration
-              displayPdf();
-            } else {
-              toast.error(`No data found for ${selectedType} schedules`);
-            }
-          } else {
+          if (res.filename) {
             toast.success(
               `PDF generated successfully for ${selectedType} ${selectedValue}`
             );
-            // Auto-load the PDF after regeneration for individual items
             displayPdf();
+          } else {
+            toast.error(`Failed to generate ${selectedType} PDF`);
           }
         })
         .catch((error) => {
@@ -939,7 +932,7 @@ export default function ShowPdf() {
       </div>
 
       {/* PDF Viewer */}
-      {pdfData && (
+      {pdfUrl && (
         <div className="row mb-4">
           <div className="col-12">
             <div
@@ -1009,7 +1002,7 @@ export default function ShowPdf() {
                 >
                   <iframe
                     title="PDF Viewer"
-                    src={URL.createObjectURL(pdfData)}
+                    src={pdfUrl}
                     width="100%"
                     height="600px"
                     style={{ border: "none" }}

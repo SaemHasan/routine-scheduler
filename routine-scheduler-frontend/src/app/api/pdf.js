@@ -92,8 +92,18 @@ export const getPdfForAllDepartments = () =>
     .then((res) => res.data);
 
 // A whole routine book (see RoutineBooks.js), with the file name to save it as
-export const getRoutineBook = (kind) =>
-  axios.get(api_url(`/pdf/book/${kind}`), { responseType: "blob" }).then((res) => {
+export const getRoutineBook = (kind, value) =>
+  axios.get(api_url(`/pdf/book/${kind}${value ? `/${encodeURIComponent(value)}` : ""}`), { responseType: "blob" }).then((res) => {
     const match = /filename="([^"]+)"/.exec(res.headers["content-disposition"] || "");
     return { blob: res.data, filename: match ? match[1] : `${kind}.pdf` };
+  });
+
+// The course load plan's numbers, and its workbook
+export const getCourseLoadPlan = () =>
+  axios.get(api_url("/pdf/courseLoadPlan/summary")).then((res) => res.data);
+
+export const getCourseLoadWorkbook = () =>
+  axios.get(api_url("/pdf/courseLoadPlan"), { responseType: "blob" }).then((res) => {
+    const match = /filename="([^"]+)"/.exec(res.headers["content-disposition"] || "");
+    return { blob: res.data, filename: match ? match[1] : "Course_Load.xlsx" };
   });

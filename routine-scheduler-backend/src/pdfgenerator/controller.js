@@ -5,6 +5,7 @@ import { getInitials, getRooms, getLevelTerms, getAllDepartmentsDB, getCurrentSe
 import { levelTermBook, teacherBook, roomBook, departmentBook } from "./routineBook.js";
 import { courseTeacherBook, courseLoadBook } from "./reportBook.js";
 import { sessionalDistributionBook, termTitle } from "./sessionalDistribution.js";
+import { courseLoadPlan, courseLoadWorkbook } from "./courseLoadPlan.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -14,17 +15,29 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
  * /pdf/book/:kind.
  */
 const BOOKS = {
-  levelTerm: { name: "Level_Term_Routine", file: "All_Level_Terms", build: () => levelTermBook() },
-  teacher: { name: "Teacher_Routine", file: "All_Teachers", build: () => teacherBook() },
+  levelTerm: {
+    name: "Level_Term_Routine", file: "All_Level_Terms",
+    build: () => levelTermBook(), buildSelected: (value) => levelTermBook({ levelTerm: value }),
+  },
+  teacher: {
+    name: "Teacher_Routine", file: "All_Teachers",
+    build: () => teacherBook(), buildSelected: (value) => teacherBook({ initial: value }),
+  },
   partTimeTeacher: {
     name: "PT_Teacher_Routine",
     file: "All_PT_Teachers",
     build: () => teacherBook({ partTimeOnly: true }),
   },
-  room: { name: "Room_Routine", file: "All_Rooms", build: () => roomBook() },
-  department: { name: "Departmental_Routine", file: "All_Departments", build: () => departmentBook() },
+  room: {
+    name: "Room_Routine", file: "All_Rooms",
+    build: () => roomBook(), buildSelected: (value) => roomBook({ room: value }),
+  },
+  department: {
+    name: "Departmental_Routine", file: "All_Departments",
+    build: () => departmentBook(), buildSelected: (value) => departmentBook({ department: value }),
+  },
   courseTeacher: { name: "Course_Teacher", file: "Course_Teacher", build: () => courseTeacherBook() },
-  courseLoad: { name: "Course_Load", file: "Course_Load", build: () => courseLoadBook() },
+  courseLoad: { name: "Load_Calculation", file: "Load_Calculation", build: () => courseLoadBook() },
   sessionalDistribution: {
     name: "Sessional_Distribution_Routine",
     file: "Sessional_Distribution",
@@ -54,7 +67,8 @@ function sendFile(res, next, file, downloadName) {
 
 /* ------------------------------------------------------------- one book */
 
-// GET /pdf/book/:kind — builds a book and sends it for download
+// GET /pdf/book/:kind[/:value] — build the same layout for a whole book or
+// one selected routine. The format selector previews this fresh response.
 export async function downloadBook(req, res, next) {
   try {
     const book = BOOKS[req.params.kind];
@@ -62,13 +76,51 @@ export async function downloadBook(req, res, next) {
       res.status(404).json({ message: `Unknown routine: ${req.params.kind}` });
       return;
     }
-    const buffer = await book.build();
+    const selected = req.params.value;
+    if (selected && !book.buildSelected) {
+      res.status(404).json({ message: `Selection is not available for ${req.params.kind}` });
+      return;
+    }
+    const buffer = await (selected ? book.buildSelected(selected) : book.build());
     const term = termTitle(await getCurrentSession()).replace(/\s+/g, "_");
+    const suffix = selected ? `_${String(selected).replace(/[\\/:*?"<>|\s]+/g, "_")}` : "";
     res
       .status(200)
       .set("Content-Type", "application/pdf")
-      .set("Content-Disposition", `attachment; filename="${book.name}_${term}.pdf"`)
+      .set("Content-Disposition", `${selected ? "inline" : "attachment"}; filename="${book.name}${suffix}_${term}.pdf"`)
       .send(buffer);
+  } catch (err) {
+    next(err);
+  }
+}
+
+// GET /pdf/courseLoadPlan — the Course Load workbook (xlsx)
+export async function downloadCourseLoadPlan(req, res, next) {
+  try {
+    const { buffer, plan } = await courseLoadWorkbook();
+    res
+      .status(200)
+      .set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+      .set("Content-Disposition", `attachment; filename="Course_Load_${plan.term.replace(/\s+/g, "_")}.xlsx"`)
+      .send(buffer);
+  } catch (err) {
+    next(err);
+  }
+}
+
+// GET /pdf/courseLoadPlan/summary — the plan's numbers, part-time lecturers needed included
+export async function courseLoadPlanSummary(req, res, next) {
+  try {
+    const plan = await courseLoadPlan();
+    res.status(200).json({
+      term: plan.term,
+      ...plan.summary,
+      designationLoads: plan.designationLoads,
+      labTypes: plan.labTypes,
+      loads: plan.loads,
+      theory: plan.theory,
+      sessional: plan.sessional,
+    });
   } catch (err) {
     next(err);
   }

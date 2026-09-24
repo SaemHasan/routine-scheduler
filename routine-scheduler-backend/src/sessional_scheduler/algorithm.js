@@ -35,6 +35,8 @@
  *                        // 'same': must share one slot (an elective option)
  *     roomShareKey,      // classes that share one room at once, or null
  *     spreadKey,         // sections of one course, kept on nearby days
+ *     sessionsKey,       // weekly sessions of one class (a lab that meets
+ *                        // twice a week), kept on different days, or null
  *     roomsKey,          // classes of one course, kept in as few rooms as possible
  *     levelKey,          // sections of one level-term, given similar time splits
  *     coverKeys: [],     // section keys the class occupies
@@ -66,6 +68,8 @@ export const WEIGHTS = {
   timeMix: 15,
   crowded: 25,
   sameDay: 6,
+  // Two sessions of a twice-a-week lab on one day
+  sessionDay: 200,
   daySpread: 12,
   extraRoom: 20,
   middayOver: 50,
@@ -224,6 +228,7 @@ export function solve(problem, options = {}) {
   );
   addGroups((u) => (u.roomShareKey ? `room:${u.roomShareKey}` : null), () => "room");
   addGroups((u) => (u.spreadKey ? `days:${u.spreadKey}` : null), () => "days");
+  addGroups((u) => (u.sessionsKey ? `sessions:${u.sessionsKey}` : null), () => "sessions");
   const roomsIds = addGroups((u) => (u.roomsKey ? `rooms:${u.roomsKey}` : null), () => "rooms");
   // Which rooms each course already uses, to steer room choices to them
   const roomsGroupOf = units.map((u) => (u.roomsKey ? roomsIds.get(`rooms:${u.roomsKey}`) : -1));
@@ -484,6 +489,17 @@ export function solve(problem, options = {}) {
       }
       return W.extraRoom * Math.max(0, used - needed);
     }
+    if (kind === "sessions") {
+      const perDay = new Map();
+      for (const m of members) {
+        if (slotOf[m] < 0) continue;
+        const d = slotDay[slotOf[m]];
+        perDay.set(d, (perDay.get(d) || 0) + 1);
+      }
+      let cost = 0;
+      for (const c of perDay.values()) cost += (W.sessionDay * c * (c - 1)) / 2;
+      return cost;
+    }
     if (kind === "days") {
       let lo = Infinity;
       let hi = -Infinity;
@@ -597,7 +613,7 @@ export function solve(problem, options = {}) {
     let cost = resetState();
     const order = groups
       .flatMap((g) => {
-        if (g.kind === "room" || g.kind === "days" || g.kind === "rooms") return [];
+        if (g.kind === "room" || g.kind === "days" || g.kind === "rooms" || g.kind === "sessions") return [];
         const free = g.members.filter((m) => fixedSlot[m] < 0);
         return g.kind === "apart" ? free.map((m) => [m]) : [free];
       })
@@ -869,6 +885,13 @@ export function solve(problem, options = {}) {
     });
     for (const { kind, members } of groups) {
       if (members.length < 2 || kind === "rooms") continue;
+      if (kind === "sessions") {
+        const days = members.map((m) => slotDay[slotOf[m]]);
+        if (new Set(days).size < days.length) {
+          warnings.push(`${members.map((m) => `${label(m)} on ${slotName(slotOf[m])}`).join(", ")} should be on different days`);
+        }
+        continue;
+      }
       if (kind === "days") {
         const ds = members.map((m) => slotDay[slotOf[m]]);
         const spread = Math.max(...ds) - Math.min(...ds);

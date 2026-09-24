@@ -793,6 +793,135 @@
   margin-top: 2px;
 }
 
+/* Course Load workbook preview ------------------------------------------ */
+.load-plan-sheet-tabs {
+  display: flex;
+  gap: 8px;
+  padding: 8px;
+  overflow-x: auto;
+  background: #f3eaff;
+  border: 1px solid rgba(174, 117, 228, 0.2);
+  border-radius: 12px 12px 0 0;
+}
+
+.load-plan-sheet-tabs button {
+  border: 0;
+  border-radius: 8px;
+  padding: 10px 16px;
+  color: #6f4a91;
+  background: transparent;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.load-plan-sheet-tabs button i {
+  margin-right: 7px;
+}
+
+.load-plan-sheet-tabs button:hover,
+.load-plan-sheet-tabs button.active {
+  color: white;
+  background: rgb(154, 77, 226);
+  box-shadow: 0 3px 10px rgba(154, 77, 226, 0.24);
+}
+
+.load-plan-sheet {
+  padding: 18px;
+  text-align: left;
+  background: white;
+  border: 1px solid rgba(174, 117, 228, 0.2);
+  border-top: 0;
+  border-radius: 0 0 12px 12px;
+}
+
+.load-plan-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.load-plan-table {
+  min-width: 720px;
+  margin-bottom: 0;
+}
+
+.load-plan-table .card-table-header th,
+.load-plan-table .card-table-body td,
+.load-plan-table tfoot th {
+  padding: 10px 12px;
+  font-size: 0.86rem;
+  text-align: center;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.load-plan-table .card-table-header th {
+  font-weight: 700;
+}
+
+.load-plan-table tfoot {
+  color: #51336b;
+  background: #f3eaff;
+}
+
+.load-plan-section-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 18px;
+  align-items: start;
+}
+
+.load-plan-section {
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid #eee5f6;
+  border-radius: 10px;
+  background: #fcfaff;
+}
+
+.load-plan-section h5 {
+  margin-bottom: 12px;
+  color: #6f3c99;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.load-plan-section .load-plan-table {
+  min-width: 520px;
+}
+
+.load-plan-metric-table td {
+  padding: 9px 12px;
+  border-top-color: #eee5f6;
+}
+
+.load-plan-metric-table td:last-child {
+  width: 100px;
+  text-align: center;
+  font-weight: 700;
+}
+
+.load-plan-highlight td {
+  color: #573070;
+  background: #fff4a8;
+  font-weight: 700;
+}
+
+.load-plan-summary-box {
+  width: min(100%, 620px);
+  margin-left: auto;
+  border: 1px solid #eee5f6;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+@media (max-width: 767px) {
+  .load-plan-sheet {
+    padding: 10px;
+  }
+}
+
 /* --- Filter / search toolbar -------------------------------------------- */
 .card-toolbar {
   display: flex;

@@ -130,6 +130,12 @@ class Sidebar extends Component {
               <i className="mdi mdi-clipboard-check menu-icon"></i>
             </Link>
           </li>
+          <li className={this.isPathActive('/optional-courses') ? 'nav-item active' : 'nav-item'}>
+            <Link className="nav-link" to="/optional-courses">
+              <span className="menu-title">Optional Courses</span>
+              <i className="mdi mdi-format-list-checks menu-icon"></i>
+            </Link>
+          </li>
           <li className={this.isPathActive('/sessional-distribution') ? 'nav-item active' : 'nav-item'}>
             <Link className="nav-link" to="/sessional-distribution">
               <span className="menu-title">Sessional Distribution</span>

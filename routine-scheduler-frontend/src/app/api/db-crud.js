@@ -102,3 +102,10 @@ export const getActiveDepartments = () =>
 export const getDepartmentalLevelTermBatches = (department) =>
   axios.get(api_url(`/level_terms/departmental_level_term_batches/${department}`)).then((res) => res.data);
 
+
+// Electives of the running level-terms: offered or not, and their options
+export const getOptionalOfferings = () =>
+  axios.get(api_url("/course/optional")).then((res) => res.data);
+
+export const saveOptionalOfferings = (offerings) =>
+  axios.put(api_url("/course/optional"), offerings).then((res) => res.data);

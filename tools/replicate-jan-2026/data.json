@@ -7,7 +7,10 @@
    "nickname": "Masroor",
    "full_time": true,
    "thesis_1": true,
-   "msc": true
+   "msc": true,
+   "designation": "Professor",
+   "load": 9,
+   "remark": "Dean of FPGS"
   },
   {
    "initial": "ASMLH",
@@ -15,7 +18,9 @@
    "nickname": "Latif",
    "full_time": true,
    "thesis_1": true,
-   "msc": false
+   "msc": false,
+   "designation": "Professor",
+   "load": 15
   },
   {
    "initial": "MMI",
@@ -23,7 +28,9 @@
    "nickname": "Monir",
    "full_time": true,
    "thesis_1": true,
-   "msc": false
+   "msc": false,
+   "designation": "Professor",
+   "load": 15
   },
   {
    "initial": "MMAK",
@@ -31,7 +38,9 @@
    "nickname": "Mostofa",
    "full_time": true,
    "thesis_1": true,
-   "msc": false
+   "msc": false,
+   "designation": "Professor",
+   "load": 15
   },
   {
    "initial": "MMFZ",
@@ -39,7 +48,9 @@
    "nickname": "Mahfuz",
    "full_time": true,
    "thesis_1": true,
-   "msc": true
+   "msc": true,
+   "designation": "Professor",
+   "load": 15
   },
   {
    "initial": "AKMAR",
@@ -47,7 +58,9 @@
    "nickname": "Ashik",
    "full_time": true,
    "thesis_1": false,
-   "msc": false
+   "msc": false,
+   "designation": "Professor",
+   "load": 15
   },
   {
    "initial": "MN",
@@ -55,7 +68,9 @@
    "nickname": "Mahmuda",
    "full_time": true,
    "thesis_1": true,
-   "msc": false
+   "msc": false,
+   "designation": "Professor",
+   "load": 15
   },
   {
    "initial": "MDMI",
@@ -63,7 +78,9 @@
    "nickname": "Monir Jr.",
    "full_time": true,
    "thesis_1": true,
-   "msc": false
+   "msc": false,
+   "designation": "Professor",
+   "load": 15
   },
   {
    "initial": "TH",
@@ -71,7 +88,10 @@
    "nickname": "Tanzima",
    "full_time": true,
    "thesis_1": true,
-   "msc": false
+   "msc": false,
+   "designation": "Professor",
+   "load": 12,
+   "remark": "HoD"
   },
   {
    "initial": "MSH",
@@ -79,7 +99,9 @@
    "nickname": "Shohrab",
    "full_time": true,
    "thesis_1": true,
-   "msc": false
+   "msc": false,
+   "designation": "Professor",
+   "load": 15
   },
   {
    "initial": "AAI",
@@ -87,7 +109,9 @@
    "nickname": "Alim",
    "full_time": true,
    "thesis_1": true,
-   "msc": true
+   "msc": true,
+   "designation": "Professor",
+   "load": 15
   },
   {
    "initial": "AI",
@@ -95,7 +119,9 @@
    "nickname": "Anindya",
    "full_time": true,
    "thesis_1": true,
-   "msc": false
+   "msc": false,
+   "designation": "Professor",
+   "load": 15
   },
   {
    "initial": "RS",
@@ -103,7 +129,9 @@
    "nickname": "Rifat",
    "full_time": true,
    "thesis_1": true,
-   "msc": false
+   "msc": false,
+   "designation": "Professor",
+   "load": 15
   },
   {
    "initial": "MDAA",
@@ -111,7 +139,9 @@
    "nickname": "Adnan",
    "full_time": true,
    "thesis_1": true,
-   "msc": true
+   "msc": true,
+   "designation": "Professor",
+   "load": 15
   },
   {
    "initial": "MDSR",
@@ -119,7 +149,9 @@
    "nickname": "Saifur",
    "full_time": true,
    "thesis_1": true,
-   "msc": false
+   "msc": false,
+   "designation": "Professor",
+   "load": 15
   },
   {
    "initial": "MSB",
@@ -127,7 +159,9 @@
    "nickname": "Bayzid",
    "full_time": true,
    "thesis_1": true,
-   "msc": true
+   "msc": true,
+   "designation": "Professor",
+   "load": 15
   },
   {
    "initial": "AHR",
@@ -135,7 +169,9 @@
    "nickname": "Atif",
    "full_time": true,
    "thesis_1": true,
-   "msc": false
+   "msc": false,
+   "designation": "Professor",
+   "load": 15
   },
   {
    "initial": "SS",
@@ -143,7 +179,9 @@
    "nickname": "Sadia",
    "full_time": true,
    "thesis_1": true,
-   "msc": false
+   "msc": false,
+   "designation": "Professor",
+   "load": 15
   },
   {
    "initial": "AW",
@@ -151,7 +189,9 @@
    "nickname": "Wasif",
    "full_time": true,
    "thesis_1": true,
-   "msc": false
+   "msc": false,
+   "designation": "Professor",
+   "load": 15
   },
   {
    "initial": "SB",
@@ -159,7 +199,9 @@
    "nickname": "Sukarna",
    "full_time": true,
    "thesis_1": true,
-   "msc": false
+   "msc": false,
+   "designation": "Professor",
+   "load": 15
   },
   {
    "initial": "MSIB",
@@ -167,7 +209,9 @@
    "nickname": "Sharif",
    "full_time": true,
    "thesis_1": true,
-   "msc": false
+   "msc": false,
+   "designation": "Professor",
+   "load": 15
   },
   {
    "initial": "RRR",
@@ -175,7 +219,9 @@
    "nickname": "Rimpi",
    "full_time": true,
    "thesis_1": true,
-   "msc": false
+   "msc": false,
+   "designation": "Professor",
+   "load": 15
   },
   {
    "initial": "MTA",
@@ -183,7 +229,9 @@
    "nickname": "Tanveer",
    "full_time": true,
    "thesis_1": false,
-   "msc": false
+   "msc": false,
+   "designation": "Assistant Professor",
+   "load": 0
   },
   {
    "initial": "KMS",
@@ -191,7 +239,9 @@
    "nickname": "Shahriar",
    "full_time": true,
    "thesis_1": false,
-   "msc": false
+   "msc": false,
+   "designation": "Assistant Professor",
+   "load": 18
   },
   {
    "initial": "CRH",
@@ -199,7 +249,9 @@
    "nickname": "Rakin",
    "full_time": true,
    "thesis_1": true,
-   "msc": false
+   "msc": false,
+   "designation": "Assistant Professor",
+   "load": 18
   },
   {
    "initial": "HT",
@@ -207,7 +259,9 @@
    "nickname": "Tahmid",
    "full_time": true,
    "thesis_1": false,
-   "msc": false
+   "msc": false,
+   "designation": "Assistant Professor",
+   "load": 18
   },
   {
    "initial": "NVN",
@@ -215,7 +269,9 @@
    "nickname": "Novia",
    "full_time": true,
    "thesis_1": true,
-   "msc": true
+   "msc": true,
+   "designation": "Assistant Professor",
+   "load": 18
   },
   {
    "initial": "MHE",
@@ -223,7 +279,9 @@
    "nickname": "Mehedi",
    "full_time": true,
    "thesis_1": false,
-   "msc": false
+   "msc": false,
+   "designation": "Lecturer",
+   "load": 21
   },
   {
    "initial": "ART",
@@ -231,7 +289,10 @@
    "nickname": "Tushar",
    "full_time": true,
    "thesis_1": false,
-   "msc": false
+   "msc": false,
+   "designation": "Lecturer",
+   "load": 0,
+   "remark": "Will be on Study Leave From August."
   },
   {
    "initial": "SAH",
@@ -239,7 +300,10 @@
    "nickname": "Hakim",
    "full_time": true,
    "thesis_1": false,
-   "msc": false
+   "msc": false,
+   "designation": "Lecturer",
+   "load": 0,
+   "remark": "Will be on Study Leave From July."
   },
   {
    "initial": "KRV",
@@ -247,7 +311,9 @@
    "nickname": "Vodro",
    "full_time": true,
    "thesis_1": false,
-   "msc": false
+   "msc": false,
+   "designation": "Lecturer",
+   "load": 21
   },
   {
    "initial": "SMH",
@@ -255,7 +321,9 @@
    "nickname": "Saem",
    "full_time": true,
    "thesis_1": false,
-   "msc": false
+   "msc": false,
+   "designation": "Lecturer",
+   "load": 21
   },
   {
    "initial": "EHP",
@@ -263,7 +331,9 @@
    "nickname": "Pranta",
    "full_time": true,
    "thesis_1": false,
-   "msc": false
+   "msc": false,
+   "designation": "Lecturer",
+   "load": 21
   },
   {
    "initial": "IJ",
@@ -271,7 +341,9 @@
    "nickname": "Ishrat",
    "full_time": true,
    "thesis_1": false,
-   "msc": false
+   "msc": false,
+   "designation": "Lecturer",
+   "load": 21
   },
   {
    "initial": "MNM",
@@ -279,7 +351,9 @@
    "nickname": "Muttakin",
    "full_time": true,
    "thesis_1": false,
-   "msc": false
+   "msc": false,
+   "designation": "Lecturer",
+   "load": 21
   },
   {
    "initial": "JYK",
@@ -287,7 +361,9 @@
    "nickname": "Junaed",
    "full_time": true,
    "thesis_1": false,
-   "msc": false
+   "msc": false,
+   "designation": "Lecturer",
+   "load": 21
   },
   {
    "initial": "AMR",
@@ -295,7 +371,9 @@
    "nickname": "Rumi",
    "full_time": true,
    "thesis_1": false,
-   "msc": false
+   "msc": false,
+   "designation": "Lecturer",
+   "load": 21
   },
   {
    "initial": "RJM",
@@ -303,7 +381,9 @@
    "nickname": "Rabib",
    "full_time": true,
    "thesis_1": false,
-   "msc": false
+   "msc": false,
+   "designation": "Lecturer",
+   "load": 21
   },
   {
    "initial": "ADR",
@@ -311,7 +391,9 @@
    "nickname": "Rafi",
    "full_time": true,
    "thesis_1": false,
-   "msc": false
+   "msc": false,
+   "designation": "Lecturer",
+   "load": 21
   },
   {
    "initial": "ABS",
@@ -319,7 +401,9 @@
    "nickname": "Shuaib",
    "full_time": true,
    "thesis_1": false,
-   "msc": false
+   "msc": false,
+   "designation": "Lecturer",
+   "load": 21
   },
   {
    "initial": "STR",
@@ -327,7 +411,9 @@
    "nickname": "Shattik",
    "full_time": true,
    "thesis_1": false,
-   "msc": false
+   "msc": false,
+   "designation": "Lecturer",
+   "load": 21
   },
   {
    "initial": "MSD",
@@ -335,7 +421,9 @@
    "nickname": "Sadat",
    "full_time": true,
    "thesis_1": false,
-   "msc": false
+   "msc": false,
+   "designation": "Lecturer",
+   "load": 21
   },
   {
    "initial": "NTD",
@@ -343,7 +431,9 @@
    "nickname": "Nafis",
    "full_time": true,
    "thesis_1": false,
-   "msc": false
+   "msc": false,
+   "designation": "Lecturer",
+   "load": 21
   },
   {
    "initial": "ARK",
@@ -351,7 +441,9 @@
    "nickname": "Ashrafur",
    "full_time": true,
    "thesis_1": false,
-   "msc": false
+   "msc": false,
+   "designation": "Lecturer",
+   "load": 21
   },
   {
    "initial": "RZS",
@@ -359,7 +451,9 @@
    "nickname": "Sojib",
    "full_time": true,
    "thesis_1": false,
-   "msc": false
+   "msc": false,
+   "designation": "Lecturer",
+   "load": 21
   },
   {
    "initial": "NZR",
@@ -367,7 +461,9 @@
    "nickname": "Niaz",
    "full_time": true,
    "thesis_1": false,
-   "msc": false
+   "msc": false,
+   "designation": "Lecturer",
+   "load": 21
   },
   {
    "initial": "IAH",
@@ -375,7 +471,10 @@
    "nickname": "Ishrak",
    "full_time": true,
    "thesis_1": false,
-   "msc": false
+   "msc": false,
+   "designation": "Lecturer",
+   "load": 0,
+   "remark": "Will be on Study Leave From July."
   },
   {
    "initial": "MLD",
@@ -383,7 +482,9 @@
    "nickname": "Dihan",
    "full_time": true,
    "thesis_1": false,
-   "msc": false
+   "msc": false,
+   "designation": "Lecturer",
+   "load": 21
   },
   {
    "initial": "AKS",
@@ -687,72 +788,72 @@
   {
    "department": "BME",
    "level_term": "L-2 T-1",
-   "batch": 23
+   "batch": 24
   },
   {
    "department": "BME",
    "level_term": "L-2 T-2",
-   "batch": 22
+   "batch": 23
   },
   {
    "department": "BME",
    "level_term": "L-3 T-1",
-   "batch": 21
+   "batch": 22
   },
   {
    "department": "BME",
    "level_term": "L-4 T-1",
-   "batch": 20
+   "batch": 21
   },
   {
    "department": "CSE",
    "level_term": "L-1 T-1",
-   "batch": 24
+   "batch": 25
   },
   {
    "department": "CSE",
    "level_term": "L-2 T-1",
-   "batch": 23
+   "batch": 24
   },
   {
    "department": "CSE",
    "level_term": "L-2 T-2",
-   "batch": 22
+   "batch": 23
   },
   {
    "department": "CSE",
    "level_term": "L-3 T-1",
-   "batch": 21
+   "batch": 22
   },
   {
    "department": "CSE",
    "level_term": "L-4 T-1",
-   "batch": 20
+   "batch": 21
   },
   {
    "department": "EEE",
    "level_term": "L-1 T-1",
-   "batch": 24
+   "batch": 25
   },
   {
    "department": "IPE",
    "level_term": "L-2 T-1",
-   "batch": 23
+   "batch": 24
   },
   {
    "department": "MME",
    "level_term": "L-2 T-1",
-   "batch": 23
+   "batch": 24
   },
   {
    "department": "NCE",
    "level_term": "L-2 T-1",
-   "batch": 23
+   "batch": 24
   },
   {
    "department": "URP",
    "level_term": "L-2 T-2",
-   "batch": 22
+   "batch": 23
   }
  ],
  "courses": [
@@ -1269,32 +1370,8 @@
    "level_term": "L-4 T-1"
   }
  ],
- "new_courses": [
-  {
-   "course_id": "CSE272",
-   "name": "Sessional offered to URP",
-   "type": 1,
-   "class_per_week": 1.5,
-   "from": "CSE",
-   "to": "URP",
-   "level_term": "L-2 T-2"
-  },
-  {
-   "course_id": "CSE495",
-   "name": "Course offered to BME",
-   "type": 0,
-   "class_per_week": 3,
-   "from": "CSE",
-   "to": "BME",
-   "level_term": "L-4 T-1"
-  }
- ],
- "retired_courses": [
-  {
-   "course_id": "CSE493",
-   "level_term": "L-4 T-1"
-  }
- ],
+ "new_courses": [],
+ "retired_courses": [],
  "electives": {
   "L-4 T-1": {
    "1": [

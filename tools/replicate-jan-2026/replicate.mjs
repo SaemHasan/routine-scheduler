@@ -99,12 +99,13 @@ for (const [i, t] of data.teachers.entries()) {
     active: "1",
     theory_courses: old?.theory_courses ?? 1,
     sessional_courses: old?.sessional_courses ?? 1,
-    designation: old?.designation || (t.full_time ? "Lecturer" : "Adjunct Lecturer"),
+    designation: t.designation || old?.designation || (t.full_time ? "Lecturer" : "Adjunct Lecturer"),
     full_time_status: t.full_time,
     offers_thesis_1: t.thesis_1,
     offers_thesis_2: false,
     offers_msc: t.msc,
-    teacher_credits_offered: old?.teacher_credits_offered ?? 21,
+    // The load the term's Course Load workbook gave (HoD 12, study leave 0, …)
+    teacher_credits_offered: t.load ?? old?.teacher_credits_offered ?? 21,
   };
   await attempt(`teacher ${t.initial}`, () =>
     old ? call("PUT", `/teacher/${enc(t.initial)}`, body) : call("POST", "/teacher", body)
@@ -137,13 +138,12 @@ for (const [i, r] of data.rooms.entries()) {
     lab_type: type === 0 ? null : old?.lab_type || null,
     room_number: old?.room_number || null,
     full_name: old?.full_name || null,
-    sort_order: i + 1,
   };
   await attempt(`room ${r.room}`, () =>
     old ? call("PUT", `/room/${enc(r.room)}`, body) : call("POST", "/room", body)
   );
 }
-console.log(`${data.rooms.length} rooms in routine order`);
+console.log(`${data.rooms.length} rooms`);
 
 /* ------------------------------------------------------------ 4. courses */
 
@@ -162,29 +162,6 @@ for (const c of data.retired_courses) {
   );
   console.log(`removed ${c.course_id} (not offered that term)`);
 }
-// Electives: one group each, in two options of three run side by side
-for (const [levelTerm, options] of Object.entries(data.electives)) {
-  for (const [option, ids] of Object.entries(options)) {
-    for (const id of ids) {
-      const c = catalogue.find((x) => x.course_id === id && x.level_term === levelTerm);
-      if (!c) {
-        problems.push(`elective ${id} is not in the catalogue`);
-        continue;
-      }
-      await attempt(`elective ${id}`, () =>
-        call("PUT", `/course/${enc(id)}`, {
-          ...c,
-          level_term_old: levelTerm,
-          optional: 1,
-          optional_section_count: 1,
-          option_group: Number(option),
-        })
-      );
-    }
-    console.log(`${levelTerm} Option ${option}: ${ids.join(", ")}`);
-  }
-}
-
 /* -------------------------------------------------------- 5. level-terms */
 
 step("Level-terms");
@@ -208,10 +185,17 @@ await call(
 );
 console.log(data.level_terms.map((lt) => `${lt.department} ${lt.level_term} (${lt.batch})`).join(", "));
 
+// Electives offered, in their options (Optional Courses page): each option's
+// three courses run side by side in one slot for all sections
+step("Optional courses");
 for (const [levelTerm, options] of Object.entries(data.electives)) {
-  for (const id of Object.values(options).flat()) {
-    await attempt(`offer ${id}`, () => call("PUT", `/course/${enc(id)}/active`, { level_term: levelTerm, active: true }));
-  }
+  const courses = Object.entries(options).flatMap(([option, ids]) =>
+    ids.map((course_id) => ({ course_id, offered: true, option_group: Number(option) }))
+  );
+  await attempt(`electives of ${levelTerm}`, () =>
+    call("PUT", "/course/optional", { level_term: levelTerm, department: "CSE", courses })
+  );
+  for (const [option, ids] of Object.entries(options)) console.log(`${levelTerm} Option ${option}: ${ids.join(", ")}`);
 }
 
 /* --------------------------------------------------------- 6. who teaches */
@@ -328,7 +312,7 @@ step("Lab teachers");
 for (const st of data.sessional_teachers) {
   const c = courseInfo.get(st.course_id);
   const batch = batchFor(c.to, c.level_term);
-  // in the order they are listed: the lead first; two in a slot share it
+  // two teachers in a slot share it
   for (const slot of st.slots) {
     for (const initial of slot) {
       await attempt(`${st.course_id}(${st.section}) ${initial}`, () =>

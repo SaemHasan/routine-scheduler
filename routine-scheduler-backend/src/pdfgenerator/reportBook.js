@@ -17,6 +17,9 @@ const RULE = 0.6;
 
 const letterOf = (section) => (section.match(/^[A-Za-z]+/) || [section])[0];
 const isMainSection = (section) => /^[A-Za-z]+$/.test(section);
+// Weekly hours of a lab: 3 hours a week per 1.5 credits (a 0.75-credit lab,
+// every other week, counts 3 too)
+const labHours = (credit) => (Number(credit) <= 0.75 ? 3 : 2 * Number(credit));
 // 3, 1.5, 13.5 — never 3.0
 const hours = (n) => String(Math.round(n * 100) / 100);
 
@@ -44,10 +47,11 @@ async function loadReportData() {
     ).rows;
     const labTeachers = (
       await client.query(
-        `SELECT course_id, batch, section, initial, share::float AS share
-         FROM teacher_sessional_assignment
-         WHERE session = ${CURRENT_SESSION}
-         ORDER BY assigned_order`
+        `SELECT tsa.course_id, tsa.batch, tsa.section, tsa.initial, tsa.share::float AS share
+         FROM teacher_sessional_assignment tsa
+         LEFT JOIN teachers t ON t.initial = tsa.initial
+         WHERE tsa.session = ${CURRENT_SESSION}
+         ORDER BY t.seniority_rank NULLS LAST, tsa.initial`
       )
     ).rows;
     const slots = (
@@ -93,10 +97,12 @@ function courseClasses(data) {
     if (!labTeachersOf.has(k)) labTeachersOf.set(k, []);
     labTeachersOf.get(k).push(t);
   }
-  const slotOf = new Map();
+  // Every weekly class of a section (a 3-credit lab meets twice)
+  const slotsOf = new Map();
   for (const s of data.slots) {
     const k = `${s.course_id}|${s.department}|${s.batch}|${s.section}`;
-    if (!slotOf.has(k)) slotOf.set(k, s);
+    if (!slotsOf.has(k)) slotsOf.set(k, []);
+    slotsOf.get(k).push(s);
   }
 
   const seen = new Set();
@@ -132,7 +138,7 @@ function courseClasses(data) {
         }
       }
     }
-    const slot = slotOf.get(`${cs.course_id}|${cs.department}|${cs.batch}|${cs.section}`);
+    const slots = slotsOf.get(`${cs.course_id}|${cs.department}|${cs.batch}|${cs.section}`) || [];
     classes.push({
       course_id: cs.course_id,
       type,
@@ -140,8 +146,8 @@ function courseClasses(data) {
       departmental: cs.to === "CSE",
       label,
       teacherSlots,
-      day: slot ? slot.day.slice(0, 3).toUpperCase() : "",
-      time: slot ? String(slot.time) : "",
+      day: slots.map((s) => s.day.slice(0, 3).toUpperCase()).join(", "),
+      time: slots.map((s) => String(s.time)).join(", "),
     });
   }
   const byCourse = (a, b) =>
@@ -297,9 +303,9 @@ export async function courseTeacherBook() {
 
 /**
  * Each teacher's load, as the department counts it: a theory section is its
- * credit shared by the section's teachers; a lab slot is 3 hours (half for
- * two teachers sharing it); thesis 6 hours for each thesis supervised and an
- * MSc course 3.
+ * credit shared by the section's teachers; a lab slot is its weekly hours (3,
+ * or 6 for a 3-credit lab that meets twice; half for two teachers sharing
+ * it); thesis 6 hours for each thesis supervised and an MSc course 3.
  */
 export function teacherLoads(data) {
   const { theory, sessional } = courseClasses(data);
@@ -309,7 +315,7 @@ export function teacherLoads(data) {
     for (const c of [...theory, ...sessional]) {
       const slot = c.teacherSlots.find((s) => s.includes(t.initial));
       if (!slot) continue;
-      const load = (c.type === 1 ? 3 : c.credit) / slot.length;
+      const load = (c.type === 1 ? labHours(c.credit) : c.credit) / slot.length;
       total += c.type === 1 ? load : load / c.teacherSlots.length;
       entries.push({ text: `${c.course_id}(${c.label})`, load });
     }

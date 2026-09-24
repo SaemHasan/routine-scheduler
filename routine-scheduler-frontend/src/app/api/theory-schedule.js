@@ -13,6 +13,11 @@ export const getSchedules = (department, batch, section) =>
 export const setSchedules = (batch, section, course, schedules) => 
     axios.post(api_url(`/schedule/theory/${batch}/${section}/${course}`), schedules).then((res) => res.data);
 
+// Sets every theory class a section has in one period: { department, batch,
+// section, day, time, course_ids }. Electives may share a period.
+export const setTheoryCell = (cell) =>
+    axios.put(api_url("/schedule/theory/cell"), cell).then((res) => res.data);
+
 export const initiateTheorySchedule = () =>
     axios.get(api_url("/schedule/theory/initiate")).then((res) => res.data);
 

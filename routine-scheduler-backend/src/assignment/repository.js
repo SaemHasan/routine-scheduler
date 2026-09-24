@@ -642,8 +642,8 @@ export async function finalizeSessional() {
       return acc;
     }, {});
     const teacherCountOf = (row) => {
-      const code =
-        row.sessional_type || (row.to === "CSE" ? "DEPT_SW" : "NON_DEPT_SW");
+      // A lab for another department is Non-Departmental, whatever is stored
+      const code = row.to === "CSE" ? row.sessional_type || "DEPT_SW" : "NON_DEPT";
       return sessionalTypes[code] || 3;
     };
 
@@ -1241,13 +1241,18 @@ export async function getSessionalDistributionDB() {
         sa.day,
         sa.time
       FROM courses_sections cs
+      JOIN courses c ON c.course_id = cs.course_id AND c.session = cs.session
       LEFT JOIN all_courses ac ON cs.course_id = ac.course_id
       LEFT JOIN teacher_sessional_assignment tsa ON cs.course_id = tsa.course_id 
         AND cs.section = tsa.section 
+        AND cs.batch = tsa.batch
         AND cs.session = tsa.session
       LEFT JOIN teachers t ON tsa.initial = t.initial AND t.active = 1
       LEFT JOIN schedule_assignment sa ON cs.course_id = sa.course_id 
-        AND cs.section = sa.section 
+        AND cs.batch = sa.batch
+        AND cs.department = sa.department
+        -- A single-group optional lab is attended by every offered section.
+        AND (cs.section = sa.section OR (c.optional = 1 AND c.optional_section_count <= 1))
         AND cs.session = sa.session
       WHERE cs.session = (SELECT value FROM configs WHERE key='CURRENT_SESSION')
       AND cs.course_id ~ '[02468]$'

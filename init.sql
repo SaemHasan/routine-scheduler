@@ -70,8 +70,6 @@ CREATE TABLE public.rooms (
 	full_name varchar NULL,
 	-- Optional physical room number, e.g. for a lab known by its short name.
 	room_number varchar NULL,
-	-- Position in room lists and the room routine; unordered rooms come last.
-	sort_order int4 NULL,
     active boolean DEFAULT true NOT NULL,
 	CONSTRAINT rooms_pk PRIMARY KEY (room)
 );
@@ -182,9 +180,6 @@ CREATE TABLE public.teacher_sessional_assignment (
 	-- 1 for a full lab slot, 0.5 when two teachers share one slot (each takes
 	-- half the lab and half its credit).
 	share numeric(3, 2) DEFAULT 1 NOT NULL,
-	-- Assignment order: routines list a lab's teachers in the order they were
-	-- assigned, the lead teacher first.
-	assigned_order bigserial NOT NULL,
 	CONSTRAINT teacher_sessional_assignment_share_check CHECK (share IN (0.5, 1)),
 	CONSTRAINT teacher_sessional_assignment_pk PRIMARY KEY (initial, course_id, session, batch, section),
 	CONSTRAINT teacher_sessional_assignment_courses_sections_fk FOREIGN KEY (course_id,"session",batch,"section") REFERENCES public.courses_sections(course_id,"session",batch,"section"),
@@ -283,8 +278,8 @@ INSERT INTO public.sessional_types (code, "name", teacher_count, lab_type, sort_
 	('DEPT_SW', 'Departmental Software', 3, 'SW', 1),
 	('DEPT_HW', 'Departmental Hardware', 2, 'HW', 2),
 	('DEPT_PRESENTATION', 'Departmental Presentation', 2, 'SW', 3),
-	('NON_DEPT_SW', 'Non-Departmental Software', 2, 'SW', 4),
-	('NON_DEPT_HW', 'Non-Departmental Hardware', 2, 'HW', 5);
+	-- Every lab CSE runs for another department; it has no lab type
+	('NON_DEPT', 'Non-Departmental', 2, NULL, 4);
 
 INSERT INTO public.thesis_slots (thesis, "day", start_time, end_time) VALUES
 	(1, 'Tuesday', 11, 4),
@@ -345,63 +340,65 @@ INSERT INTO public.level_term_unique (level_term, department) VALUES
 	('L-2 T-1',	'IPE'),
 	('L-2 T-1',	'MME'),
 	('L-2 T-1',	'NCE'),
-	('L-1 T-2',	'URP');
+	('L-1 T-2',	'URP'),
+	('L-2 T-2',	'URP');
 
 -- Listed most senior first; seniority_rank follows the order.
 INSERT INTO public.teachers (initial,"name",surname,designation,email,seniority_rank,active,theory_courses,sessional_courses) VALUES
 	('MMA', 'Dr. Muhammad Masroor Ali', 'Masroor', 'Professor', 'routine.scheduler.buet@gmail.com', 1, 1, 1, 1),
-	('ASMLH', 'Dr. Abu Sayed Md. Latiful Hoque', 'Latif', 'Professor', 'routine.scheduler.buet@gmail.com', 2, 1, 1, 1),
-	('MMI', 'Dr. Md. Monirul Islam', 'Monir', 'Professor', 'routine.scheduler.buet@gmail.com', 3, 1, 1, 1),
-	('MMAK', 'Dr. Md. Mostofa Akbar', 'Mostofa', 'Professor', 'routine.scheduler.buet@gmail.com', 4, 1, 1, 1),
-	('MMFZ', 'Dr. Mohammad Mahfuzul Islam', 'Mahfuz', 'Professor', 'routine.scheduler.buet@gmail.com', 5, 1, 1, 1),
-	('AKMAR', 'Dr. A.K.M. Ashikur Rahman', 'Ashik', 'Professor', 'routine.scheduler.buet@gmail.com', 6, 1, 1, 1),
-	('MN', 'Dr. Mahmuda Naznin', 'Mahmuda', 'Professor', 'routine.scheduler.buet@gmail.com', 7, 1, 1, 1),
-	('MDMI', 'Dr. Md. Monirul Islam', 'Monir Jr.', 'Professor', 'routine.scheduler.buet@gmail.com', 8, 1, 1, 1),
-	('TH', 'Dr. Tanzima Hashem', 'Tanzima', 'Professor', 'routine.scheduler.buet@gmail.com', 9, 1, 1, 1),
-	-- ('MSH', 'Dr. Md. Shohrab Hossain', 'Shohrab', 'Professor', 'routine.scheduler.buet@gmail.com', 10, 1, 1, 1),
-	('AAI', 'Dr. A. B. M. Alim Al Islam', 'Alim', 'Professor', 'routine.scheduler.buet@gmail.com', 11, 1, 1, 1),
-	('AI', 'Dr. Anindya Iqbal', 'Anindya', 'Professor', 'routine.scheduler.buet@gmail.com', 12, 1, 1, 1),
-	('RS', 'Dr. Rifat Shahriyar', 'Rifat', 'Professor', 'routine.scheduler.buet@gmail.com', 13, 1, 1, 1),
-	('MDAA', 'Dr. Muhammad Abdullah Adnan', 'Adnan', 'Professor', 'routine.scheduler.buet@gmail.com', 14, 1, 1, 1),
-	('MDSR', 'Dr. Mohammad Saifur Rahman', 'Saifur', 'Professor', 'routine.scheduler.buet@gmail.com', 15, 1, 1, 1),
-	('MSB', 'Dr. Md. Shamsuzzoha Bayzid', 'Bayzid', 'Professor', 'routine.scheduler.buet@gmail.com', 16, 1, 1, 1),
-	('AHR', 'Dr. Atif Hasan Rahman', 'Atif', 'Associate Professor', 'routine.scheduler.buet@gmail.com', 17, 1, 1, 1),
-	('SS', 'Dr. Sadia Sharmin', 'Sadia', 'Associate Professor', 'routine.scheduler.buet@gmail.com', 18, 1, 1, 1),
-	('AW', 'Abu Wasif', 'Wasif', 'Associate Professor', 'routine.scheduler.buet@gmail.com', 19, 1, 1, 1),
-	('SB', 'Sukarna Barua', 'Sukarna', 'Associate Professor', 'routine.scheduler.buet@gmail.com', 20, 1, 1, 1),
-	('MSIB', 'Dr. Md. Shariful Islam Bhuyan', 'Sharif', 'Associate Professor', 'routine.scheduler.buet@gmail.com', 21, 1, 1, 1),
-	('RRR', 'Dr. Rezwana Reaz Rimpi', 'Rimpi', 'Associate Professor', 'routine.scheduler.buet@gmail.com', 22, 1, 1, 1),
-	('MTA', 'Dr. Tanveer Awal', 'Tanveer', 'Assistant Professor', 'routine.scheduler.buet@gmail.com', 23, 1, 1, 1),
-	('KMS', 'Khaled Mahmud Shahriar', 'Shahriar', 'Assistant Professor', 'routine.scheduler.buet@gmail.com', 24, 1, 1, 1),
-	('CRH', 'Dr. Ch. Md. Rakin Haider', 'Rakin', 'Assistant Professor', 'routine.scheduler.buet@gmail.com', 25, 1, 1, 1),
-	('HT', 'Tahmid Hasan', 'Tahmid', 'Assistant Professor', 'routine.scheduler.buet@gmail.com', 26, 1, 1, 1),
-	('NVN', 'Dr. Novia Nurain', 'Novia', 'Assistant Professor', 'routine.scheduler.buet@gmail.com', 27, 1, 1, 1),
-	('IJ', 'Ishrat Jahan', 'Ishrat', 'Assistant Professor', 'routine.scheduler.buet@gmail.com', 28, 1, 1, 1),
-	('JYK', 'Junaed Younus Khan', 'Junaed', 'Assistant Professor', 'routine.scheduler.buet@gmail.com', 29, 1, 1, 1),
-	('MNM', 'Md. Nurul Muttakin', 'Muttakin', 'Assistant Professor', 'routine.scheduler.buet@gmail.com', 30, 1, 1, 1),
-	('MHE', 'A. K. M. Mehedi Hasan', 'Mehedi', 'Lecturer', 'routine.scheduler.buet@gmail.com', 31, 1, 1, 1),
-	-- ('ART', 'Abdur Rashid Tushar', 'Tushar', 'Lecturer', 'routine.scheduler.buet@gmail.com', 32, 1, 1, 1),
-	-- ('SAH', 'Sheikh Azizul Hakim', 'Hakim', 'Lecturer', 'routine.scheduler.buet@gmail.com', 33, 1, 1, 1),
-	('KRV', 'Kowshic Roy', 'Vodro', 'Lecturer', 'routine.scheduler.buet@gmail.com', 34, 1, 1, 1),
-	('SMH', 'Saem Hasan', 'Saem', 'Lecturer', 'routine.scheduler.buet@gmail.com', 35, 1, 1, 1),
-	('EHP', 'Md. Emamul Haque Pranta', 'Pranta', 'Lecturer', 'routine.scheduler.buet@gmail.com', 36, 1, 1, 1),
-	('AMR', 'Ahmed Mahir Sultan Rumi', 'Rumi', 'Lecturer', 'routine.scheduler.buet@gmail.com', 37, 1, 1, 1),
-	('RJM', 'Rabib Jahin Ibn Momin', 'Rabib', 'Lecturer', 'routine.scheduler.buet@gmail.com', 38, 1, 1, 1),
-	('ADR', 'Abdur Rafi', 'Rafi', 'Lecturer', 'routine.scheduler.buet@gmail.com', 39, 1, 1, 1),
-	('ABS', 'Anwarul Bashir Shuaib', 'Shuaib', 'Lecturer', 'routine.scheduler.buet@gmail.com', 40, 1, 1, 1),
-	('STR', 'Shattik Islam Rhythm', 'Shattik', 'Lecturer', 'routine.scheduler.buet@gmail.com', 41, 1, 1, 1),
-	('MSD', 'Mohammad Sadat Hossain', 'Sadat', 'Lecturer', 'routine.scheduler.buet@gmail.com', 42, 1, 1, 1),
-	('NTD', 'Nafis Tahmid', 'Nafis', 'Lecturer', 'routine.scheduler.buet@gmail.com', 43, 1, 1, 1),
-	('ARK', 'Md. Ashrafur Rahman Khan', 'Ashrafur', 'Lecturer', 'routine.scheduler.buet@gmail.com', 44, 1, 1, 1),
-	('RZS', 'MD. Roqunuzzaman Sojib', 'Sojib', 'Lecturer', 'routine.scheduler.buet@gmail.com', 45, 1, 1, 1),
-	('NZR', 'Niaz Rahman', 'Niaz', 'Lecturer', 'routine.scheduler.buet@gmail.com', 46, 1, 1, 1),
-	('MLD', 'Mahir Labib Dihan', 'Dihan', 'Lecturer', 'routine.scheduler.buet@gmail.com', 47, 1, 1, 1),
-	('AKS', 'Anik Saha', 'Anik', 'Lecturer', 'routine.scheduler.buet@gmail.com', 48, 1, 1, 1),
-	('AMA', 'Abdullah Muhammed Amimul Ehsan', 'Amimul', 'Lecturer', 'routine.scheduler.buet@gmail.com', 49, 1, 1, 1),
-	('IRK', 'Md. Irtiaz Kabir', 'Irtiaz', 'Lecturer', 'routine.scheduler.buet@gmail.com', 50, 1, 1, 1),
-	('STP', 'Swastika Pandit', 'Swastika', 'Lecturer', 'routine.scheduler.buet@gmail.com', 51, 1, 1, 1),
-	('AHJ', 'Anup Halder Joy', 'Anup', 'Lecturer', 'routine.scheduler.buet@gmail.com', 52, 1, 1, 1),
-	('ZMS', 'Md. Zim - Mim Siddiqee Sowdha', 'Sowdha', 'Lecturer', 'routine.scheduler.buet@gmail.com', 53, 1, 1, 1);
+	('MSR', 'Dr. Md. Saidur Rahman', 'Saidur', 'Professor', 'routine.scheduler.buet@gmail.com', 2, 1, 1, 1),
+	('ASMLH', 'Dr. Abu Sayed Md. Latiful Hoque', 'Latif', 'Professor', 'routine.scheduler.buet@gmail.com', 3, 1, 1, 1),
+	('MMI', 'Dr. Md. Monirul Islam', 'Monir', 'Professor', 'routine.scheduler.buet@gmail.com', 4, 1, 1, 1),
+	('MMAK', 'Dr. Md. Mostofa Akbar', 'Mostofa', 'Professor', 'routine.scheduler.buet@gmail.com', 5, 1, 1, 1),
+	('MMFZ', 'Dr. Mohammad Mahfuzul Islam', 'Mahfuz', 'Professor', 'routine.scheduler.buet@gmail.com', 6, 1, 1, 1),
+	('AKMAR', 'Dr. A.K.M. Ashikur Rahman', 'Ashik', 'Professor', 'routine.scheduler.buet@gmail.com', 7, 1, 1, 1),
+	('MN', 'Dr. Mahmuda Naznin', 'Mahmuda', 'Professor', 'routine.scheduler.buet@gmail.com', 8, 1, 1, 1),
+	('MDMI', 'Dr. Md. Monirul Islam', 'Monir Jr.', 'Professor', 'routine.scheduler.buet@gmail.com', 9, 1, 1, 1),
+	('TH', 'Dr. Tanzima Hashem', 'Tanzima', 'Professor', 'routine.scheduler.buet@gmail.com', 10, 1, 1, 1),
+	-- ('MSH', 'Dr. Md. Shohrab Hossain', 'Shohrab', 'Professor', 'routine.scheduler.buet@gmail.com', 11, 1, 1, 1),
+	('AAI', 'Dr. A. B. M. Alim Al Islam', 'Alim', 'Professor', 'routine.scheduler.buet@gmail.com', 12, 1, 1, 1),
+	('AI', 'Dr. Anindya Iqbal', 'Anindya', 'Professor', 'routine.scheduler.buet@gmail.com', 13, 1, 1, 1),
+	('RS', 'Dr. Rifat Shahriyar', 'Rifat', 'Professor', 'routine.scheduler.buet@gmail.com', 14, 1, 1, 1),
+	('MDAA', 'Dr. Muhammad Abdullah Adnan', 'Adnan', 'Professor', 'routine.scheduler.buet@gmail.com', 15, 1, 1, 1),
+	('MDSR', 'Dr. Mohammad Saifur Rahman', 'Saifur', 'Professor', 'routine.scheduler.buet@gmail.com', 16, 1, 1, 1),
+	('MSB', 'Dr. Md. Shamsuzzoha Bayzid', 'Bayzid', 'Professor', 'routine.scheduler.buet@gmail.com', 17, 1, 1, 1),
+	('AHR', 'Dr. Atif Hasan Rahman', 'Atif', 'Associate Professor', 'routine.scheduler.buet@gmail.com', 18, 1, 1, 1),
+	('SS', 'Dr. Sadia Sharmin', 'Sadia', 'Associate Professor', 'routine.scheduler.buet@gmail.com', 19, 1, 1, 1),
+	('AW', 'Abu Wasif', 'Wasif', 'Associate Professor', 'routine.scheduler.buet@gmail.com', 20, 1, 1, 1),
+	('SB', 'Sukarna Barua', 'Sukarna', 'Associate Professor', 'routine.scheduler.buet@gmail.com', 21, 1, 1, 1),
+	('MSIB', 'Dr. Md. Shariful Islam Bhuyan', 'Sharif', 'Associate Professor', 'routine.scheduler.buet@gmail.com', 22, 1, 1, 1),
+	('RRR', 'Dr. Rezwana Reaz Rimpi', 'Rimpi', 'Associate Professor', 'routine.scheduler.buet@gmail.com', 23, 1, 1, 1),
+	('MTA', 'Dr. Tanveer Awal', 'Tanveer', 'Assistant Professor', 'routine.scheduler.buet@gmail.com', 24, 1, 1, 1),
+	('KMS', 'Khaled Mahmud Shahriar', 'Shahriar', 'Assistant Professor', 'routine.scheduler.buet@gmail.com', 25, 1, 1, 1),
+	('CRH', 'Dr. Ch. Md. Rakin Haider', 'Rakin', 'Assistant Professor', 'routine.scheduler.buet@gmail.com', 26, 1, 1, 1),
+	('HT', 'Tahmid Hasan', 'Tahmid', 'Assistant Professor', 'routine.scheduler.buet@gmail.com', 27, 1, 1, 1),
+	('NVN', 'Dr. Novia Nurain', 'Novia', 'Assistant Professor', 'routine.scheduler.buet@gmail.com', 28, 1, 1, 1),
+	('IJ', 'Ishrat Jahan', 'Ishrat', 'Assistant Professor', 'routine.scheduler.buet@gmail.com', 29, 1, 1, 1),
+	('JYK', 'Junaed Younus Khan', 'Junaed', 'Assistant Professor', 'routine.scheduler.buet@gmail.com', 30, 1, 1, 1),
+	('MNM', 'Md. Nurul Muttakin', 'Muttakin', 'Assistant Professor', 'routine.scheduler.buet@gmail.com', 31, 1, 1, 1),
+	('MHE', 'A. K. M. Mehedi Hasan', 'Mehedi', 'Lecturer', 'routine.scheduler.buet@gmail.com', 32, 1, 1, 1),
+	-- ('ART', 'Abdur Rashid Tushar', 'Tushar', 'Lecturer', 'routine.scheduler.buet@gmail.com', 33, 1, 1, 1),
+	-- ('SAH', 'Sheikh Azizul Hakim', 'Hakim', 'Lecturer', 'routine.scheduler.buet@gmail.com', 34, 1, 1, 1),
+	('KRV', 'Kowshic Roy', 'Vodro', 'Lecturer', 'routine.scheduler.buet@gmail.com', 35, 1, 1, 1),
+	('SMH', 'Saem Hasan', 'Saem', 'Lecturer', 'routine.scheduler.buet@gmail.com', 36, 1, 1, 1),
+	('EHP', 'Md. Emamul Haque Pranta', 'Pranta', 'Lecturer', 'routine.scheduler.buet@gmail.com', 37, 1, 1, 1),
+	('AMR', 'Ahmed Mahir Sultan Rumi', 'Rumi', 'Lecturer', 'routine.scheduler.buet@gmail.com', 38, 1, 1, 1),
+	('RJM', 'Rabib Jahin Ibn Momin', 'Rabib', 'Lecturer', 'routine.scheduler.buet@gmail.com', 39, 1, 1, 1),
+	('ADR', 'Abdur Rafi', 'Rafi', 'Lecturer', 'routine.scheduler.buet@gmail.com', 40, 1, 1, 1),
+	('ABS', 'Anwarul Bashir Shuaib', 'Shuaib', 'Lecturer', 'routine.scheduler.buet@gmail.com', 41, 1, 1, 1),
+	('STR', 'Shattik Islam Rhythm', 'Shattik', 'Lecturer', 'routine.scheduler.buet@gmail.com', 42, 1, 1, 1),
+	('MSD', 'Mohammad Sadat Hossain', 'Sadat', 'Lecturer', 'routine.scheduler.buet@gmail.com', 43, 1, 1, 1),
+	('NTD', 'Nafis Tahmid', 'Nafis', 'Lecturer', 'routine.scheduler.buet@gmail.com', 44, 1, 1, 1),
+	('ARK', 'Md. Ashrafur Rahman Khan', 'Ashrafur', 'Lecturer', 'routine.scheduler.buet@gmail.com', 45, 1, 1, 1),
+	('RZS', 'MD. Roqunuzzaman Sojib', 'Sojib', 'Lecturer', 'routine.scheduler.buet@gmail.com', 46, 1, 1, 1),
+	('NZR', 'Niaz Rahman', 'Niaz', 'Lecturer', 'routine.scheduler.buet@gmail.com', 47, 1, 1, 1),
+	('MLD', 'Mahir Labib Dihan', 'Dihan', 'Lecturer', 'routine.scheduler.buet@gmail.com', 48, 1, 1, 1),
+	('AKS', 'Anik Saha', 'Anik', 'Lecturer', 'routine.scheduler.buet@gmail.com', 49, 1, 1, 1),
+	('AMA', 'Abdullah Muhammed Amimul Ehsan', 'Amimul', 'Lecturer', 'routine.scheduler.buet@gmail.com', 50, 1, 1, 1),
+	('IRK', 'Md. Irtiaz Kabir', 'Irtiaz', 'Lecturer', 'routine.scheduler.buet@gmail.com', 51, 1, 1, 1),
+	('STP', 'Swastika Pandit', 'Swastika', 'Lecturer', 'routine.scheduler.buet@gmail.com', 52, 1, 1, 1),
+	('AHJ', 'Anup Halder Joy', 'Anup', 'Lecturer', 'routine.scheduler.buet@gmail.com', 53, 1, 1, 1),
+	('ZMS', 'Md. Zim - Mim Siddiqee Sowdha', 'Sowdha', 'Lecturer', 'routine.scheduler.buet@gmail.com', 54, 1, 1, 1);
 
 -- Only teachers with a doctorate supervise Thesis 1 by default.
 UPDATE public.teachers SET offers_thesis_1 = true WHERE "name" ILIKE '%Dr.%';
@@ -606,10 +603,16 @@ INSERT INTO all_courses (course_id, name, type, class_per_week, "from", "to", le
 
 	-- Offered to NCE
 	('CSE273', 'Computer Programming and Numerical Analysis for Materials Modeling', 0, 3.00, 'CSE', 'NCE', 'L-2 T-1', 0),
-	('CSE274', 'Computer Programming and Numerical Analysis for Materials Modeling Sessional', 1, 1.50, 'CSE', 'NCE', 'L-2 T-1', 0);
+	('CSE274', 'Computer Programming and Numerical Analysis for Materials Modeling Sessional', 1, 1.50, 'CSE', 'NCE', 'L-2 T-1', 0),
+
+	-- Offered to URP. CSE170 is a 3-credit lab: it meets twice a week.
+	('CSE170', 'Computer Programming Sessional', 1, 3.00, 'CSE', 'URP', 'L-1 T-2', 0),
+	('CSE272', 'Database Sessional', 1, 1.50, 'CSE', 'URP', 'L-2 T-2', 0);
 
 -- Kind of every sessional CSE runs; it sets how many teachers each section gets.
 -- Sessionals run by other departments have no kind: CSE assigns them no teachers.
+-- Labs CSE runs for other departments need none either: they are all
+-- Non-Departmental.
 UPDATE all_courses SET sessional_type = 'DEPT_SW' WHERE "to" = 'CSE' AND course_id IN (
 	'CSE102', 'CSE106', 'CSE108', 'CSE208', 'CSE214', 'CSE216', 'CSE220',
 	'CSE310', 'CSE314', 'CSE318', 'CSE322', 'CSE326', 'CSE330',
@@ -621,12 +624,6 @@ UPDATE all_courses SET sessional_type = 'DEPT_HW' WHERE "to" = 'CSE' AND course_
 );
 UPDATE all_courses SET sessional_type = 'DEPT_PRESENTATION' WHERE "to" = 'CSE' AND course_id IN (
 	'CSE200', 'CSE450', 'CSE462'
-);
-UPDATE all_courses SET sessional_type = 'NON_DEPT_SW' WHERE "to" <> 'CSE' AND course_id IN (
-	'CSE110', 'CSE452', 'CSE282', 'CSE296', 'CSE288', 'CSE274'
-);
-UPDATE all_courses SET sessional_type = 'NON_DEPT_HW' WHERE "to" <> 'CSE' AND course_id IN (
-	'CSE284', 'CSE392'
 );
 
 INSERT INTO public.hosted_departments (department) VALUES

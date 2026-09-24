@@ -36,7 +36,7 @@ function formatSectionDisplay(section, classPerWeek) {
 
 export default function SessionalSchedule() {
   // Memoized values for configuration settings
-  const { days, possibleLabTimes } = useConfig();
+  const { days, times, possibleLabTimes } = useConfig();
 
   // Theory schedules
   const [theorySchedules, setTheorySchedules] = useState({});
@@ -238,7 +238,7 @@ export default function SessionalSchedule() {
       setIsLoading(true);
       const loadTheorySchedules = async () => {
         try {
-          // Fetch schedules for each section and map them to their section identifier
+          // The API separates the main section from its lab subsections.
           const schedulesResults = await Promise.all(
             allTheorySections.map(async (section) => {
               const scheduleData = await getSchedules(
@@ -249,7 +249,9 @@ export default function SessionalSchedule() {
               // Return an object with the section identifier and its schedules
               return {
                 section: section.section,
-                schedules: scheduleData,
+                schedules: (scheduleData.mainSection || []).filter(
+                  (slot) => Number(slot.type) === 0 || Number(slot.type) === 2
+                ),
               };
             })
           );
@@ -260,7 +262,6 @@ export default function SessionalSchedule() {
             schedulesMap[result.section] = result.schedules;
           });
 
-          // Set the theory schedules state with the flattened array for compatibility with existing code
           setTheorySchedules(schedulesMap);
 
           toast.dismiss(loadingToast);
@@ -273,6 +274,8 @@ export default function SessionalSchedule() {
         }
       };
       loadTheorySchedules();
+    } else {
+      setTheorySchedules({});
     }
   }, [allTheorySections, selectedDepartment, selectedLevelTermBatch]);
 
@@ -520,11 +523,9 @@ export default function SessionalSchedule() {
         return;
       }
 
-      // Mark as changed since we're modifying the schedule
-      setIsChanged(true);
-
       // If courseId is empty, remove any existing assignment for this slot
       if (!courseId) {
+        setIsChanged(true);
         setLabSchedulesBySection((prev) => ({
           ...prev,
           [sectionKey]: (prev[sectionKey] || []).filter(
@@ -542,13 +543,31 @@ export default function SessionalSchedule() {
         return;
       }
 
-      // Check if there's already a different course in this slot
-      const existingSlot = labSchedulesBySection[sectionKey]?.find(
+      // Optional courses of the same option may share a slot.
+      const existingSlots = (labSchedulesBySection[sectionKey] || []).filter(
         (slot) => slot.day === day && slot.time === time
       );
+      if (existingSlots.some((slot) => slot.course_id === courseId)) {
+        toast.error(`${courseId} is already scheduled in this slot`);
+        return;
+      }
+      const sameOption = Boolean(course.optional) && existingSlots.length > 0 &&
+        existingSlots.every((slot) => {
+          const scheduledCourse = allSessionalCourses.find((c) => c.course_id === slot.course_id);
+          return Boolean(scheduledCourse?.optional) &&
+            scheduledCourse.option_group != null &&
+            scheduledCourse.option_group === course.option_group;
+        });
 
-      if (existingSlot) {
-        // Replace the existing course assignment
+      if (sameOption) {
+        setIsChanged(true);
+        setLabSchedulesBySection((prev) => ({
+          ...prev,
+          [sectionKey]: [...(prev[sectionKey] || []), { day, time, course_id: courseId, section, department }],
+        }));
+      } else if (existingSlots.length === 1) {
+        // Replace the one course occupying this section's slot.
+        setIsChanged(true);
         setLabSchedulesBySection((prev) => ({
           ...prev,
           [sectionKey]: [
@@ -558,6 +577,9 @@ export default function SessionalSchedule() {
             { day, time, course_id: courseId, section, department },
           ],
         }));
+      } else if (existingSlots.length > 1) {
+        toast.error("Remove the elective courses in this slot before replacing the group");
+        return;
       } else {
         // Add a new assignment
         // Check if adding this assignment is valid based on credit hours
@@ -574,6 +596,7 @@ export default function SessionalSchedule() {
           return;
         }
 
+        setIsChanged(true);
         setLabSchedulesBySection((prev) => ({
           ...prev,
           [sectionKey]: [
@@ -595,11 +618,11 @@ export default function SessionalSchedule() {
   // Execute course removal after confirmation
   const executeCourseRemoval = useCallback(() => {
     if (courseToRemove) {
-      const { day, time, sectionKey } = courseToRemove;
+      const { day, time, sectionKey, courseId } = courseToRemove;
       const updatedSchedules = { ...labSchedulesBySection };
       if (updatedSchedules[sectionKey]) {
         updatedSchedules[sectionKey] = updatedSchedules[sectionKey]
-          .filter(slot => !(slot.day === day && slot.time === time));
+          .filter(slot => !(slot.day === day && slot.time === time && slot.course_id === courseId));
       }
       setLabSchedulesBySection(updatedSchedules);
       setIsChanged(true);
@@ -630,55 +653,38 @@ export default function SessionalSchedule() {
       if (!sectionKey) return [];
       const { department, batch, section } = parseSectionKey(sectionKey);
       if (!department || !batch || !section) return [];
-      const current = (labSchedulesBySection[sectionKey] || []).reduce(
-        (acc, slot) => {
-          acc[`${slot.day} ${slot.time}`] = slot;
-          return acc;
-        },
-        {}
-      );
-      const original = (originalLabSchedulesBySection[sectionKey] || []).reduce(
-        (acc, slot) => {
-          acc[`${slot.day} ${slot.time}`] = slot;
-          return acc;
-        },
-        {}
-      );
-      const changedSlots = [];
-      // Check all slots in current
-      Object.entries(current).forEach(([slot, val]) => {
-        const prevCourseId = original[slot]?.course_id || "";
-        const newCourseId = val.course_id || "";
-        if (prevCourseId !== newCourseId) {
-          changedSlots.push({ slot, course_id: newCourseId });
-        }
-      });
-      // Also check for slots that existed before but are now missing (deleted)
-      Object.keys(original).forEach((slot) => {
-        if (!(slot in current)) {
-          changedSlots.push({ slot, course_id: "" });
-        }
-      });
-      // For each changed slot, send a setSessionalSchedules call
-      const saveSectionTasks = changedSlots.map(async ({ slot, course_id }) => {
-        const [day, time] = slot.split(" ");
+      const keyOf = (slot) => `${slot.day}|${slot.time}|${slot.course_id}`;
+      const current = new Map((labSchedulesBySection[sectionKey] || []).map((slot) => [keyOf(slot), slot]));
+      const original = new Map((originalLabSchedulesBySection[sectionKey] || []).map((slot) => [keyOf(slot), slot]));
+      const removed = [...original].filter(([key]) => !current.has(key)).map(([, slot]) => slot);
+      const added = [...current].filter(([key]) => !original.has(key)).map(([, slot]) => slot);
+      const results = [];
+
+      // Remove individual courses first, then add new ones. An elective slot
+      // may contain several courses, so a day/time pair is not a unique key.
+      for (const change of [
+        ...removed.map((slot) => ({ slot, remove: true })),
+        ...added.map((slot) => ({ slot, remove: false })),
+      ]) {
+        const { slot, remove } = change;
         try {
           await setSessionalSchedules(batch, section, department, {
-            day,
-            time,
-            course_id: course_id == "" ? "None" : course_id,
+            day: slot.day,
+            time: slot.time,
+            course_id: remove ? "None" : slot.course_id,
+            ...(remove ? { old_course_id: slot.course_id } : { add: true }),
           });
-          return { success: true, section, slot };
+          results.push({ success: true, section, slot: `${slot.day} ${slot.time}` });
         } catch (error) {
-          return {
+          results.push({
             success: false,
             section,
-            slot,
+            slot: `${slot.day} ${slot.time}`,
             message: error?.response?.data?.error?.message,
-          };
+          });
         }
-      });
-      return Promise.all(saveSectionTasks);
+      }
+      return results;
     });
     Promise.all(savePromises)
       .then((results) => {
@@ -1296,69 +1302,94 @@ export default function SessionalSchedule() {
                                 <tr key={day}>
                                   <td style={scheduleTableStyle.dayCell}>{day}</td>
                                   {possibleLabTimes.map((time) => {
-                                    // Safely check for theory slots
-                                    let isTheorySlot = false;
-                                    if (hasTheorySchedules(theorySchedules, mainSection)) {
-                                      isTheorySlot = theorySchedules[mainSection].some(slot => 
-                                        slot.day === day && slot.time === time
-                                      );
-                                    }
+                                    const startIndex = times.findIndex((period) => Number(period) === Number(time));
+                                    const labPeriods = startIndex < 0
+                                      ? [Number(time)]
+                                      : times.slice(startIndex, startIndex + 3).map(Number);
+                                    const fixedCourses = [];
+                                    const addFixedCourse = (slot) => {
+                                      if (slot.day !== day || !labPeriods.includes(Number(slot.time))) return;
+                                      const existing = fixedCourses.find((fixed) => fixed.course_id === slot.course_id);
+                                      if (existing) {
+                                        existing.periods.push(slot.time);
+                                      } else {
+                                        fixedCourses.push({ ...slot, periods: [slot.time] });
+                                      }
+                                    };
+                                    (theorySchedules[mainSection] || []).forEach(addFixedCourse);
+                                    Object.values(theorySchedules).flat()
+                                      .filter((slot) => slot.optional && Number(slot.optional_section_count) <= 1)
+                                      .forEach(addFixedCourse);
+                                    const isTheorySlot = fixedCourses.length > 0;
                                     
                                     // Ensure subsectionNames is an array
                                     const subsections = Array.isArray(subsectionNames) ? subsectionNames : [];
                                     
                                     // Get all scheduled courses for this slot across all subsections
-                                    const scheduledCourses = subsections.map(subsection => {
+                                    const scheduledCourses = subsections.flatMap(subsection => {
                                       if (!selectedDepartment || !selectedLevelTermBatch || !selectedLevelTermBatch.batch) {
-                                        return null;
+                                        return [];
                                       }
                                       
                                       const sectionKey = `${selectedDepartment} ${selectedLevelTermBatch.batch} ${subsection}`;
                                       const schedule = labSchedulesBySection[sectionKey] || [];
-                                      const slotData = schedule.find(slot => slot.day === day && slot.time === time);
-                                      
-                                      if (slotData && slotData.course_id) {
-                                        const course = allSessionalCourses.find(c => 
-                                          c.id === slotData.course_id || c.course_id === slotData.course_id
-                                        );
-                                        return {
-                                          course,
+                                      return schedule
+                                        .filter(slot => slot.day === day && Number(slot.time) === Number(time) && slot.course_id)
+                                        .map(slot => ({
+                                          course: allSessionalCourses.find(c => c.course_id === slot.course_id),
                                           subsection,
                                           sectionKey,
-                                          courseId: slotData.course_id
-                                        };
-                                      }
-                                      return null;
-                                    }).filter(Boolean);
+                                          courseId: slot.course_id
+                                        }));
+                                    });
 
                                     // Also check for courses scheduled in the main section (for 0.75 credit courses)
                                     const mainSectionKey = `${selectedDepartment} ${selectedLevelTermBatch.batch} ${mainSection}`;
                                     const mainSectionSchedule = labSchedulesBySection[mainSectionKey] || [];
-                                    const mainSectionSlotData = mainSectionSchedule.find(slot => slot.day === day && slot.time === time);
-                                    
-                                    if (mainSectionSlotData && mainSectionSlotData.course_id) {
-                                      const course = allSessionalCourses.find(c => 
-                                        c.id === mainSectionSlotData.course_id || c.course_id === mainSectionSlotData.course_id
-                                      );
+                                    mainSectionSchedule
+                                      .filter(slot => slot.day === day && Number(slot.time) === Number(time) && slot.course_id)
+                                      .forEach(slot => {
+                                      const course = allSessionalCourses.find(c => c.course_id === slot.course_id);
                                       scheduledCourses.push({
                                         course,
-                                        subsection: mainSection, // Show as main section (A, B, C)
+                                        subsection: mainSection,
                                         sectionKey: mainSectionKey,
-                                        courseId: mainSectionSlotData.course_id
+                                        courseId: slot.course_id
                                       });
-                                    }
+                                    });
+
+                                    // A single-group elective lab serves every main section,
+                                    // even though its assignment is stored under one group.
+                                    const sharedOptionalCourses = Object.entries(labSchedulesBySection)
+                                      .flatMap(([sectionKey, schedule]) => schedule
+                                        .filter(slot => slot.day === day && Number(slot.time) === Number(time))
+                                        .map(slot => ({
+                                          course: allSessionalCourses.find(c => c.course_id === slot.course_id),
+                                          sectionKey,
+                                          courseId: slot.course_id,
+                                        })))
+                                      .filter(({ course }) => course?.optional && Number(course.optional_section_count) <= 1);
+                                    const sharedElsewhere = sharedOptionalCourses.some(({ sectionKey }) =>
+                                      !sectionKey.split(' ').pop().startsWith(mainSection)
+                                    );
+                                    sharedOptionalCourses.forEach(({ course, sectionKey, courseId }) => {
+                                      if (!scheduledCourses.some((scheduled) => scheduled.courseId === courseId)) {
+                                        scheduledCourses.push({ course, subsection: mainSection, sectionKey, courseId, readOnly: true });
+                                      }
+                                    });
+                                    const isBlockedSlot = isTheorySlot || sharedElsewhere;
                                     
                                     return (
                                       <td 
                                         key={time} 
                                         style={{
                                           ...scheduleTableStyle.courseCell,
-                                          backgroundColor: isTheorySlot ? '#f8f9fa' : 'white',
+                                          backgroundColor: isBlockedSlot ? '#f8f9fa' : 'white',
                                           position: 'relative'
                                         }}
                                       >
                                         {/* Edit icon in top-right corner */}
-                                        {!isTheorySlot && (
+                                        {!isBlockedSlot && (
                                           <div style={{
                                             position: 'absolute',
                                             top: '8px',
@@ -1420,26 +1451,31 @@ export default function SessionalSchedule() {
                                           </div>
                                         )}
                                         
-                                        {isTheorySlot ? (
-                                          <div style={{
-                                            padding: '8px',
-                                            backgroundColor: '#e9ecef',
-                                            borderRadius: '4px',
-                                            fontSize: '0.8rem',
-                                            color: '#6c757d',
-                                            textAlign: 'center'
-                                          }}>
-                                            Theory Class
+                                        {fixedCourses.map((slot) => (
+                                          <div
+                                            key={`${slot.section}-${slot.course_id}`}
+                                            style={{
+                                              ...scheduleTableStyle.courseItem,
+                                              backgroundColor: Number(slot.type) === 2 ? '#e8f2ff' : '#f0f0f4',
+                                              border: Number(slot.type) === 2 ? '1px solid #8db8ed' : '1px solid #d4d4df',
+                                              color: '#39445a',
+                                            }}
+                                            title={`${slot.name || slot.course_id} (${[...new Set(slot.periods)].map((period) => `${period}:00`).join(', ')})`}
+                                          >
+                                            <div style={scheduleTableStyle.courseTitle}>{slot.course_id}</div>
+                                            <div style={scheduleTableStyle.sectionBadge}>
+                                              {Number(slot.type) === 2 ? 'Thesis' : slot.optional ? 'Optional theory' : 'Theory'}
+                                            </div>
                                           </div>
-                                        ) : (
-                                          <>
-                                            {scheduledCourses.map(({ course, subsection, sectionKey, courseId }, index) => (
+                                        ))}
+                                        <>
+                                            {scheduledCourses.map(({ course, subsection, sectionKey, courseId, readOnly }, index) => (
                                               <div 
-                                                key={`${subsection}-${index}`}
+                                                key={`${subsection}-${courseId}-${index}`}
                                                 style={{
                                                   ...scheduleTableStyle.courseItem,
                                                   ...scheduleTableStyle.alreadyScheduledCourseItem,
-                                                  cursor: 'pointer',
+                                                  cursor: readOnly ? 'default' : 'pointer',
                                                   margin: '2px 0',
                                                   position: 'relative'
                                                 }}
@@ -1451,10 +1487,12 @@ export default function SessionalSchedule() {
                                                   }
                                                 </div>
                                                 <div style={scheduleTableStyle.sectionBadge}>
-                                                  {formatSectionDisplay(subsection, course?.class_per_week || 1)}
+                                                  {course?.optional && Number(course.optional_section_count) <= 1
+                                                    ? Object.keys(groupedSections).join('/')
+                                                    : formatSectionDisplay(subsection, course?.class_per_week || 1)}
                                                 </div>
-                                                {/* Close icon for removing course */}
-                                                <div
+                                                {/* Shared electives are edited in their assigned group. */}
+                                                {!readOnly && <div
                                                   style={{
                                                     position: 'absolute',
                                                     right: '8px',
@@ -1485,11 +1523,10 @@ export default function SessionalSchedule() {
                                                       e.currentTarget.style.transform = 'scale(1)';
                                                     }}
                                                   />
-                                                </div>
+                                                </div>}
                                               </div>
                                             ))}
-                                          </>
-                                        )}
+                                        </>
                                       </td>
                                     );
                                   })}
@@ -1688,55 +1725,38 @@ export default function SessionalSchedule() {
                   gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
                 }}>
                   {allSessionalCourses.map((course) => {
-                    // Extract main section from the first subsection (e.g., "A" from "A1")
                     const mainSection = selectedCell.subsection.charAt(0);
-                    
-                    // Determine how many course cards to show based on class_per_week
+                    const mainSections = Object.keys(groupedSections).sort();
+                    const targetMainSections = course.optional
+                      ? mainSections.slice(0, Math.max(1, Number(course.optional_section_count) || 1))
+                      : [mainSection];
                     const courseCards = [];
-                    
-                    if (course.class_per_week === 0.75) {
-                      // For 0.75 credit courses, show one card with main section only
-                      const targetSection = mainSection;
-                      const targetSectionKey = `${selectedDepartment} ${selectedLevelTermBatch.batch} ${targetSection}`;
-                      
-                      // Check if already scheduled for this section
-                      const isAlreadyScheduled = labSchedulesBySection[targetSectionKey]?.some(slot => 
-                        slot.day === selectedCell.day && 
-                        slot.time === selectedCell.time && 
-                        slot.course_id === (course.course_id || course.id)
-                      ) || false;
-                      
-                      courseCards.push({
-                        section: targetSection,
-                        sectionKey: targetSectionKey,
-                        isAlreadyScheduled,
-                        displayText: `Section ${targetSection}`,
-                        courseId: course.course_id || course.id
-                      });
-                    } else {
-                      // For other courses, show cards for both subsections (A1, A2 or B1, B2, etc.)
-                      const subsections = [`${mainSection}1`, `${mainSection}2`];
-                      
-                      subsections.forEach(subsection => {
-                        const targetSectionKey = `${selectedDepartment} ${selectedLevelTermBatch.batch} ${subsection}`;
-                        
+                    targetMainSections.forEach((group) => {
+                      const targetSections = Number(course.class_per_week) === 0.75
+                        ? [group]
+                        : Object.values(groupedSections[group]?.subsections || {})
+                          .map((subsection) => subsection.section)
+                          .filter((section) => section !== group);
+                      targetSections.forEach((targetSection) => {
+                        const targetSectionKey = `${selectedDepartment} ${selectedLevelTermBatch.batch} ${targetSection}`;
                         const isAlreadyScheduled = labSchedulesBySection[targetSectionKey]?.some(slot => 
                           slot.day === selectedCell.day && 
-                          slot.time === selectedCell.time && 
-                          slot.course_id === (course.course_id || course.id)
+                          Number(slot.time) === Number(selectedCell.time) &&
+                          slot.course_id === course.course_id
                         ) || false;
-                        
                         courseCards.push({
-                          section: subsection,
+                          section: targetSection,
                           sectionKey: targetSectionKey,
                           isAlreadyScheduled,
-                          displayText: `Section ${subsection}`,
-                          courseId: course.course_id || course.id
+                          displayText: course.optional && Number(course.optional_section_count) <= 1
+                            ? `All sections (${mainSections.join('/')}) · group ${targetSection}`
+                            : `Section ${targetSection}`,
+                          courseId: course.course_id
                         });
                       });
-                    }
+                    });
                     
-                    return courseCards.map((cardInfo, cardIndex) => (
+                    return courseCards.map((cardInfo) => (
                       <div
                         key={`${course.course_id || course.id}-${cardInfo.section}`}
                         style={{
@@ -1786,7 +1806,7 @@ export default function SessionalSchedule() {
                           marginBottom: '8px',
                           fontWeight: '500'
                         }}>
-                          {course.course_title}
+                          {course.name}
                         </div>
                         <div style={{
                           fontSize: '0.8rem',
@@ -1958,15 +1978,6 @@ export default function SessionalSchedule() {
 }
 
 // Utility functions
-
-// Helper function to check if there are theory schedules for a main section
-const hasTheorySchedules = (theorySchedules, mainSection) => {
-  return (
-    theorySchedules[mainSection] &&
-    Array.isArray(theorySchedules[mainSection]) &&
-    theorySchedules[mainSection].length > 0
-  );
-};
 
 // Section key validation helper
 const validateSectionKey = (sectionKey) => {

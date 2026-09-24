@@ -1,4 +1,5 @@
 import { connect } from "../config/database.js";
+import { compareRooms } from "./format.js";
 
 // The lists the PDF page offers; the routines themselves are read in
 // routineBook.js and reportBook.js.
@@ -21,11 +22,8 @@ export async function getInitials() {
 }
 
 export async function getRooms() {
-  return rows(`
-    SELECT room
-    FROM rooms
-    WHERE active = true
-    ORDER BY sort_order NULLS LAST, room`);
+  const rooms = await rows(`SELECT room, type FROM rooms WHERE active = true`);
+  return rooms.sort(compareRooms).map(({ room }) => ({ room }));
 }
 
 // Departments other than CSE that CSE takes courses from or gives courses to

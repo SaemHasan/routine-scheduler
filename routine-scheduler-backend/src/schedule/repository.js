@@ -43,12 +43,14 @@ export async function getScheduleConfigs() {
 export async function getTheorySchedule(department, batch, section) {
   // This query gets schedules for both the main section and any subsections
   const query = `
-    SELECT course_id, c.type, "day", "time", department, "section", c.class_per_week
+    SELECT sa.course_id, c.type, c.name, c.optional, c.optional_section_count, sa."day", sa."time",
+           sa.department, sa."section", c.class_per_week
     FROM schedule_assignment sa
-    NATURAL JOIN courses c
-    WHERE department = $1 AND batch = $2 AND ("section" = $3 OR "section" LIKE $4)
-    AND "session" = (SELECT value FROM configs WHERE key='CURRENT_SESSION')
-    ORDER BY "section"
+    JOIN courses c ON c.course_id = sa.course_id AND c.session = sa.session
+    WHERE sa.department = $1 AND sa.batch = $2
+      AND (sa."section" = $3 OR sa."section" LIKE $4)
+      AND sa."session" = (SELECT value FROM configs WHERE key='CURRENT_SESSION')
+    ORDER BY sa."section", sa."day", sa."time", sa.course_id
   `;
   const values = [department, batch, section, `${section}%`];
   const client = await connect();
@@ -250,11 +252,12 @@ export async function setTheoryCellDB({ department, batch, section, day, time, c
 
 export async function getSessionalSchedule(batch, section) {
   const query = `
-    SELECT course_id, "day", "time", department, "section"
+    SELECT sa.course_id, sa."day", sa."time", sa.department, sa."section"
     FROM schedule_assignment sa
-    NATURAL JOIN courses c
-    WHERE batch = $1 AND "section" = $2 AND type = 1
-    AND "session" = (SELECT value FROM configs WHERE key='CURRENT_SESSION')
+    JOIN courses c ON c.course_id = sa.course_id AND c.session = sa.session
+    WHERE sa.batch = $1 AND sa."section" = $2 AND c.type = 1
+      AND sa."session" = (SELECT value FROM configs WHERE key='CURRENT_SESSION')
+    ORDER BY sa."day", sa."time", sa.course_id
   `;
   const values = [batch, section];
   const client = await connect();
@@ -269,15 +272,33 @@ export async function setSessionalSchedule(batch, section, department, schedule)
   try {
     await client.query("BEGIN");
     const course_id_query = `
-      SELECT course_id
-      FROM schedule_assignment
-      WHERE batch = $1
-      AND "section" = $2 
-      AND department = $3
-      AND "day" = $4
-      AND "time" = $5
+      SELECT sa.course_id
+      FROM schedule_assignment sa
+      JOIN courses c ON c.course_id = sa.course_id AND c.session = sa.session
+      WHERE sa.batch = $1
+      AND sa."section" = $2
+      AND sa.department = $3
+      AND sa."day" = $4
+      AND sa."time" = $5
+      AND c.type = 1
+      AND sa.session = (SELECT value FROM configs WHERE key='CURRENT_SESSION')
     `;
     const db_courses = (await client.query(course_id_query, [batch, section, department, schedule.day, schedule.time])).rows;
+
+    if (schedule.course_id === "None") {
+      await client.query(
+        `DELETE FROM schedule_assignment
+         WHERE batch = $1 AND "section" = $2 AND department = $3
+           AND "day" = $4 AND "time" = $5
+           AND session = (SELECT value FROM configs WHERE key='CURRENT_SESSION')
+           AND course_id IN (SELECT course_id FROM courses WHERE type = 1
+                            AND session = (SELECT value FROM configs WHERE key='CURRENT_SESSION'))
+           AND ($6::varchar IS NULL OR course_id = $6)`,
+        [batch, section, department, schedule.day, schedule.time, schedule.old_course_id || null]
+      );
+      await client.query("COMMIT");
+      return true;
+    }
 
     // A section never has two classes at once: theory, labs from the
     // level-term routine and other sessionals are all checked. `add` (from
@@ -300,35 +321,26 @@ export async function setSessionalSchedule(batch, section, department, schedule)
         );
       }
     }
-    if(db_courses.length === 0) {
+    if (schedule.add || db_courses.length === 0) {
       const insert_query = `
         INSERT INTO schedule_assignment (batch, "section", "session", course_id, "day", "time", department, locked)
         VALUES ($1, $2, (SELECT value FROM configs WHERE key='CURRENT_SESSION'), $3, $4, $5, $6, true)
+        ON CONFLICT (department, batch, section, day, "time", course_id)
+        DO UPDATE SET locked = true
       `;
       await client.query(insert_query, [batch, section, schedule.course_id, schedule.day, schedule.time, department]);
     } else {
-      if(schedule.course_id === "None") {
-        const delete_query = `
-          DELETE FROM schedule_assignment
-          WHERE batch = $1
-          AND "section" = $2
-          AND department = $3
-          AND "day" = $4
-          AND "time" = $5
-        `;
-        await client.query(delete_query, [batch, section, department, schedule.day, schedule.time]);
-      } else {
-        const update_query = `
-          UPDATE schedule_assignment
-          SET course_id = $1, locked = true
-          WHERE batch = $2
-          AND "section" = $3
-          AND department = $4
-          AND "day" = $5
-          AND "time" = $6
-        `;
-        await client.query(update_query, [schedule.course_id, batch, section, department, schedule.day, schedule.time]);
-      }
+      const update_query = `
+        UPDATE schedule_assignment
+        SET course_id = $1, locked = true
+        WHERE batch = $2 AND "section" = $3 AND department = $4
+          AND "day" = $5 AND "time" = $6
+          AND session = (SELECT value FROM configs WHERE key='CURRENT_SESSION')
+          AND course_id IN (SELECT course_id FROM courses WHERE type = 1
+                           AND session = (SELECT value FROM configs WHERE key='CURRENT_SESSION'))
+          AND ($7::varchar IS NULL OR course_id = $7)
+      `;
+      await client.query(update_query, [schedule.course_id, batch, section, department, schedule.day, schedule.time, schedule.old_course_id || null]);
     }
     await client.query("COMMIT");
     return true;

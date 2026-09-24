@@ -1,16 +1,46 @@
 import { connect } from "../config/database.js";
 
+/**
+ * Every theory class of the session with its room and its section's usual
+ * room. An elective every section takes appears once, for "A/B/C". CT has
+ * no room and is left out.
+ */
 export async function getAllTheoryRoomAssignmentDB() {
   const query = `
-    SELECT course_id, section, day, time, room_no
-    FROM schedule_assignment
-    WHERE course_id ~ '[13579]$'
-    ORDER BY course_id, section, day, time
-  `;
+    SELECT sa.course_id, sa.section, sa.department, sa.batch, s.level_term, sa.day, sa."time",
+           sa.room_no, s.room AS section_room, c.optional, c.optional_section_count,
+           (c.optional = 1 AND c.optional_section_count <= 1) AS elective
+    FROM schedule_assignment sa
+    JOIN courses c ON c.course_id = sa.course_id AND c.session = sa.session
+    JOIN sections s ON s.department = sa.department AND s.batch = sa.batch AND s.section = sa.section
+    WHERE sa.session = (SELECT value FROM configs WHERE key = 'CURRENT_SESSION')
+      AND c.type = 0 AND sa.course_id <> 'CT'
+    ORDER BY sa.department, s.level_term, sa.section, sa.course_id`;
   const client = await connect();
-  const results = await client.query(query);
-  client.release();
-  return results.rows;
+  try {
+    const rows = (await client.query(query)).rows;
+    const mains = new Map();
+    for (const r of rows) {
+      const k = `${r.department}|${r.batch}`;
+      if (!mains.has(k)) mains.set(k, new Set());
+      mains.get(k).add(r.section);
+    }
+    const seen = new Set();
+    return rows
+      .filter((r) => {
+        if (!r.elective) return true;
+        const k = `${r.course_id}|${r.department}|${r.batch}|${r.day}|${r.time}`;
+        if (seen.has(k)) return false;
+        seen.add(k);
+        return true;
+      })
+      .map((r) => ({
+        ...r,
+        label: r.elective ? [...mains.get(`${r.department}|${r.batch}`)].sort().join("/") : r.section,
+      }));
+  } finally {
+    client.release();
+  }
 }
 
 /**
@@ -44,11 +74,14 @@ export async function updateTheoryRoomAssignmentDB(course_id, section, day, time
 }
 
 export async function getAllSectionRoomAllocationDB() {
+  // Sections of the running level-terms
   const query = `
-    SELECT level_term, department, section, room as room_no
-    FROM sections
-    WHERE section LIKE '_'
-    ORDER BY department, level_term, section;
+    SELECT s.level_term, s.department, s.batch, s.section, s.room AS room_no
+    FROM sections s
+    JOIN level_term_unique ltu
+      ON ltu.level_term = s.level_term AND ltu.department = s.department AND ltu.active
+    WHERE s.type = 0
+    ORDER BY s.department = 'CSE' DESC, s.department, s.level_term, s.section;
   `;
 
   try {

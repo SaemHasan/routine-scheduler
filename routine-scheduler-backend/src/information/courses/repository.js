@@ -183,8 +183,10 @@ export async function saveCourse(Course) {
     ? parseInt(Course.optional_section_count, 10) || 0
     : 0;
   // Only sessional courses have a sessional type.
+  // Only a departmental lab has a kind; a lab for another department is
+  // simply Non-Departmental
   const sessional_type =
-    Number(type) === 1 ? Course.sessional_type || null : null;
+    Number(type) === 1 && to === "CSE" ? Course.sessional_type || null : null;
   // Only optional courses belong to an option
   const option_group = optional ? parseInt(Course.option_group, 10) || null : null;
 
@@ -282,8 +284,10 @@ export async function updateCourse(Course) {
     ? parseInt(Course.optional_section_count, 10) || 0
     : 0;
   // Only sessional courses have a sessional type.
+  // Only a departmental lab has a kind; a lab for another department is
+  // simply Non-Departmental
   const sessional_type =
-    Number(type) === 1 ? Course.sessional_type || null : null;
+    Number(type) === 1 && to === "CSE" ? Course.sessional_type || null : null;
   // Only optional courses belong to an option
   const option_group = optional ? parseInt(Course.option_group, 10) || null : null;
 
@@ -481,6 +485,105 @@ export async function setCourseActive(course_id, level_term, active) {
   }
 }
 
+/**
+ * The optional courses of the running level-terms, with whether each is
+ * offered this session and the option it belongs to.
+ */
+export async function getOptionalOfferingsDB() {
+  const client = await connect();
+  try {
+    return (
+      await client.query(
+        `SELECT ac.course_id, ac.name, ac.type, ac.class_per_week, ac.level_term,
+                ac."to" AS department, ac."from", ac.option_group,
+                (c.course_id IS NOT NULL) AS offered,
+                (SELECT count(*)::int FROM sections s
+                  WHERE s.department = ac."to" AND s.level_term = ac.level_term AND s.type = 0) AS section_count
+         FROM all_courses ac
+         JOIN level_term_unique ltu
+           ON ltu.level_term = ac.level_term AND ltu.department = ac."to" AND ltu.active
+         LEFT JOIN courses c
+           ON c.course_id = ac.course_id
+          AND c.session = (SELECT value FROM configs WHERE key = 'CURRENT_SESSION')
+         WHERE ac.optional = 1
+         ORDER BY ac."to", ac.level_term, ac.type, ac.course_id`
+      )
+    ).rows;
+  } finally {
+    client.release();
+  }
+}
+
+/**
+ * Saves which optional courses of a level-term are offered and their options.
+ * The courses of one option run side by side in one slot, each as a single
+ * class for all the sections; a course alone in its option (or in none) is
+ * run like any other course, in every section. Theory and sessional courses
+ * form options separately.
+ */
+export async function saveOptionalOfferingsDB({ level_term, department, courses }) {
+  const client = await connect();
+  let sectionCount;
+  let all = [];
+  let requested = new Map();
+  try {
+    sectionCount = (
+      await client.query(
+        `SELECT count(*)::int AS n FROM sections WHERE department = $1 AND level_term = $2 AND type = 0`,
+        [department, level_term]
+      )
+    ).rows[0].n || 1;
+    // The level-term's electives as they stand, with this request applied
+    const stored = (
+      await client.query(
+        `SELECT ac.course_id, ac.type, ac.option_group,
+                EXISTS (SELECT 1 FROM courses c WHERE c.course_id = ac.course_id
+                          AND c.session = (SELECT value FROM configs WHERE key = 'CURRENT_SESSION')) AS offered
+         FROM all_courses ac
+         WHERE ac.level_term = $1 AND ac."to" = $2 AND ac.optional = 1`,
+        [level_term, department]
+      )
+    ).rows;
+    const types = new Map(stored.map((r) => [r.course_id, Number(r.type)]));
+    const unknown = courses.filter((c) => !types.has(c.course_id)).map((c) => c.course_id);
+    if (unknown.length) {
+      throw new HttpError(404, `${unknown.join(", ")} is not an optional course of ${department} ${level_term}`);
+    }
+    requested = new Map(courses.map((c) => [c.course_id, c]));
+    all = stored.map((r) => requested.get(r.course_id) || r);
+    const optionOf = (c) => (c.option_group ? parseInt(c.option_group, 10) || null : null);
+    const sizeOf = new Map();
+    for (const c of all) {
+      if (!c.offered || !optionOf(c)) continue;
+      const k = `${types.get(c.course_id)}|${optionOf(c)}`;
+      sizeOf.set(k, (sizeOf.get(k) || 0) + 1);
+    }
+    await client.query("BEGIN");
+    // Every elective of the level-term: a change to one can turn another
+    // from a single class into a normal course, or back
+    for (const c of all) {
+      const option = optionOf(c);
+      const shared = c.offered && option && sizeOf.get(`${types.get(c.course_id)}|${option}`) > 1;
+      await client.query(
+        `UPDATE all_courses SET option_group = $3, optional_section_count = $4
+         WHERE course_id = $1 AND level_term = $2`,
+        [c.course_id, level_term, option, shared ? 1 : sectionCount]
+      );
+    }
+    await client.query("COMMIT");
+  } catch (error) {
+    await client.query("ROLLBACK").catch(() => {});
+    throw error;
+  } finally {
+    client.release();
+  }
+  // Put each course into (or take it out of) the session with its settings
+  for (const c of all) {
+    if (c.offered || requested.has(c.course_id)) await setCourseActive(c.course_id, level_term, Boolean(c.offered));
+  }
+  return getOptionalOfferingsDB();
+}
+
 export async function removeCourse(course_id, level_term) {
   const client = await connect();
   try {
@@ -553,10 +656,10 @@ export async function getAllLab() {
     FROM courses_sections cs
     JOIN courses c ON cs.course_id = c.course_id AND cs.session = c.session
     join sections s using (batch, section, department)
-    -- A course with no sessional type set counts as a software sessional.
-    LEFT JOIN sessional_types st ON st.code = COALESCE(
-      c.sessional_type,
-      CASE WHEN c."to" = 'CSE' THEN 'DEPT_SW' ELSE 'NON_DEPT_SW' END
+    -- A departmental lab with no kind set counts as a software lab; a lab
+    -- for another department is Non-Departmental.
+    LEFT JOIN sessional_types st ON st.code = (
+      CASE WHEN c."to" = 'CSE' THEN COALESCE(c.sessional_type, 'DEPT_SW') ELSE 'NON_DEPT' END
     )
     WHERE cs.course_id LIKE 'CSE%' and c.type=1
       -- An optional lab runs only as its groups, not in every section
@@ -599,11 +702,12 @@ export async function getSessionalCoursesByDeptLevelTerm(
   level_term
 ) {
   const query = `
-    SELECT course_id, name, class_per_week
+    SELECT course_id, name, class_per_week, optional, optional_section_count, option_group
     FROM courses
     WHERE type = 1
-    AND courses.to = $1
+    AND courses."to" = $1
     AND level_term = $2
+    AND session = (SELECT value FROM configs WHERE key = 'CURRENT_SESSION')
     ORDER BY course_id
     `;
   const values = [department, level_term];

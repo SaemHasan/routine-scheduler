@@ -329,18 +329,22 @@ export default function ShowSessionalDistribution() {
 
   // A room picked by hand also locks the class in place
   const changeRoom = async (schedule, room) => {
+    // One weekly class: a lab may meet more than once a week
     const placement = {
       course_id: schedule.course_id,
       batch: schedule.batch,
       section: schedule.section,
       department: schedule.department,
+      day: schedule.day,
+      time: schedule.time,
     };
     try {
       await setSessionalRoom({ ...placement, room });
       setAllSessionalSchedules((prev) =>
         prev.map((s) =>
           s.course_id === schedule.course_id && s.batch === schedule.batch &&
-          s.section === schedule.section && s.department === schedule.department
+          s.section === schedule.section && s.department === schedule.department &&
+          s.day === schedule.day && s.time === schedule.time
             ? { ...s, room_no: room || null, locked: true }
             : s
         )
@@ -358,12 +362,15 @@ export default function ShowSessionalDistribution() {
         batch: schedule.batch,
         section: schedule.section,
         department: schedule.department,
+        day: schedule.day,
+        time: schedule.time,
         locked,
       });
       setAllSessionalSchedules((prev) =>
         prev.map((s) =>
           s.course_id === schedule.course_id && s.batch === schedule.batch &&
-          s.section === schedule.section && s.department === schedule.department
+          s.section === schedule.section && s.department === schedule.department &&
+          s.day === schedule.day && s.time === schedule.time
             ? { ...s, locked }
             : s
         )
@@ -594,6 +601,7 @@ export default function ShowSessionalDistribution() {
 
       const schedules = {
         course_id: "None",
+        old_course_id: courseToRemove.course_id,
         day: courseToRemove.day,
         time: courseToRemove.time,
         batch: courseToRemove.batch,
@@ -648,14 +656,16 @@ export default function ShowSessionalDistribution() {
       try {
         const courses = await getLabCourses();
 
-        // Filter out courses that are already assigned in any time slot
+        // Keep the labs not placed yet: a lab meets once a week per 1.5
+        // credits (a 0.75-credit one once), so a 3-credit lab is placed twice
         const filteredCourses = courses.filter(course => {
-          // Check if this course exists in any schedule
-          const isAssigned = sessionalSchedules.some(schedule =>
+          const placed = sessionalSchedules.filter(schedule =>
             schedule.course_id === course.course_id &&
-            schedule.section === course.section
-          );
-          return !isAssigned; // Keep only unassigned courses
+            schedule.section === course.section &&
+            schedule.department === course.department
+          ).length;
+          const perWeek = Math.max(1, Math.round(Number(course.class_per_week) / 1.5));
+          return placed < perWeek;
         });
 
         setLabCourses(filteredCourses);

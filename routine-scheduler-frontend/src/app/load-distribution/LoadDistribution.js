@@ -5,6 +5,7 @@ import { toast } from "react-hot-toast";
 import TheoryDistribution from "./TheoryDistribution";
 import SessionalDistribution from "./SessionalDistribution";
 import CreditDistribution from "./CreditDistribution";
+import CourseLoadPlan from "./CourseLoadPlan";
 import {
   exportTheoryDistributionToCsv,
   exportSessionalDistributionToCsv,
@@ -166,7 +167,7 @@ export default function LoadDistribution() {
             Teacher Load Distribution
           </h3>
 
-          <button
+          {activeTab !== "plan" && <button
             onClick={() => handleCsvDownload(activeTab)}
             disabled={downloading}
             style={{
@@ -209,7 +210,7 @@ export default function LoadDistribution() {
                     ? "Sessional"
                     : "Credit"
                 } CSV`}
-          </button>
+          </button>}
         </div>
       </div>
 
@@ -260,6 +261,16 @@ export default function LoadDistribution() {
                 Course Load
               </button>
             </li>
+            <li className="nav-item">
+              <button
+                style={activeTab === "plan" ? activeTabStyle : tabStyle}
+                onClick={() => setActiveTab("plan")}
+                className="nav-link"
+              >
+                <i className="mdi mdi-account-plus mr-2"></i>
+                Load Plan
+              </button>
+            </li>
           </ul>
         </div>
 
@@ -276,6 +287,9 @@ export default function LoadDistribution() {
 
             {/* Credit Distribution Tab */}
             {activeTab === "credit" && <CreditDistribution />}
+
+            {/* Load plan: part-time lecturers needed */}
+            {activeTab === "plan" && <CourseLoadPlan />}
           </div>
         </div>
       </div>

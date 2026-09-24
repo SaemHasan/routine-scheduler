@@ -7,7 +7,7 @@ import {
   getTheorySectionsByDeptAndLevelTerm,
   getTheoryCoursesByDeptLevelTerm,
 } from "../api/db-crud";
-import { setSchedules, getSchedules } from "../api/theory-schedule";
+import { setTheoryCell, getSchedules } from "../api/theory-schedule";
 import { toast } from "react-hot-toast";
 import {
   mdiSchoolOutline,
@@ -29,6 +29,9 @@ export default function TheorySchedule(props) {
   const [theorySchedulesBySection, setTheorySchedulesBySection] = useState({});
   const [isChanged, setIsChanged] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  // Bumped after a save: an elective every section takes is placed in all
+  // sections at once, so every section's grid is read again
+  const [reloadKey, setReloadKey] = useState(0);
   const [originalSchedulesBySection, setOriginalSchedulesBySection] = useState(
     {}
   );
@@ -383,7 +386,7 @@ export default function TheorySchedule(props) {
       });
     }
     // eslint-disable-next-line
-  }, [selectedDepartment, selectedLevelTermBatch, allTheorySections]);
+  }, [selectedDepartment, selectedLevelTermBatch, allTheorySections, reloadKey]);
 
   // Define a shared style object for modal action buttons (copied from Teachers.js)
   const modalButtonStyle = {
@@ -439,53 +442,35 @@ export default function TheorySchedule(props) {
       const sectionKey = `${selectedDepartment} ${section.batch} ${section.section}`;
       const current = theorySchedulesBySection[sectionKey] || {};
       const original = originalSchedulesBySection[sectionKey] || {};
-      // Find changed slots only
+      // Find changed slots only; each is saved with its whole list of classes
       const changedSlots = [];
-      // Check all slots in current
       Object.entries(current).forEach(([slot, val]) => {
-        // Handle both course_id and course_ids
         const prevCourseIds =
           original[slot]?.course_ids ||
           (original[slot]?.course_id ? [original[slot].course_id] : []);
         const newCourseIds =
           val.course_ids || (val.course_id ? [val.course_id] : []);
-
-        // Check if arrays are different
-        const prevIdsStr = JSON.stringify(prevCourseIds.sort());
-        const newIdsStr = JSON.stringify(newCourseIds.sort());
-
-        if (prevIdsStr !== newIdsStr) {
-          // For backward compatibility, if there's only one course, use course_id
-          if (newCourseIds.length === 0) {
-            changedSlots.push({ slot, course_id: "None" });
-          } else {
-            // For each course_id, create a separate entry
-            newCourseIds.forEach((courseId) => {
-              changedSlots.push({ slot, course_id: courseId });
-            });
-          }
+        if (JSON.stringify([...prevCourseIds].sort()) !== JSON.stringify([...newCourseIds].sort())) {
+          changedSlots.push({ slot, course_ids: newCourseIds });
         }
       });
 
-      // For each changed slot, send a setSchedules call, throttled
       const saveSectionTasks = changedSlots.map((slotData) => async () => {
         const [day, time] = slotData.slot.split(" ");
         try {
-          // Handle both single course_id and multiple course_ids
-          await setSchedules(batch, section.section, slotData.course_id, [
-            { day, time },
-          ]);
-          return {
-            success: true,
+          await setTheoryCell({
+            department: selectedDepartment,
+            batch,
             section: section.section,
-            slot: slotData.slot,
-          };
-        } catch {
-          return {
-            success: false,
-            section: section.section,
-            slot: slotData.slot,
-          };
+            day,
+            time: Number(time),
+            course_ids: slotData.course_ids,
+          });
+          return { success: true, section: section.section, slot: slotData.slot };
+        } catch (error) {
+          const message = error?.response?.data?.error?.message;
+          if (message) toast.error(message);
+          return { success: false, section: section.section, slot: slotData.slot };
         }
       });
       return promisePool(saveSectionTasks, 5);
@@ -495,10 +480,8 @@ export default function TheorySchedule(props) {
         toast.dismiss(savingToast);
         setIsLoading(false);
         setIsChanged(false);
-        // After successful save, update originalSchedulesBySection to match current
-        setOriginalSchedulesBySection(
-          JSON.parse(JSON.stringify(theorySchedulesBySection))
-        );
+        // Read every section again: electives appear in all of them
+        setReloadKey((k) => k + 1);
         const flatResults = results.flat();
         const failures = flatResults.filter((r) => !r.success);
         const totalCount = flatResults.length;

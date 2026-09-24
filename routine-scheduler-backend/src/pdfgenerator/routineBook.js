@@ -1,6 +1,6 @@
 import PDFDocument from "pdfkit";
 import { connect } from "../config/database.js";
-import { termTitle, teacherLine } from "./format.js";
+import { termTitle, teacherLine, compareRooms } from "./format.js";
 
 /*
  * The department's routine books (level-term, teacher, part-time teacher,
@@ -76,10 +76,11 @@ async function loadRoutineData() {
     ).rows;
     const labTeachers = (
       await client.query(
-        `SELECT course_id, batch, section, initial, share::float AS share
-         FROM teacher_sessional_assignment
-         WHERE session = ${CURRENT_SESSION}
-         ORDER BY assigned_order`
+        `SELECT tsa.course_id, tsa.batch, tsa.section, tsa.initial, tsa.share::float AS share
+         FROM teacher_sessional_assignment tsa
+         LEFT JOIN teachers t ON t.initial = tsa.initial
+         WHERE tsa.session = ${CURRENT_SESSION}
+         ORDER BY t.seniority_rank NULLS LAST, tsa.initial`
       )
     ).rows;
     const sections = (
@@ -91,9 +92,9 @@ async function loadRoutineData() {
          FROM teachers ORDER BY seniority_rank NULLS LAST, initial`
       )
     ).rows;
-    const rooms = (
-      await client.query("SELECT room FROM rooms ORDER BY sort_order NULLS LAST, room")
-    ).rows.map((r) => r.room);
+    const rooms = (await client.query("SELECT room, type FROM rooms")).rows
+      .sort(compareRooms)
+      .map((r) => r.room);
     const levelTerms = (
       await client.query(
         `SELECT level_term, department, batch, thesis FROM level_term_unique
@@ -254,10 +255,10 @@ function levelTermTables(data, { levelTerm } = {}) {
       .map((s) => s.section)
       .sort();
     const [, level, term] = lt.level_term.match(/L-(\d+) T-(\d+)/) || [];
-    // As the department's routine workbook writes it: the students a class is
-    // for follow its name unless they are section A or B, e.g. "CSE101 (C)",
-    // "CSE102 (A1)", "CSE423 (A/B/C)"
-    const named = (name, label) => (label && label !== "A" && label !== "B" ? `${name} (${label})` : name);
+    // A class for part of the section, or for several sections, names them:
+    // "CSE102 (A1)", "CSE406 (A1/A2)", "CSE423 (A/B/C)"; the section's own
+    // classes need no label in its routine
+    const named = (name, label) => (label && !isMainSection(label) ? `${name} (${label})` : name);
     for (const main of mains) {
       const items = data.classes
         .filter((c) => c.department === "CSE" && c.batch === lt.batch && c.mainSection === main)
@@ -543,9 +544,10 @@ function drawHeader(doc, header) {
   const w1 = doc.widthOfString(bold);
   doc.font("Helvetica").fontSize(10);
   const w2 = doc.widthOfString(plain);
-  const x = (doc.page.width - w1 - w2) / 2;
+  const gap = 12;
+  const x = (doc.page.width - w1 - gap - w2) / 2;
   doc.font("Helvetica-Bold").fontSize(12).text(bold, x, 33.2, { lineBreak: false, baseline: "alphabetic" });
-  doc.font("Helvetica").fontSize(10).text(plain, x + w1, 33.2, { lineBreak: false, baseline: "alphabetic" });
+  doc.font("Helvetica").fontSize(10).text(plain, x + w1 + gap, 33.2, { lineBreak: false, baseline: "alphabetic" });
 }
 
 function newDocument(title) {

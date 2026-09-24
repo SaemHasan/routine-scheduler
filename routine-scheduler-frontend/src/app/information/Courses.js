@@ -83,15 +83,9 @@ const validateCourse = (course) => {
   if (course.from && course.to && course.from !== "CSE" && course.to !== "CSE") {
     errors.to = "Either the offering or the receiving department must be CSE";
   }
-  if (course.optional) {
-    const count = Number(course.optional_section_count);
-    if (!Number.isInteger(count) || count < 1) {
-      errors.optional_section_count =
-        "Enter how many section-sized groups this course needs";
-    }
-  }
-  // CSE assigns teachers only to the sessionals it runs itself.
-  if (course.type === SESSIONAL && course.from === "CSE" && !course.sessional_type) {
+  // CSE assigns teachers only to the sessionals it runs itself; a lab it runs
+  // for another department is simply Non-Departmental.
+  if (course.type === SESSIONAL && course.from === "CSE" && course.to === "CSE" && !course.sessional_type) {
     errors.sessional_type = "Choose what kind of sessional this is";
   }
   return errors;
@@ -116,7 +110,8 @@ export default function Courses() {
   const [levelTermFilter, setLevelTermFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [fromFilter, setFromFilter] = useState("");
-  const [showActiveOnly, setShowActiveOnly] = useState(false);
+  // Courses running this session are shown first
+  const [showActiveOnly, setShowActiveOnly] = useState(true);
   // Courses of inactive level-terms stay in the catalogue, out of sight
   const [showAllLevelTerms, setShowAllLevelTerms] = useState(false);
   const [levelTerms, setLevelTerms] = useState(new Map());
@@ -175,9 +170,11 @@ export default function Courses() {
         const thesisOf = new Map(
           (thesis.levelTerms || []).map((lt) => [levelTermKey(lt.department, lt.level_term), lt.thesis])
         );
+        // /level_terms answers { message, data: [...] }
+        const levelTermRows = Array.isArray(lts) ? lts : lts?.data || [];
         setLevelTerms(
           new Map(
-            (lts || []).map((lt) => {
+            levelTermRows.map((lt) => {
               const key = levelTermKey(lt.department, lt.level_term);
               return [key, { ...lt, thesis: thesisOf.get(key) || null }];
             })
@@ -277,15 +274,13 @@ export default function Courses() {
     search !== "" ||
     levelTermFilter !== "" ||
     typeFilter !== "" ||
-    fromFilter !== "" ||
-    showActiveOnly;
+    fromFilter !== "";
 
   const clearFilters = () => {
     setSearch("");
     setLevelTermFilter("");
     setTypeFilter("");
     setFromFilter("");
-    setShowActiveOnly(false);
   };
 
   const toggleSort = (key) =>
@@ -410,6 +405,21 @@ export default function Courses() {
       },
     });
     setShowConfirmation(true);
+  };
+
+  // The kind of a departmental sessional, changed from the list
+  const changeSessionalKind = async (course, code) => {
+    try {
+      await editCourse(course.course_id, {
+        ...course,
+        level_term_old: course.level_term,
+        sessional_type: code || null,
+      });
+      toast.success(`${course.course_id} is now ${sessionalTypeName(code) || "without a kind"}`);
+      await reloadCourseData();
+    } catch (error) {
+      toast.error(error?.response?.data?.error?.message || `Failed to update ${course.course_id}`);
+    }
   };
 
   const handleSave = async () => {
@@ -864,14 +874,29 @@ export default function Courses() {
                               ></i>
                               {typeLabel(course, levelTerms)}
                             </span>
-                            {course.type === SESSIONAL && (
-                              <div
-                                className="mt-1"
-                                style={{ fontSize: "12px", opacity: 0.75 }}
-                              >
-                                {sessionalTypeName(course.sessional_type) ||
-                                  "Kind not set"}
+                            {course.type === SESSIONAL && course.from === "CSE" && course.to !== "CSE" && (
+                              <div className="mt-1" style={{ fontSize: "12px", opacity: 0.75 }}>
+                                Non-Departmental
                               </div>
+                            )}
+                            {course.type === SESSIONAL && course.from === "CSE" && course.to === "CSE" && (
+                              <Form.Select
+                                size="sm"
+                                className="form-select mt-1"
+                                style={{ fontSize: "12px", minWidth: "170px" }}
+                                value={course.sessional_type || ""}
+                                title="Kind of sessional: sets how many teachers each section gets"
+                                onChange={(e) => changeSessionalKind(course, e.target.value)}
+                              >
+                                <option value="">Kind not set</option>
+                                {sessionalTypes
+                                  .filter((t) => t.code !== "NON_DEPT")
+                                  .map((t) => (
+                                    <option key={t.code} value={t.code}>
+                                      {t.name}
+                                    </option>
+                                  ))}
+                              </Form.Select>
                             )}
                           </td>
                           <td style={{ textAlign: "center" }}>
@@ -1157,7 +1182,17 @@ export default function Courses() {
                   </Col>
                 </Row>
 
-                {selectedCourse.type === SESSIONAL && (
+                {selectedCourse.type === SESSIONAL && selectedCourse.to && selectedCourse.to !== "CSE" && (
+                  <Row>
+                    <Col className="px-2 py-1">
+                      <div className="field-hint">
+                        A lab for another department is Non-Departmental: two teachers, no lab type.
+                      </div>
+                    </Col>
+                  </Row>
+                )}
+
+                {selectedCourse.type === SESSIONAL && (!selectedCourse.to || selectedCourse.to === "CSE") && (
                   <Row>
                     <Col md={8} className="px-2 py-1">
                       <FormGroup>
@@ -1289,95 +1324,10 @@ export default function Courses() {
 
                 {selectedCourse.optional === 1 && (
                   <Row>
-                    <Col md={4} className="px-2 py-1">
-                      <FormGroup>
-                        <Form.Label className="form-label">
-                          Sections Needed
-                        </Form.Label>
-                        <FormControl
-                          type="number"
-                          min="1"
-                          step="1"
-                          className={`form-control${
-                            formErrors.optional_section_count ? " error" : ""
-                          }`}
-                          value={selectedCourse.optional_section_count}
-                          onChange={(e) =>
-                            setSelectedCourse({
-                              ...selectedCourse,
-                              optional_section_count:
-                                parseInt(e.target.value, 10) || 0,
-                            })
-                          }
-                        />
-                        {formErrors.optional_section_count ? (
-                          <div className="field-error">
-                            {formErrors.optional_section_count}
-                          </div>
-                        ) : (
-                          <div className="field-hint">
-                            How many section-sized groups can enrol.
-                          </div>
-                        )}
-                      </FormGroup>
-                    </Col>
-                    <Col md={3} className="px-2 py-1">
-                      <FormGroup>
-                        <Form.Label className="form-label">Option</Form.Label>
-                        <Form.Select
-                          className="form-select"
-                          value={selectedCourse.option_group}
-                          onChange={(e) =>
-                            setSelectedCourse({
-                              ...selectedCourse,
-                              option_group: e.target.value,
-                            })
-                          }
-                        >
-                          <option value="">None</option>
-                          {[1, 2, 3].map((n) => (
-                            <option key={n} value={n}>
-                              Option {n}
-                            </option>
-                          ))}
-                        </Form.Select>
-                        <div className="field-hint">
-                          All courses of an option run in the same slot.
-                        </div>
-                      </FormGroup>
-                    </Col>
-                    <Col md={5} className="px-2 py-1">
-                      <Form.Label className="form-label">Capacity</Form.Label>
-                      <div className="dotted-border-div" style={{ fontStyle: "normal" }}>
-                        {eligibleSections.length === 0 ? (
-                          <>
-                            Sections for {selectedCourse.to || "this department"}{" "}
-                            {selectedCourse.level_term || "this level-term"} do not
-                            exist yet, so the share of the batch cannot be worked
-                            out.
-                          </>
-                        ) : (
-                          <>
-                            Room for{" "}
-                            <strong>
-                              {selectedCourse.optional_section_count} of{" "}
-                              {eligibleSections.length}
-                            </strong>{" "}
-                            section-sized groups — roughly{" "}
-                            <strong>
-                              {Math.round(
-                                (selectedCourse.optional_section_count /
-                                  eligibleSections.length) *
-                                  100
-                              )}
-                              %
-                            </strong>{" "}
-                            of the batch. Students enrol from{" "}
-                            <strong>all</strong>{" "}
-                            {eligibleSections.length} sections, not from
-                            particular ones.
-                          </>
-                        )}
+                    <Col className="px-2 py-1">
+                      <div className="field-hint">
+                        Whether it is offered this term, and its option, are set on the{" "}
+                        <a href="/optional-courses">Optional Courses</a> page.
                       </div>
                     </Col>
                   </Row>

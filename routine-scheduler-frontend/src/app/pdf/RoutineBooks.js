@@ -11,7 +11,7 @@ const BOOKS = [
   { kind: "department", icon: "mdi-domain", name: "Departmental Routine", about: "Courses taken from and given to other departments" },
   { kind: "sessionalDistribution", icon: "mdi-flask-outline", name: "Sessional Distribution", about: "All CSE labs of the week" },
   { kind: "courseTeacher", icon: "mdi-format-list-bulleted", name: "Course Teacher", about: "Theory and sessional courses with their teachers" },
-  { kind: "courseLoad", icon: "mdi-scale-balance", name: "Course Load", about: "Each teacher's courses and load" },
+  { kind: "courseLoad", icon: "mdi-scale-balance", name: "Load Calculation", about: "Each teacher's courses and load" },
 ];
 
 export default function RoutineBooks() {

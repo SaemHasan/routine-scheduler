@@ -6,6 +6,8 @@ import {
   updateCourse,
   removeCourse,
   setCourseActive,
+  getOptionalOfferingsDB,
+  saveOptionalOfferingsDB,
   getAllLab,
   getNonDeptLabs,
   getNonDeptTheories,
@@ -131,6 +133,28 @@ export async function editCourse(req, res, next) {
       return res.status(400).json({ message: "Update Failed" });
     }
     res.status(200).json({ message: "Successfully Updated" });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// GET /course/optional — electives of the running level-terms
+export async function getOptionalOfferingsAPI(req, res, next) {
+  try {
+    res.status(200).json(await getOptionalOfferingsDB());
+  } catch (err) {
+    next(err);
+  }
+}
+
+// PUT /course/optional — { level_term, department, courses: [{ course_id, offered, option_group }] }
+export async function saveOptionalOfferingsAPI(req, res, next) {
+  try {
+    const { level_term, department, courses } = req.body;
+    if (!level_term || !department || !Array.isArray(courses)) {
+      throw new HttpError(400, "level_term, department and courses are required");
+    }
+    res.status(200).json(await saveOptionalOfferingsDB({ level_term, department, courses }));
   } catch (err) {
     next(err);
   }

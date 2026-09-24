@@ -94,6 +94,9 @@ function pastSlotKind(row) {
 
 const letterOf = (section) => (section.match(/^[A-Za-z]+/) || [section])[0];
 const isMainSection = (section) => section === letterOf(section);
+// Weekly classes of a lab: one per 1.5 credits, and a 0.75-credit lab
+// (fortnightly) once
+export const labSessionsPerWeek = (credit) => Math.max(1, Math.round(Number(credit) / 1.5));
 
 /**
  * Hours a lab slot covers: three consecutive periods from its start, e.g.
@@ -208,9 +211,8 @@ export async function loadProblemDB() {
          FROM courses_sections cs
          JOIN courses c ON c.course_id = cs.course_id AND c.session = cs.session
          JOIN sections s ON s.department = cs.department AND s.batch = cs.batch AND s.section = cs.section
-         LEFT JOIN sessional_types st ON st.code = COALESCE(
-           c.sessional_type,
-           CASE WHEN c."to" = 'CSE' THEN 'DEPT_SW' ELSE 'NON_DEPT_SW' END
+         LEFT JOIN sessional_types st ON st.code = (
+           CASE WHEN c."to" = 'CSE' THEN COALESCE(c.sessional_type, 'DEPT_SW') ELSE 'NON_DEPT' END
          )
          WHERE cs.session = ${CURRENT_SESSION}
            AND c.type = 1
@@ -236,18 +238,27 @@ export async function loadProblemDB() {
       const n = Math.min(sorted.length, Math.max(1, parseInt(row.optional_section_count, 10) || 1));
       groupLetters.set(k, new Set(sorted.slice(0, n)));
     }
-    const unitRows = allUnitRows.filter(
-      (r) =>
-        !r.optional ||
-        groupLetters.get(`${r.course_id}|${r.department}|${r.batch}`).has(letterOf(r.section))
-    );
+    // A lab meets once a week per 1.5 credits (a 0.75-credit lab fortnightly,
+    // so once too): a 3-credit lab is two classes a week
+    const unitRows = allUnitRows
+      .filter(
+        (r) =>
+          !r.optional ||
+          groupLetters.get(`${r.course_id}|${r.department}|${r.batch}`).has(letterOf(r.section))
+      )
+      .flatMap((r) =>
+        Array.from({ length: labSessionsPerWeek(r.class_per_week) }, (_, i) => ({ ...r, session_no: i + 1 }))
+      );
 
-    // The classes of an elective option (or of an optional course that has no
-    // option) run at once, one block for the whole level-term. The block's
-    // first class stands for all the students; the others occupy no section,
-    // so they never clash with each other.
+    // The electives of one option run at once, each a single class for all
+    // the sections, one block for the whole level-term. The block's first
+    // class stands for all the students; the others occupy no section, so
+    // they never clash with each other. An elective alone in its option runs
+    // in every section like any other course.
     const optionBlockOf = (r) =>
-      r.optional ? `option|${r.department}|${r.batch}|${r.option_group ?? r.course_id}` : null;
+      r.optional && (parseInt(r.optional_section_count, 10) || 1) <= 1
+        ? `option|${r.department}|${r.batch}|${r.option_group ?? r.course_id}`
+        : null;
     const blockLeader = new Map();
     for (const r of unitRows) {
       const block = optionBlockOf(r);
@@ -263,8 +274,10 @@ export async function loadProblemDB() {
         .map((s) => `${department}|${batch}|${s.section}`);
     };
 
-    const unitKey = (r) => `${r.course_id}|${r.department}|${r.batch}|${r.section}`;
-    const unitKeys = new Set(unitRows.map(unitKey));
+    // A class of a section; a second weekly session is "…|A1#2"
+    const classKey = (r) => `${r.course_id}|${r.department}|${r.batch}|${r.section}`;
+    const unitKey = (r) => `${classKey(r)}${r.session_no > 1 ? `#${r.session_no}` : ""}`;
+    const unitKeys = new Set(unitRows.map(classKey));
 
     // How many sections (A, B, …) each course has in each batch
     const sectionsOfCourse = new Map();
@@ -286,12 +299,15 @@ export async function loadProblemDB() {
     ).rows;
 
     // Classes kept in place (locked) and what each section is busy with
-    const lockedRow = new Map();
+    const lockedOf = new Map(); // class → its locked placements
     const sectionBusy = new Map(); // coverKey|day|hour → description
     for (const row of scheduleRows) {
-      const key = unitKey(row);
+      const key = classKey(row);
       if (unitKeys.has(key)) {
-        if (row.locked) lockedRow.set(key, row);
+        if (row.locked) {
+          if (!lockedOf.has(key)) lockedOf.set(key, []);
+          lockedOf.get(key).push(row);
+        }
         continue; // unlocked placements are what the scheduler replaces
       }
       if (row.type === 1 && row.course_id.startsWith("CSE")) continue; // stale
@@ -439,7 +455,13 @@ export async function loadProblemDB() {
         }
       });
 
-      const locked = lockedRow.get(key);
+      // The class's locked placements go to its sessions in weekday order
+      const locked = (lockedOf.get(classKey(row)) || [])
+        .slice()
+        .sort(
+          (a, b) =>
+            days.indexOf(a.day) - days.indexOf(b.day) || times.indexOf(Number(a.time)) - times.indexOf(Number(b.time))
+        )[row.session_no - 1];
       let fixed = null;
       if (locked) {
         const s = slotIndex.get(`${locked.day}|${Number(locked.time)}`);
@@ -465,13 +487,15 @@ export async function loadProblemDB() {
         // course run for another department with a single section: there the
         // subsections go in different slots. A course rule can put all of a
         // course's sections in one slot instead.
-        groupKey: block
-          ? block
-          : sameSlotCourses.has(row.course_id)
-          ? `${row.course_id}|${row.department}|${row.batch}|all`
-          : main
-            ? key
-            : `${row.course_id}|${row.department}|${row.batch}|${letterOf(row.section)}`,
+        groupKey: `${
+          block
+            ? block
+            : sameSlotCourses.has(row.course_id)
+            ? `${row.course_id}|${row.department}|${row.batch}|all`
+            : main
+              ? classKey(row)
+              : `${row.course_id}|${row.department}|${row.batch}|${letterOf(row.section)}`
+        }${row.session_no > 1 ? `#${row.session_no}` : ""}`,
         groupMode: block
           ? "same"
           : !sameSlotCourses.has(row.course_id) &&
@@ -480,7 +504,9 @@ export async function loadProblemDB() {
             ? "apart"
             : "together",
         // Sections of a course are kept on nearby days, as in past routines
-        spreadKey: `${row.course_id}|${row.department}|${row.batch}`,
+        // (its first classes; a second weekly class goes on another day)
+        spreadKey: row.session_no === 1 ? `${row.course_id}|${row.department}|${row.batch}` : null,
+        sessionsKey: labSessionsPerWeek(row.class_per_week) > 1 ? classKey(row) : null,
         // A course keeps to as few rooms as possible (e.g. CSE310 all in IAC)
         roomsKey: row.course_id,
         // Sections of a level-term get similar 11 AM / 2 PM splits
@@ -710,14 +736,16 @@ export async function applyAssignmentsDB(assignments) {
   }
 }
 
-export async function setLockDB({ course_id, batch, section, department, locked }) {
+// A day and time pick one weekly class of a lab that meets more than once
+export async function setLockDB({ course_id, batch, section, department, locked, day = null, time = null }) {
   const client = await connect();
   try {
     const result = await client.query(
       `UPDATE schedule_assignment SET locked = $5
        WHERE course_id = $1 AND batch = $2 AND section = $3 AND department = $4
-         AND session = ${CURRENT_SESSION}`,
-      [course_id, batch, section, department, Boolean(locked)]
+         AND session = ${CURRENT_SESSION}
+         AND ($6::varchar IS NULL OR day = $6) AND ($7::int IS NULL OR "time" = $7)`,
+      [course_id, batch, section, department, Boolean(locked), day, time === null ? null : Number(time)]
     );
     if (result.rowCount === 0) throw new HttpError(404, "Class not found in the routine");
   } finally {
@@ -740,14 +768,15 @@ export async function unlockAllDB() {
 }
 
 // A room picked by hand is kept when the scheduler runs again.
-export async function setRoomDB({ course_id, batch, section, department, room }) {
+export async function setRoomDB({ course_id, batch, section, department, room, day = null, time = null }) {
   const client = await connect();
   try {
     const result = await client.query(
       `UPDATE schedule_assignment SET room_no = $5, locked = true
        WHERE course_id = $1 AND batch = $2 AND section = $3 AND department = $4
-         AND session = ${CURRENT_SESSION}`,
-      [course_id, batch, section, department, room || null]
+         AND session = ${CURRENT_SESSION}
+         AND ($6::varchar IS NULL OR day = $6) AND ($7::int IS NULL OR "time" = $7)`,
+      [course_id, batch, section, department, room || null, day, time === null ? null : Number(time)]
     );
     if (result.rowCount === 0) throw new HttpError(404, "Class not found in the routine");
   } finally {

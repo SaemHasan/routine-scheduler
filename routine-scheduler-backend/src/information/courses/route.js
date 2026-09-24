@@ -3,12 +3,15 @@ import express from 'express'
 
 const router = express.Router();
 
-import {  getAllCourse , getActiveCourseIdsAPI, addCourse , editCourse, deleteCourse, setCourseActiveAPI, getLabCourses, getNonDeptLabCourses, getSessionalCoursesByDeptLevelTermAPI,getTheoryCoursesByDeptLevelTermAPI,getNonDeptTheoryCourses } from './controller.js';
+import {  getAllCourse , getOptionalOfferingsAPI, saveOptionalOfferingsAPI, getActiveCourseIdsAPI, addCourse , editCourse, deleteCourse, setCourseActiveAPI, getLabCourses, getNonDeptLabCourses, getSessionalCoursesByDeptLevelTermAPI,getTheoryCoursesByDeptLevelTermAPI,getNonDeptTheoryCourses } from './controller.js';
 import validate from "../../config/validation.js";
 import {body} from 'express-validator'
 
 router.get("/", getAllCourse)
 router.get("/active", getActiveCourseIdsAPI)
+// Electives offered this session and their options
+router.get("/optional", getOptionalOfferingsAPI)
+router.put("/optional", saveOptionalOfferingsAPI)
 // router.get("/:initial", getCourse)
 
 // Debug test endpoint
