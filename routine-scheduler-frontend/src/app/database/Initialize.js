@@ -14,8 +14,11 @@ import {
 } from "../api/academic-config";
 import { Modal, Form, Row, Col, FormGroup } from "react-bootstrap";
 import ConfirmationModal from "../shared/ConfirmationModal";
+import ThesisSchedule from "./ThesisSchedule";
 
 export default function Initialize() {
+  // Bumped after initialization, which re-applies the default thesis
+  const [thesisReload, setThesisReload] = useState(0);
   const [levelTerms, setLevelTerms] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showActivateModal, setShowActivateModal] = useState(false);
@@ -176,10 +179,16 @@ export default function Initialize() {
 
   // The batch normally in a level-term: the newest batch is in Level 1, the
   // one before it in Level 2, and so on.
+  // When both terms of a level are selected, Term 2 is the older batch.
   const autoBatch = (levelTerm) => {
     const level = parseInt((levelTerm.match(/L-(\d+)/) || [])[1], 10);
     if (!level || !allBatches || allBatches.length === 0) return null;
-    return Math.max(...allBatches.map(Number)) - (level - 1);
+    const term1AlsoSelected =
+      /T-2/.test(levelTerm) &&
+      selectedLevelTerms.includes(levelTerm.replace("T-2", "T-1"));
+    return (
+      Math.max(...allBatches.map(Number)) - (level - 1) - (term1AlsoSelected ? 1 : 0)
+    );
   };
 
   // Handler for activating selected level-terms for all departments
@@ -205,6 +214,7 @@ export default function Initialize() {
     setLevelTermsDB(updatedLevelTerms)
       .then((res) => {
         setLevelTerms(updatedLevelTerms);
+        setThesisReload((k) => k + 1);
         toast.dismiss(submittingToast);
         toast.success(res.message);
       })
@@ -605,6 +615,7 @@ export default function Initialize() {
           </div>
         </div>
       </div>
+      <ThesisSchedule reloadKey={thesisReload} />
     </div>
   );
 }

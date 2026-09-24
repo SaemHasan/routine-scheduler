@@ -108,7 +108,35 @@ async function createEmptySchedule() {
   return emptySchedule;
 }
 
+// Thesis is stored one row per period; show it as one cell spanning them all.
+async function mergeThesisRows(rows, mergeSection) {
+  const times = JSON.parse(await getConfigValue("times"));
+  const other = rows.filter((r) => r.type !== 2);
+  const byCell = {};
+  for (const r of rows.filter((r) => r.type === 2)) {
+    const key = `${mergeSection ? "merged" : (r.section || "").substr(0, 1)}|${r.day}|${r.course_id}`;
+    (byCell[key] = byCell[key] || []).push(r);
+  }
+  const merged = [];
+  for (const list of Object.values(byCell)) {
+    list.sort((a, b) => times.indexOf(Number(a.time)) - times.indexOf(Number(b.time)));
+    let run = null;
+    for (const r of list) {
+      const idx = times.indexOf(Number(r.time));
+      if (run && idx === run.lastIdx + 1) {
+        run.span++;
+        run.lastIdx = idx;
+      } else {
+        run = { ...r, span: 1, lastIdx: idx };
+        merged.push(run);
+      }
+    }
+  }
+  return [...other, ...merged];
+}
+
 async function generateData(rows, mergeSection) {
+  rows = await mergeThesisRows(rows, mergeSection);
   const data = rows.reduce((acc, curr) => {
     const { day, time, initial, room, course_id, section, type, teachers } =
       curr;
@@ -230,7 +258,7 @@ async function generateData(rows, mergeSection) {
     if (room) acc[onlySec][day][time].room = room;
     if (course_id) acc[onlySec][day][time].course_id = course_id;
     if (section) acc[onlySec][day][time].section = section;
-    acc[onlySec][day][time].colspan = type === 0 ? 1 : 3;
+    acc[onlySec][day][time].colspan = type === 2 ? curr.span || 1 : type === 0 ? 1 : 3;
 
     // Add a flag to determine whether to show section in the PDF
     // In case of room schedules or teacher schedules, always show section

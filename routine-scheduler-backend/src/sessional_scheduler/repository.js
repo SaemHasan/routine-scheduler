@@ -489,7 +489,8 @@ export async function findSectionClashes(
 
   const clashes = [];
   for (const row of rows) {
-    if (replacing && row.section === section && Number(row.time) === Number(time)) continue;
+    // Replacing the cell's class is fine, but never a thesis hour
+    if (replacing && row.type !== 2 && row.section === section && Number(row.time) === Number(time)) continue;
     if (!expand(row.section).some((s) => mine.has(s))) continue;
     const theirs = hoursOf(row.type, row.time);
     if (!theirs.some((h) => myHours.includes(h))) continue;

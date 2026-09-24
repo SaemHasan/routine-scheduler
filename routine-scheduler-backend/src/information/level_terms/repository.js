@@ -1,5 +1,6 @@
 import e from "express";
 import { connect } from "../../config/database.js";
+import { applyDefaultThesisDB } from "../../thesis/repository.js";
 import { HttpError } from "../../config/error-handle.js";
 
 export async function getAll() {
@@ -258,7 +259,8 @@ async function getAllActiveCourses(levelTerms, session) {
 
 async function initializeCoursesTable(activeCourses) {
     const query = `
-        INSERT INTO courses (course_id, session, "name", "type", class_per_week, "from", "to", teacher_credit, level_term, sessional_type) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10);
+        INSERT INTO courses (course_id, session, "name", "type", class_per_week, "from", "to", teacher_credit, level_term, sessional_type) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        ON CONFLICT (course_id, session) DO NOTHING;
     `;
     const query2 = `
         INSERT INTO courses (course_id, session, "name", "type", class_per_week, "from", "to") VALUES ($1, $2, $3, $4, $5, $6, $7);
@@ -378,7 +380,16 @@ export async function fillMissingBatches(levelTerms) {
         if (!level) {
             throw new HttpError(400, `Choose a batch for ${levelTerm.level_term} (${levelTerm.department})`);
         }
-        return { ...levelTerm, batch: newest - (level - 1) };
+        // When both terms of a level run at once, Term 2 is the older batch
+        const term1AlsoActive =
+            /T-2/.test(levelTerm.level_term) &&
+            levelTerms.some(
+                (other) =>
+                    other.active &&
+                    other.department === levelTerm.department &&
+                    other.level_term === levelTerm.level_term.replace("T-2", "T-1")
+            );
+        return { ...levelTerm, batch: newest - (level - 1) - (term1AlsoActive ? 1 : 0) };
     });
 }
 
@@ -400,5 +411,8 @@ export async function initiateDB(levelTerms) {
 
     await initializeCoursesSectionsTable();
     console.log("Courses_Sections table initialized");
+
+    // Thesis goes into the routine for the Level 4 level-terms
+    await applyDefaultThesisDB();
 
 }

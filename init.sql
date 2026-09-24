@@ -96,7 +96,22 @@ CREATE TABLE public.level_term_unique (
     department character varying NOT NULL,
     active boolean DEFAULT false NOT NULL,
     batch integer DEFAULT 0,
-	CONSTRAINT level_term_unique_pkey PRIMARY KEY (level_term, department)
+    -- Thesis this level-term takes (1 or 2), NULL for none. All its sections
+    -- have the thesis in the same slot (see thesis_slots).
+    thesis int4 NULL,
+	CONSTRAINT level_term_unique_pkey PRIMARY KEY (level_term, department),
+	CONSTRAINT level_term_unique_thesis_check CHECK (thesis IN (1, 2))
+);
+
+-- When each thesis runs: `day`, from the period starting at `start_time`
+-- through the period starting at `end_time` (11 to 4 is 11 AM to 5 PM).
+CREATE TABLE public.thesis_slots (
+	thesis int4 NOT NULL,
+	"day" varchar NOT NULL,
+	start_time int4 NOT NULL,
+	end_time int4 NOT NULL,
+	CONSTRAINT thesis_slots_pkey PRIMARY KEY (thesis),
+	CONSTRAINT thesis_slots_thesis_check CHECK (thesis IN (1, 2))
 );
 
 CREATE TABLE public.sections (
@@ -256,6 +271,10 @@ INSERT INTO public.sessional_types (code, "name", teacher_count, lab_type, sort_
 	('DEPT_PRESENTATION', 'Departmental Presentation', 2, 'SW', 3),
 	('NON_DEPT_SW', 'Non-Departmental Software', 2, 'SW', 4),
 	('NON_DEPT_HW', 'Non-Departmental Hardware', 2, 'HW', 5);
+
+INSERT INTO public.thesis_slots (thesis, "day", start_time, end_time) VALUES
+	(1, 'Tuesday', 11, 4),
+	(2, 'Wednesday', 11, 4);
 
 -- Capstone runs for every section at once, one room per section.
 INSERT INTO public.sessional_constraints (kind, course_id, same_slot, shared_room, note) VALUES

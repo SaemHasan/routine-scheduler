@@ -1352,3 +1352,46 @@
 .lab-item-controls .lock-toggle.locked {
   color: rgb(154, 77, 226);
 }
+
+/* --- Thesis schedule ---------------------------------------------------- */
+.thesis-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.thesis-slot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.thesis-slot strong {
+  min-width: 80px;
+  color: rgb(106, 27, 154);
+}
+.thesis-slot .form-select {
+  width: auto;
+  min-width: 110px;
+}
+.thesis-slot .card-control-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.thesis-levels {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 10px;
+}
+.thesis-level {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(154, 77, 226, 0.18);
+}
+.thesis-level .form-select {
+  width: auto;
+}

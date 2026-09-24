@@ -85,7 +85,24 @@ export async function setTheorySchedule(batch, section, course, schedule) {
       AND "section" = $2
       AND "day" = $3
       AND "time" = $4
-      AND "session" = (SELECT value FROM configs WHERE key='CURRENT_SESSION')`;
+      AND "session" = (SELECT value FROM configs WHERE key='CURRENT_SESSION')
+      AND course_id NOT IN (SELECT course_id FROM courses WHERE type = 2)`;
+    // Thesis hours are set on the Level Term page, not here
+    if (course !== "None" && course !== "") {
+      for (const slot of schedule) {
+        const thesis = await client.query(
+          `SELECT sa.course_id FROM schedule_assignment sa
+           JOIN courses c ON c.course_id = sa.course_id AND c.session = sa.session
+           WHERE sa.batch = $1 AND sa.section = $2 AND sa.day = $3 AND sa."time" = $4
+             AND c.type = 2
+             AND sa.session = (SELECT value FROM configs WHERE key='CURRENT_SESSION')`,
+          [batch, section, slot.day, slot.time]
+        );
+        if (thesis.rowCount > 0) {
+          throw new HttpError(409, `Section ${section} has thesis on ${slot.day} at ${slot.time}:00`);
+        }
+      }
+    }
     for (const slot of schedule) {
       await client.query(deleteQuery, [batch, section, slot.day, slot.time]);
     }

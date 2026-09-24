@@ -469,6 +469,7 @@ export async function getLabRoomAssignmentDB() {
     FROM schedule_assignment
     WHERE course_id ~ '[02468]$'
     AND course_id LIKE 'CSE%'
+    AND course_id NOT IN (SELECT course_id FROM courses WHERE type = 2)
     ORDER BY course_id, "section";
   `;
   const client = await connect();

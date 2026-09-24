@@ -3,9 +3,11 @@ import { connect } from "../config/database.js";
 export async function routineForLvl(lvlTerm) {
   const query = `
     SELECT 
-        sa.course_id,
+        -- Thesis shows as e.g. "CSE400 (Thesis 1)", without its many supervisors
+        CASE WHEN c.type = 2 THEN sa.course_id || ' (Thesis ' || COALESCE(ltu.thesis::text, '') || ')'
+             ELSE sa.course_id END AS course_id,
         CASE
-            WHEN c.type = 0 OR c.class_per_week = 1.5 THEN sa.section
+            WHEN c.type = 0 OR c.type = 2 OR c.class_per_week = 1.5 THEN sa.section
             WHEN c.class_per_week = 0.75 THEN sa.section || '1/' || sa.section || '2'
         END AS section,
         sa.day,
@@ -13,7 +15,7 @@ export async function routineForLvl(lvlTerm) {
         sa.room_no AS room,
         s.level_term,
         c.type,
-        sa.teachers
+        CASE WHEN c.type = 2 THEN '{}'::text[] ELSE sa.teachers END AS teachers
     FROM schedule_assignment sa
     JOIN sections s 
         ON sa.department = s.department 
@@ -21,6 +23,8 @@ export async function routineForLvl(lvlTerm) {
         AND sa.section = s.section
     JOIN courses c 
         ON sa.course_id = c.course_id
+    LEFT JOIN level_term_unique ltu
+        ON ltu.level_term = s.level_term AND ltu.department = s.department
     WHERE s.level_term = $1
     `;
   const values = [lvlTerm];
@@ -33,21 +37,34 @@ export async function routineForLvl(lvlTerm) {
 export async function routineForTeacher(initial) {
   const query = `
     SELECT 
-      sa.course_id,
+      x.course_id,
       CASE 
-        WHEN c.type = 0 OR c.class_per_week = 1.5 THEN ARRAY_TO_STRING(ARRAY_AGG(DISTINCT sa.section ORDER BY sa.section), '+')
-        WHEN c.class_per_week = 0.75 THEN MIN(sa.section) || '1/' || MIN(sa.section) || '2'
+        WHEN x.type = 0 OR x.type = 2 OR x.class_per_week = 1.5 THEN ARRAY_TO_STRING(ARRAY_AGG(DISTINCT x.section ORDER BY x.section), '+')
+        WHEN x.class_per_week = 0.75 THEN MIN(x.section) || '1/' || MIN(x.section) || '2'
       END AS section,
-      sa.day,
-      sa.time,
-      sa.room_no as room,
-      c.type,
-      sa.teachers
-    FROM schedule_assignment sa
-    JOIN courses c ON sa.course_id = c.course_id
-    WHERE $1 = ANY(sa.teachers)
-    GROUP BY sa.course_id, sa.day, sa.time, sa.room_no, c.type, sa.teachers, c.class_per_week
-    ORDER BY sa.day, sa.time, sa.course_id, section
+      x.day,
+      x.time,
+      x.room,
+      x.type,
+      x.teachers
+    FROM (
+      SELECT
+        CASE WHEN c.type = 2 THEN sa.course_id || ' (Thesis ' || ltu.thesis || ')' ELSE sa.course_id END AS course_id,
+        sa.section, sa.day, sa.time, sa.room_no AS room, c.type, c.class_per_week,
+        CASE WHEN c.type = 2 THEN ARRAY[$1]::text[] ELSE sa.teachers END AS teachers
+      FROM schedule_assignment sa
+      JOIN courses c ON sa.course_id = c.course_id
+      LEFT JOIN sections s
+        ON s.department = sa.department AND s.batch = sa.batch AND s.section = sa.section
+      LEFT JOIN level_term_unique ltu
+        ON ltu.level_term = s.level_term AND ltu.department = s.department
+      LEFT JOIN teachers t ON t.initial = $1
+      WHERE $1 = ANY(sa.teachers)
+         -- Thesis appears for every teacher who supervises that thesis
+         OR (c.type = 2 AND ((ltu.thesis = 1 AND t.offers_thesis_1) OR (ltu.thesis = 2 AND t.offers_thesis_2)))
+    ) x
+    GROUP BY x.course_id, x.day, x.time, x.room, x.type, x.teachers, x.class_per_week
+    ORDER BY x.day, x.time, x.course_id, section
     `;
 
   const values = [initial];
@@ -183,7 +200,7 @@ export async function routineForDeptLevelTermCourseDB(
     SELECT 
         sa.course_id,
         CASE 
-            WHEN c.type = 0 OR c.class_per_week = 1.5 THEN ARRAY_TO_STRING(ARRAY_AGG(DISTINCT sa.section ORDER BY sa.section), '+')
+            WHEN c.type = 0 OR c.type = 2 OR c.class_per_week = 1.5 THEN ARRAY_TO_STRING(ARRAY_AGG(DISTINCT sa.section ORDER BY sa.section), '+')
             WHEN c.class_per_week = 0.75 THEN MIN(sa.section) || '1/' || MIN(sa.section) || '2'
         END AS section,
         sa.day,
