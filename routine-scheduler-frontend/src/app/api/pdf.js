@@ -8,6 +8,12 @@ export const getPdfForStudent = (lvlTerm, section) =>
     })
     .then((res) => res.data);
 
+// The sessional distribution laid out like the printed routines
+export const getSessionalDistributionPdf = () =>
+  axios
+    .get(api_url("/pdf/sessionalDistribution"), { responseType: "blob" })
+    .then((res) => res.data);
+
 export const getAllInitial = () =>
   axios.get(api_url(`/pdf/allInitial`)).then((res) => res.data);
 

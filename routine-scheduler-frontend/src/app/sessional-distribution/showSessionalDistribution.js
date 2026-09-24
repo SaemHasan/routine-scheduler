@@ -9,6 +9,7 @@ import { formatSessionalTeachers, isHalf, slotCount } from '../shared/sessionalT
 import { getLabRooms } from '../api/db-crud';
 import { setSessionalLock, setSessionalRoom } from '../api/sessional-scheduler';
 import AutoScheduler from './AutoScheduler';
+import { getSessionalDistributionPdf } from '../api/pdf';
 import { getSchedules } from '../api/theory-schedule';
 import { Modal, Button } from 'react-bootstrap';
 
@@ -287,6 +288,29 @@ export default function ShowSessionalDistribution() {
     };
     loadTeachers();
   }, []);
+
+  const [downloading, setDownloading] = useState(false);
+
+  // Saves the distribution as a PDF in the format of the printed routines
+  const downloadPdf = async () => {
+    setDownloading(true);
+    try {
+      const blob = await getSessionalDistributionPdf();
+      const url = URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'Sessional_Distribution.pdf';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error downloading PDF:', error);
+      toast.error('Failed to create the PDF');
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   const reloadSchedules = async () => {
     const data = await getDepartmentalSessionalSchedule();
@@ -872,6 +896,13 @@ export default function ShowSessionalDistribution() {
                   <i className="mdi mdi-calendar-multiple-check mr-2"></i>
                   Distribution Sessional Courses
                 </h4>
+                <button
+                  className="card-control-button mdi mdi-file-pdf-box"
+                  disabled={downloading}
+                  onClick={downloadPdf}
+                >
+                  {downloading ? 'Preparing…' : 'Download PDF'}
+                </button>
               </div>
               <div className="table-responsive" style={{ overflowX: 'auto', maxHeight: '80vh' }}>
                 <table style={{

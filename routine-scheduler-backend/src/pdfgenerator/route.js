@@ -22,7 +22,12 @@ import {
   serveAllDepartmentsPDF,
 } from "./controller.js";
 
+import { sessionalDistributionPDF } from "./sessionalDistribution.js";
+
 const router = express.Router();
+
+// The sessional distribution, laid out like the printed routines
+router.get("/sessionalDistribution", sessionalDistributionPDF);
 
 router.get("/allInitial", getAllInitial);
 router.get("/allRooms", getAllIRooms);
