@@ -1,15 +1,16 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Form, Button } from "react-bootstrap";
 import TheoryScheduleTable from "./TheoryScheduleTable";
 import TheoryRoutineSuggestion from "./TheoryRoutineSuggestion";
 import { getTheoryRoutineBlock } from "./theoryRoutineBlocks";
+import { commonCTChange } from "./theoryRoutineFixing";
 import {
   getActiveDepartments,
   getDepartmentalLevelTermBatches,
   getTheorySectionsByDeptAndLevelTerm,
   getTheoryCoursesByDeptLevelTerm,
 } from "../api/db-crud";
-import { setTheoryCell, getSchedules } from "../api/theory-schedule";
+import { setTheoryCell, getSchedules, getTheoryRoutineOverview } from "../api/theory-schedule";
 import { toast } from "react-hot-toast";
 import {
   mdiSchoolOutline,
@@ -37,6 +38,8 @@ export default function TheorySchedule(props) {
   const [originalSchedulesBySection, setOriginalSchedulesBySection] = useState(
     {}
   );
+  // Fixed and generated meetings per course and section, from the generator
+  const [overview, setOverview] = useState(null);
   const history = useHistory();
   const { times } = useConfig();
 
@@ -104,6 +107,38 @@ export default function TheorySchedule(props) {
     }
   }, [selectedDepartment, selectedLevelTermBatch]);
 
+  const levelTermName =
+    typeof selectedLevelTermBatch === "object" && selectedLevelTermBatch.level_term
+      ? selectedLevelTermBatch.level_term
+      : selectedLevelTermBatch;
+
+  useEffect(() => {
+    setOverview(null);
+    if (!selectedDepartment || !levelTermName) return;
+    let current = true;
+    getTheoryRoutineOverview({ department: selectedDepartment, level_term: levelTermName })
+      .then((data) => current && setOverview(data))
+      .catch((error) => current && setOverview({
+        error: error?.response?.data?.error?.message || "Could not load the routine status",
+      }));
+    return () => { current = false; };
+  }, [selectedDepartment, levelTermName, reloadKey]);
+
+  // Slot → course ids placed by the last applied suggestion, per section
+  const generatedSlotsBySection = useMemo(() => {
+    const result = {};
+    for (const course of overview?.courses || []) {
+      for (const section of course.sections) {
+        const slots = (result[section.section] = result[section.section] || {});
+        for (const m of section.generated) {
+          const key = `${m.day} ${m.time}`;
+          slots[key] = [...(slots[key] || []), course.course_id];
+        }
+      }
+    }
+    return result;
+  }, [overview]);
+
   const handleDepartmentChange = (e) => {
     if (
       e.target.value !== selectedDepartment &&
@@ -150,6 +185,27 @@ export default function TheorySchedule(props) {
       : [];
 
     const slotKey = `${day} ${time}`;
+
+    // CT is common to the level-term: it goes into, or out of, every section
+    const ctChange = commonCTChange({
+      schedules: theorySchedulesBySection,
+      sectionKey,
+      sectionKeys: allTheorySections.map((s) => `${selectedDepartment} ${s.batch} ${s.section}`),
+      slotKey,
+      nextIds: courseIdsArray,
+      isBlocked: (key, d, t) => Boolean(isDisabledTimeSlot(key, d, t)?.isDisabled),
+    });
+    if (ctChange?.busy.length) {
+      toast.error(
+        `CT is held in every section at once, but section ${ctChange.busy
+          .map((key) => key.split(" ").at(-1)).join(", ")} is busy on ${day} at ${time}:00`
+      );
+      return;
+    }
+    if (ctChange?.adding && Number(time) !== 8) {
+      toast("CT is normally at 8 AM; the generator expects CT there.", { icon: "⚠️" });
+    }
+
     // Get a fresh copy of the current section schedule to avoid stale data
     const currentSectionSchedule =
       { ...theorySchedulesBySection[sectionKey] } || {};
@@ -242,7 +298,14 @@ export default function TheorySchedule(props) {
       }
 
       // Update the specific day-time slot with the new course IDs
-      updatedState[sectionKey][slotKey] = { course_ids: courseIdsArray };
+      updatedState[sectionKey][slotKey] = {
+        ...updatedState[sectionKey][slotKey],
+        course_ids: courseIdsArray,
+      };
+      Object.entries(ctChange?.updates || {}).forEach(([key, ids]) => {
+        updatedState[key] = updatedState[key] || {};
+        updatedState[key][slotKey] = { ...updatedState[key][slotKey], course_ids: ids };
+      });
 
       return updatedState;
     });
@@ -760,7 +823,8 @@ export default function TheorySchedule(props) {
           batch={selectedLevelTermBatch.batch || allTheorySections[0].batch}
           allTheoryCourses={allTheoryCourses}
           hasUnsavedChanges={isChanged}
-          onApplied={() => setReloadKey((key) => key + 1)}
+          overview={overview}
+          onChanged={() => setReloadKey((key) => key + 1)}
         />
       )}
       {/* Show section tables after both department and level-term are selected */}
@@ -879,6 +943,12 @@ export default function TheorySchedule(props) {
                             {section.section}
                           </span>
                           Section {section.section}
+                          {Object.keys(generatedSlotsBySection[section.section] || {}).length > 0 && (
+                            <span className="ms-auto d-flex align-items-center" style={{ gap: 12, fontSize: "0.78rem", fontWeight: 500, color: "#6c757d" }}>
+                              <span><span style={{ background: "#e9d8fd", color: "#7c4fd5", borderRadius: 6, padding: "1px 6px" }}>Fixed</span> kept when generating</span>
+                              <span><span style={{ border: "1px dashed #b9a6d6", borderRadius: 6, padding: "0 6px" }}>Generated</span> replaced when generating again</span>
+                            </span>
+                          )}
                         </h4>
                       </div>
                       {(() => {
@@ -889,6 +959,7 @@ export default function TheorySchedule(props) {
                             {...props}
                             allTheoryCourses={allTheoryCourses}
                             theorySchedules={sectionData}
+                            generatedSlots={generatedSlotsBySection[section.section]}
                             onChange={handleTheoryCellChange(sectionKey)}
                             isDisabledTimeSlot={(day, time) =>
                               isDisabledTimeSlot(sectionKey, day, time)

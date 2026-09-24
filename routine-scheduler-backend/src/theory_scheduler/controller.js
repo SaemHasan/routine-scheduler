@@ -1,6 +1,8 @@
 import { HttpError } from "../config/error-handle.js";
 import { solveTheory, theoryCTSlotRequirement, theoryCTSlots, theoryPreferenceWarnings } from "./algorithm.js";
-import { applyTheorySuggestionDB, loadTheoryProblemDB } from "./repository.js";
+import {
+  applyTheorySuggestionDB, fixTheoryClassesDB, loadTheoryProblemDB, unfixTheoryClassDB,
+} from "./repository.js";
 
 function selection(body) {
   const department = String(body?.department || "").trim();
@@ -9,6 +11,60 @@ function selection(body) {
     throw new HttpError(400, "Select a department and level-term");
   }
   return { department, levelTerm };
+}
+
+// Everything shown before generating: what is fixed, what the generator
+// will place, the common CT slots and anything that blocks generation.
+export async function theoryOverview(req, res, next) {
+  try {
+    const { department, levelTerm } = selection(req.body);
+    const problem = await loadTheoryProblemDB(department, levelTerm);
+    const required = problem.courseStatus.reduce((total, course) =>
+      total + course.class_per_week * (course.shared ? 1 : course.sections.length), 0);
+    res.status(200).json({
+      department, level_term: levelTerm, batch: problem.batch,
+      fingerprint: problem.fingerprint, initialized: problem.initialized,
+      sectionNames: problem.sectionNames,
+      courses: problem.courseStatus,
+      totals: { required, toGenerate: problem.units.length, fixed: required - problem.units.length },
+      ctRequired: theoryCTSlotRequirement(levelTerm),
+      ctSlots: theoryCTSlots(problem, []),
+      preflight: problem.preflight,
+      warnings: problem.warnings,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function fixTheoryClasses(req, res, next) {
+  try {
+    const { department, levelTerm } = selection(req.body);
+    const courseId = String(req.body?.course_id || "").trim();
+    const placements = (Array.isArray(req.body?.placements) ? req.body.placements : [])
+      .filter((p) => p && p.section && p.day && p.time !== undefined && p.time !== "")
+      .map((p) => ({ section: String(p.section), day: String(p.day), time: Number(p.time) }));
+    if (!courseId || !placements.length || placements.some((p) => !Number.isInteger(p.time))) {
+      throw new HttpError(400, "Choose a course and at least one section's day and time");
+    }
+    res.status(200).json(await fixTheoryClassesDB({ department, levelTerm, courseId, placements }));
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function unfixTheoryClass(req, res, next) {
+  try {
+    const { department, levelTerm } = selection(req.body);
+    const { course_id: courseId, section, day } = req.body || {};
+    const time = Number(req.body?.time);
+    if (!courseId || !section || !day || !Number.isInteger(time)) {
+      throw new HttpError(400, "course_id, section, day and time are required");
+    }
+    res.status(200).json(await unfixTheoryClassDB({ department, levelTerm, courseId, section, day, time }));
+  } catch (error) {
+    next(error);
+  }
 }
 
 export async function suggestTheory(req, res, next) {

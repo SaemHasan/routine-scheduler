@@ -189,6 +189,88 @@ export function validateTheoryAssignments(problem, assignments) {
   return issues;
 }
 
+const sectionName = (key) => String(key).split("|").at(-1);
+
+function describeClash(event, other) {
+  const sameSections = event.sections.filter((s) => other.sections.includes(s));
+  if (sameSections.length && !sameOption(event, other)) {
+    if (other.course_id === event.course_id && !intersects(event.hours, other.hours)) {
+      return `${event.course_id} already meets ${sameSections.map(sectionName).join("/")} on ${other.day}`;
+    }
+    return `${other.course_id} (${sameSections.map(sectionName).join("/")}) at ${other.time}:00`;
+  }
+  const teacher = event.teachers.find((t) => other.teachers.includes(t));
+  return other.sections.length
+    ? `${teacher}'s ${other.course_id} (${other.sections.map(sectionName).join("/")}) at ${other.time}:00`
+    : `${teacher}'s ${other.course_id} at ${other.time}:00`;
+}
+
+// Classes fixed by hand before generation obey the generator's hard rules,
+// fit within the course's weekly meetings, and keep the level-term's common
+// 8 AM CT slots. `pins` are units of `problem` given a day and time.
+export function validatePinnedClasses(problem, pins) {
+  const issues = [];
+  const slotSet = new Set(problem.slots.map((s) => `${s.day}|${s.time}`));
+  const placed = [];
+  const perUnitGroup = new Map();
+  for (const pin of pins) {
+    const label = `${pin.course_id} (${pin.sections.map(sectionName).join("/")})`;
+    const group = `${pin.course_id}|${pin.sections.join(",")}`;
+    perUnitGroup.set(group, (perUnitGroup.get(group) || 0) + 1);
+    const open = problem.units.filter((u) =>
+      u.course_id === pin.course_id && u.sections.join(",") === pin.sections.join(",")).length;
+    if (perUnitGroup.get(group) > open) {
+      issues.push(open
+        ? `${label}: only ${open} weekly meeting(s) are left to fix`
+        : `${label}: every weekly meeting is already fixed; unpin one first`);
+      continue;
+    }
+    if (!slotSet.has(`${pin.day}|${pin.time}`)) {
+      issues.push(`${label}: ${pin.day} ${pin.time}:00 is not a theory period`);
+      continue;
+    }
+    const event = { ...pin, time: Number(pin.time), hours: [Number(pin.time)] };
+    const other = [...problem.fixed, ...placed].find((o) => clashes(event, o));
+    if (other) {
+      issues.push(`${label} on ${pin.day} at ${pin.time}:00 clashes with ${describeClash(event, other)}`);
+      continue;
+    }
+    placed.push(event);
+  }
+  const required = theoryCTSlotRequirement(problem.levelTerm);
+  if (required && !issues.length) {
+    const free = (events) => ctSlotsFromEvents(problem, events)
+      .filter((slot) => slot.available).length;
+    const before = free(problem.fixed);
+    const after = free([...problem.fixed, ...placed]);
+    if (after < required && after < before) {
+      issues.push(`${problem.levelTerm} needs ${required} common 8 AM CT slots; these classes would leave only ${after}`);
+    }
+  }
+  return issues;
+}
+
+// Generated (unlocked) classes a pin displaces: those clashing with it (the
+// same course that day, the same section and period, or its teacher), and
+// then enough of the course's other generated meetings that the section
+// keeps its weekly count. They return when the routine is generated again.
+export function displacedByPins(pins, generated) {
+  const events = pins.map((pin) =>
+    ({ ...pin, time: Number(pin.time), hours: [Number(pin.time)] }));
+  const displaced = new Set(generated.filter((g) => events.some((e) => clashes(e, g))));
+  const groupOf = (e) => `${e.course_id}|${e.sections.join(",")}`;
+  const pinCount = new Map();
+  for (const e of events) pinCount.set(groupOf(e), (pinCount.get(groupOf(e)) || 0) + 1);
+  for (const [group, count] of pinCount) {
+    const same = generated.filter((g) => groupOf(g) === group);
+    const kept = same.filter((g) => !displaced.has(g));
+    for (let extra = count - (same.length - kept.length); extra > 0 && kept.length; extra--) {
+      displaced.add(kept.pop());
+    }
+  }
+  return [...displaced];
+}
+
 function score(problem, assignments) {
   const byKey = new Map(problem.units.map((u) => [u.key, u]));
   const events = [

@@ -24,6 +24,19 @@ export const suggestTheoryRoutine = (selection) =>
 export const applyTheoryRoutineSuggestion = (suggestion) =>
     axios.post(api_url("/schedule/theory/apply-suggestion"), suggestion).then((res) => res.data);
 
+// { department, level_term } → fixed/generated meetings per course and
+// section, common CT slots, and what blocks generation
+export const getTheoryRoutineOverview = (selection) =>
+    axios.post(api_url("/schedule/theory/overview"), selection).then((res) => res.data);
+
+// { department, level_term, course_id, placements: [{ section, day, time }] }
+export const fixTheoryClasses = (request) =>
+    axios.post(api_url("/schedule/theory/fix"), request).then((res) => res.data);
+
+// { department, level_term, course_id, section, day, time }
+export const unfixTheoryClass = (request) =>
+    axios.post(api_url("/schedule/theory/unfix"), request).then((res) => res.data);
+
 export const initiateTheorySchedule = () =>
     axios.get(api_url("/schedule/theory/initiate")).then((res) => res.data);
 

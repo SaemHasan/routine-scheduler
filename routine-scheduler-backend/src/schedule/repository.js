@@ -147,6 +147,38 @@ export async function setTheorySchedule(batch, section, course, schedule) {
   }
 }
 
+// What keeps main `sections` (with their lab subsections) busy in a period
+// besides CT: a theory class, thesis, or a three-period lab covering it.
+async function otherSectionsBusy(client, { session, department, batch, day, time, sections }) {
+  const cfg = (await client.query("SELECT value FROM configs WHERE key = 'times'")).rows[0];
+  const times = (cfg ? JSON.parse(cfg.value) : [8, 9, 10, 11, 12, 1, 2, 3, 4]).map(Number);
+  const rows = (
+    await client.query(
+      `SELECT sa.course_id, sa.section, sa."time", c.type, c.optional, c.optional_section_count
+       FROM schedule_assignment sa
+       JOIN courses c ON c.course_id = sa.course_id AND c.session = sa.session
+       WHERE sa.session = $1 AND sa.department = $2 AND sa.batch = $3 AND sa.day = $4
+         AND sa.course_id <> 'CT'
+       ORDER BY sa.section, sa."time", sa.course_id`,
+      [session, department, batch, day]
+    )
+  ).rows;
+  const busy = [];
+  for (const row of rows) {
+    const main = String(row.section).replace(/[0-9]+$/, "");
+    // A lab every section takes as one group is stored under one section only
+    const everyone = Number(row.type) === 1 && row.optional && Number(row.optional_section_count) <= 1;
+    const affected = everyone ? sections : sections.filter((s) => s === main);
+    if (!affected.length) continue;
+    const start = times.indexOf(Number(row.time));
+    const hours = Number(row.type) === 1 && start >= 0 ? times.slice(start, start + 3) : [Number(row.time)];
+    if (!hours.includes(Number(time))) continue;
+    busy.push(`${affected.join("/")} ${affected.length > 1 ? "have" : "has"} ${row.course_id}` +
+      (Number(row.time) !== Number(time) ? ` (from ${row.time}:00)` : ""));
+  }
+  return [...new Set(busy)];
+}
+
 /**
  * Sets the theory classes a section has in one period. `course_ids` is the
  * whole list for the cell: classes not in it are taken out, new ones put in.
@@ -155,7 +187,7 @@ export async function setTheorySchedule(batch, section, course, schedule) {
  * Only electives share a period (the courses of an option run side by side).
  * An elective that runs as a single group is taken by students of every
  * section, so it is placed in, and taken out of, all the batch's sections
- * together, in one room.
+ * together, in one room. CT is likewise set in all sections together.
  */
 export async function setTheoryCellDB({ department, batch, section, day, time, course_ids }) {
   const client = await connect();
@@ -207,9 +239,10 @@ export async function setTheoryCellDB({ department, batch, section, day, time, c
         )).rows[0];
       return Boolean(c && c.optional && Number(c.type) === 0 && Number(c.optional_section_count) <= 1);
     };
-    // The sections a class of this course occupies when put in `section`
+    // The sections a class of this course occupies when put in `section`.
+    // CT is common to the level-term, so it is in every section at once.
     const sectionsFor = async (id) =>
-      (await singleGroup(id)) ? mainSections.map((s) => s.section) : [section];
+      id === "CT" || (await singleGroup(id)) ? mainSections.map((s) => s.section) : [section];
 
     const present = (
       await client.query(
@@ -220,6 +253,16 @@ export async function setTheoryCellDB({ department, batch, section, day, time, c
         [department, batch, section, day, time, session]
       )
     ).rows.map((r) => r.course_id);
+
+    if (theoryIds.includes("CT") && !present.includes("CT")) {
+      const busy = await otherSectionsBusy(client, {
+        session, department, batch, day, time,
+        sections: mainSections.map((s) => s.section).filter((s) => s !== section),
+      });
+      if (busy.length) {
+        throw new HttpError(409, `CT is held in every section at once, but on ${day} at ${time}:00 ${busy.join(", ")}`);
+      }
+    }
 
     for (const id of present.filter((id) => !theoryIds.includes(id))) {
       await client.query(

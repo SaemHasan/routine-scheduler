@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { connect } from "../config/database.js";
 import { HttpError } from "../config/error-handle.js";
-import { validateTheoryAssignments } from "./algorithm.js";
+import { displacedByPins, validatePinnedClasses, validateTheoryAssignments } from "./algorithm.js";
 
 const keyOf = (department, batch, section) =>
   `${department}|${batch}|${String(section).replace(/[0-9]+$/, "")}`;
@@ -34,7 +34,7 @@ export async function loadTheoryProblemDB(department, levelTerm, existingClient 
 
     const courseRows = (await client.query(
       `SELECT cs.course_id, cs.department, cs.batch, cs.section, cs.teachers,
-              c.class_per_week, c.optional, c.optional_section_count, c.option_group
+              c.name, c.class_per_week, c.optional, c.optional_section_count, c.option_group
        FROM courses_sections cs
        JOIN courses c ON c.course_id = cs.course_id AND c.session = cs.session
        JOIN sections s ON s.department = cs.department AND s.batch = cs.batch AND s.section = cs.section
@@ -92,7 +92,7 @@ export async function loadTheoryProblemDB(department, levelTerm, existingClient 
       initialized && r.department === department && Number(r.batch) === Number(batch) &&
       Number(r.type) === 0 && offered.has(r.course_id) && !r.locked;
     const fixedRows = scheduleRows.filter((r) => !generatedRow(r));
-    const fixed = fixedRows.map((r) => {
+    const toEvent = (r) => {
       const singleOptional = Number(r.optional) === 1 && Number(r.optional_section_count) <= 1;
       const sections = singleOptional
         ? mainSections.get(`${r.department}|${r.batch}`) || [keyOf(r.department, r.batch, r.section)]
@@ -115,7 +115,14 @@ export async function loadTheoryProblemDB(department, levelTerm, existingClient 
         optional: Number(r.optional) === 1,
         option_group: r.option_group,
       };
-    });
+    };
+    const fixed = fixedRows.map(toEvent);
+    // Classes a previous suggestion placed; a shared optional class has a
+    // row in every section but is one meeting.
+    const generated = [...new Map(scheduleRows.filter(generatedRow).map((r) => {
+      const event = toEvent(r);
+      return [`${r.course_id}|${event.sections.join(",")}|${r.day}|${r.time}`, event];
+    })).values()];
 
     // Supervisors' thesis blocks appear in the teacher routine even though
     // thesis rows themselves have no teacher array.
@@ -215,6 +222,27 @@ export async function loadTheoryProblemDB(department, levelTerm, existingClient 
         }
       }
     }
+    // Per course and section: meetings fixed by hand, which the generator
+    // keeps, and meetings a previous suggestion placed, which it replaces.
+    const slotOrder = (r) => days.indexOf(r.day) * 100 + times.indexOf(Number(r.time));
+    const ownRows = scheduleRows.filter((r) => r.department === department &&
+      Number(r.batch) === Number(batch) && Number(r.type) === 0 && offered.has(r.course_id))
+      .sort((a, b) => slotOrder(a) - slotOrder(b));
+    const courseStatus = [...byCourse].map(([courseId, rows]) => ({
+      course_id: courseId,
+      name: rows[0].name,
+      class_per_week: Number(rows[0].class_per_week),
+      shared: Number(rows[0].optional) === 1 && Number(rows[0].optional_section_count) <= 1,
+      sections: rows.map((row) => {
+        const meetings = ownRows.filter((r) => r.course_id === courseId && r.section === row.section);
+        const slot = (r) => ({ day: r.day, time: Number(r.time) });
+        return {
+          section: row.section,
+          fixed: meetings.filter((r) => !generatedRow(r)).map(slot),
+          generated: meetings.filter(generatedRow).map(slot),
+        };
+      }),
+    }));
     const fingerprint = createHash("sha256").update(JSON.stringify({
       session, sectionRows, allSectionRows, configRows, courseRows, csRows, labTeacherRows, scheduleRows,
       teacherRows, thesisSlots, activeTheses: [...activeTheses], initialized,
@@ -234,10 +262,125 @@ export async function loadTheoryProblemDB(department, levelTerm, existingClient 
       department, levelTerm, session, batch, marker, initialized, fingerprint,
       days, times, slots, sections: sectionKeys,
       sectionNames: sectionRows.map((s) => s.section), previewRows, sectionsForCourse,
-      courseIds: [...byCourse.keys()], units, fixed, preflight, warnings,
+      courseIds: [...byCourse.keys()], units, fixed, generated, courseStatus,
+      batchSectionNames: (mainSections.get(`${department}|${batch}`) || []).map((k) => k.split("|")[2]),
+      preflight, warnings,
     };
   } finally {
     if (!existingClient) client.release();
+  }
+}
+
+// From the first generation on, only locked theory classes are fixed.
+// Legacy manual rows have locked=false, so they are locked beforehand.
+async function markInitialized(client, problem) {
+  if (problem.initialized) return;
+  await client.query(
+    `UPDATE schedule_assignment SET locked = true
+     WHERE session = $1 AND department = $2 AND batch = $3
+       AND course_id = ANY($4::varchar[])`,
+    [problem.session, problem.department, problem.batch, problem.courseIds]
+  );
+  await client.query(
+    `INSERT INTO configs (key, value) VALUES ($1, '1')
+     ON CONFLICT (key) DO UPDATE SET value = '1'`,
+    [problem.marker]
+  );
+}
+
+const namesOf = (sectionKeys) => sectionKeys.map((key) => key.split("|")[2]);
+
+/**
+ * Fixes meetings of one theory course before generation, e.g. IPE493 on
+ * Wednesday at 9 for A, 10 for B and 11 for C. `placements` are
+ * { section, day, time }; a course every section takes together needs one.
+ * Generated meetings in the way are released for the next generation.
+ */
+export async function fixTheoryClassesDB({ department, levelTerm, courseId, placements }) {
+  const client = await connect();
+  try {
+    await client.query("BEGIN");
+    const problem = await loadTheoryProblemDB(department, levelTerm, client);
+    const status = problem.courseStatus.find((c) => c.course_id === courseId);
+    if (!status) throw new HttpError(404, `${courseId} is not a theory course of ${levelTerm}`);
+    const pins = placements.map(({ section, day, time }) => {
+      const unit = problem.units.find((u) => u.course_id === courseId && u.sectionNames.includes(section));
+      const group = status.sections.find((s) => s.section === section);
+      if (!group) throw new HttpError(400, `${courseId} is not offered to section ${section}`);
+      if (!unit) {
+        throw new HttpError(409, `${courseId} (${section}): all ${status.class_per_week} weekly meetings are already fixed; unpin one first`);
+      }
+      if (!problem.days.includes(day)) throw new HttpError(400, `${day} is not a teaching day`);
+      return { ...unit, day, time: Number(time) };
+    });
+    const issues = validatePinnedClasses(problem, pins);
+    if (issues.length) throw new HttpError(409, issues.join("; "));
+
+    const released = displacedByPins(pins, problem.generated);
+    for (const event of released) {
+      await client.query(
+        `DELETE FROM schedule_assignment
+         WHERE session = $1 AND department = $2 AND batch = $3 AND course_id = $4
+           AND section = ANY($5::varchar[]) AND day = $6 AND "time" = $7 AND NOT locked`,
+        [problem.session, department, problem.batch, event.course_id,
+          namesOf(event.sections), event.day, event.time]
+      );
+    }
+    const roomOf = new Map((await client.query(
+      "SELECT section, room FROM sections WHERE department = $1 AND batch = $2 AND type = 0",
+      [department, problem.batch]
+    )).rows.map((r) => [r.section, r.room]));
+    for (const [i, pin] of pins.entries()) {
+      for (const section of pin.sectionNames) {
+        await client.query(
+          `INSERT INTO schedule_assignment
+             (course_id, session, department, batch, section, day, "time", room_no, teachers, locked)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, true)`,
+          [courseId, problem.session, department, problem.batch, section, pin.day, pin.time,
+            roomOf.get(placements[i].section) || null, pin.perSectionTeachers[section] || []]
+        );
+      }
+    }
+    await client.query("COMMIT");
+    return {
+      fixed: pins.length,
+      released: released.map((e) =>
+        `${e.course_id} (${namesOf(e.sections).join("/")}) ${e.day} ${e.time}:00`),
+    };
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+/** Lets the generator move a fixed theory meeting on the next generation. */
+export async function unfixTheoryClassDB({ department, levelTerm, courseId, section, day, time }) {
+  const client = await connect();
+  try {
+    await client.query("BEGIN");
+    const problem = await loadTheoryProblemDB(department, levelTerm, client);
+    const status = problem.courseStatus.find((c) => c.course_id === courseId);
+    const entry = status?.sections.find((s) => s.section === section);
+    if (!entry?.fixed.some((m) => m.day === day && m.time === Number(time))) {
+      throw new HttpError(404, `${courseId} (${section}) has no fixed class on ${day} at ${time}:00`);
+    }
+    await markInitialized(client, problem);
+    const sections = status.shared ? status.sections.map((s) => s.section) : [section];
+    await client.query(
+      `UPDATE schedule_assignment SET locked = false
+       WHERE session = $1 AND department = $2 AND batch = $3 AND course_id = $4
+         AND section = ANY($5::varchar[]) AND day = $6 AND "time" = $7`,
+      [problem.session, department, problem.batch, courseId, sections, day, Number(time)]
+    );
+    await client.query("COMMIT");
+    return { unfixed: sections.length };
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
   }
 }
 
@@ -253,24 +396,13 @@ export async function applyTheorySuggestionDB({ department, levelTerm, fingerpri
     const issues = validateTheoryAssignments(problem, assignments);
     if (issues.length) throw new HttpError(409, issues.slice(0, 3).join("; "));
 
-    const courseIds = problem.courseIds;
-    if (!problem.initialized) {
-      // Legacy manual rows have locked=false. Make them explicit fixed rows
-      // before the first generated suggestion is saved.
-      await client.query(
-        `UPDATE schedule_assignment SET locked = true
-         WHERE session = $1 AND department = $2 AND batch = $3
-           AND course_id = ANY($4::varchar[])`,
-        [problem.session, department, problem.batch, courseIds]
-      );
-    } else {
-      await client.query(
-        `DELETE FROM schedule_assignment
-         WHERE session = $1 AND department = $2 AND batch = $3
-           AND course_id = ANY($4::varchar[]) AND NOT locked`,
-        [problem.session, department, problem.batch, courseIds]
-      );
-    }
+    await markInitialized(client, problem);
+    await client.query(
+      `DELETE FROM schedule_assignment
+       WHERE session = $1 AND department = $2 AND batch = $3
+         AND course_id = ANY($4::varchar[]) AND NOT locked`,
+      [problem.session, department, problem.batch, problem.courseIds]
+    );
     const unitOf = new Map(problem.units.map((u) => [u.key, u]));
     for (const a of assignments) {
       const unit = unitOf.get(a.key);
@@ -284,11 +416,6 @@ export async function applyTheorySuggestionDB({ department, levelTerm, fingerpri
         );
       }
     }
-    await client.query(
-      `INSERT INTO configs (key, value) VALUES ($1, '1')
-       ON CONFLICT (key) DO UPDATE SET value = '1'`,
-      [problem.marker]
-    );
     await client.query("COMMIT");
     return { saved: assignments.length };
   } catch (error) {

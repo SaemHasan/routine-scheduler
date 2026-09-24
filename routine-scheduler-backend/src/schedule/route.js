@@ -1,5 +1,7 @@
 import express from "express";
-import { applyTheory, suggestTheory } from "../theory_scheduler/controller.js";
+import {
+  applyTheory, fixTheoryClasses, suggestTheory, theoryOverview, unfixTheoryClass,
+} from "../theory_scheduler/controller.js";
 import {
   getAllSchedule,
   getCurrStatus,
@@ -23,6 +25,9 @@ router.post("/theory/:batch/:section/:course", setTheoryScheduleAPI);
 router.put("/theory/cell", setTheoryCellAPI);
 router.post("/theory/suggest", suggestTheory);
 router.post("/theory/apply-suggestion", applyTheory);
+router.post("/theory/overview", theoryOverview);
+router.post("/theory/fix", fixTheoryClasses);
+router.post("/theory/unfix", unfixTheoryClass);
 
 router.get("/sessional/:batch/:section", getSessionalScheduleAPI);
 router.get("/sessional/departmental", getDepartmentalSessionalScheduleAPI);

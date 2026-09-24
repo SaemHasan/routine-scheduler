@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  solveTheory, theoryCTSlotRequirement, theoryCTSlots,
-  theoryPreferenceWarnings, validateTheoryAssignments,
+  displacedByPins, solveTheory, theoryCTSlotRequirement, theoryCTSlots,
+  theoryPreferenceWarnings, validatePinnedClasses, validateTheoryAssignments,
 } from "./algorithm.js";
 
 const days = ["Saturday", "Sunday", "Monday", "Tuesday", "Wednesday"];
@@ -243,4 +243,79 @@ test("fixed 8 AM classes that leave too few common CT slots block generation", (
     issue.includes("only 2 remain free")));
   assert.ok(solveTheory(p).issues.some((issue) =>
     issue.includes("fixed classes leave only 2")));
+});
+
+// IPE493 has three weekly meetings in each of A, B and C
+const ipeUnits = () => sections.flatMap((section, s) => [1, 2, 3].map((i) =>
+  unit(`ipe-${s}-${i}`, "IPE493", section, "IPE Teacher")));
+const pinAt = (p, s, day, time) =>
+  ({ ...p.units.find((u) => u.sections[0] === sections[s]), day, time });
+
+test("staggered pins across sections are accepted and the rest is generated around them", () => {
+  const p = problem(ipeUnits());
+  p.levelTerm = "L-4 T-1";
+  const pins = [9, 10, 11].map((time, s) => pinAt(p, s, "Wednesday", time));
+  assert.deepEqual(validatePinnedClasses(p, pins), []);
+
+  // Once saved, pins are fixed classes and each section needs two more
+  const fixed = pins.map((pin) => ({ ...pin, hours: [pin.time] }));
+  const rest = problem(ipeUnits().filter((u) => !u.key.endsWith("-3")), fixed);
+  rest.levelTerm = "L-4 T-1";
+  const result = solveTheory(rest, { seed: 5, timeLimitMs: 1200 });
+  assert.deepEqual(validateTheoryAssignments(rest, result.assignments), []);
+  assert.ok(result.assignments.every((a) => a.day !== "Wednesday"));
+});
+
+test("pins that break a hard rule are rejected with a readable reason", () => {
+  const p = problem(ipeUnits(), [{
+    course_id: "CSE405", sections: [sections[1]], teachers: ["T9"],
+    day: "Wednesday", time: 10, hours: [10], optional: false, option_group: null,
+  }]);
+  // Same teacher in A and B at once
+  assert.ok(validatePinnedClasses(p, [pinAt(p, 0, "Sunday", 9), pinAt(p, 1, "Sunday", 9)])
+    .some((issue) => issue.includes("IPE Teacher")));
+  // B is busy with CSE405
+  assert.ok(validatePinnedClasses(p, [pinAt(p, 1, "Wednesday", 10)])
+    .some((issue) => issue.includes("CSE405 (B)")));
+  // Twice on one day in A
+  assert.ok(validatePinnedClasses(p, [pinAt(p, 0, "Sunday", 9), pinAt(p, 0, "Sunday", 11)])
+    .some((issue) => issue.includes("already meets A on Sunday")));
+  // 1 PM is never a theory period
+  assert.ok(validatePinnedClasses(p, [pinAt(p, 0, "Sunday", 1)])
+    .some((issue) => issue.includes("not a theory period")));
+  // More than the weekly meetings
+  const four = ["Saturday", "Sunday", "Monday", "Tuesday"].map((day) => pinAt(p, 0, day, 9));
+  assert.ok(validatePinnedClasses(p, four).some((issue) => issue.includes("only 3")));
+});
+
+test("pins may not use up the level-term's common CT slots", () => {
+  const p = problem(ipeUnits());
+  p.levelTerm = "L-2 T-1";
+  assert.deepEqual(validatePinnedClasses(p, [pinAt(p, 0, "Saturday", 8)]), []);
+  const pins = ["Saturday", "Monday", "Wednesday"].map((day) => pinAt(p, 0, day, 8));
+  assert.ok(validatePinnedClasses(p, pins).some((issue) => issue.includes("needs 3 common")));
+});
+
+test("a pin releases the generated meetings it displaces and keeps the weekly count", () => {
+  const p = problem(ipeUnits());
+  const gen = (s, day, time, course = "IPE493", teacher = "IPE Teacher") => ({
+    course_id: course, sections: [sections[s]], teachers: [teacher],
+    day, time, hours: [time], optional: false, option_group: null,
+  });
+  const generated = [
+    gen(0, "Sunday", 9), gen(0, "Tuesday", 9), gen(0, "Wednesday", 12),
+    gen(1, "Wednesday", 9, "CSE405", "T9"),
+    gen(2, "Monday", 10),
+  ];
+  const released = displacedByPins([pinAt(p, 0, "Wednesday", 9)], generated);
+  // A's Wednesday IPE493 clashes by day; B's CSE405 is untouched
+  assert.deepEqual(released, [generated[2]]);
+
+  // No generated clash: one other meeting of A is released instead
+  const other = displacedByPins([pinAt(p, 0, "Saturday", 9)], generated);
+  assert.equal(other.length, 1);
+  assert.ok(other[0].course_id === "IPE493" && other[0].sections[0] === sections[0]);
+
+  // The same teacher's generated class in C at the pinned hour is released
+  assert.ok(displacedByPins([pinAt(p, 0, "Monday", 10)], generated).includes(generated[4]));
 });

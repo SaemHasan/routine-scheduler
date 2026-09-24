@@ -19,6 +19,8 @@ const TheoryScheduleTable = React.memo(function TheoryScheduleTable(props) {
     readOnly = false,
     suggestedSlots = {},
     ctAvailableDays = [],
+    // slot → course ids placed by the last applied suggestion (not fixed)
+    generatedSlots = {},
   } = props;
 
   // Memoized values for configuration settings
@@ -63,6 +65,7 @@ const TheoryScheduleTable = React.memo(function TheoryScheduleTable(props) {
               const result = {
                 value: id,
                 label: `${id} - ${courseObj?.name || "Unknown"}`,
+                generated: (generatedSlots[slotKey] || []).includes(id),
               };
               return result;
             })
@@ -99,7 +102,7 @@ const TheoryScheduleTable = React.memo(function TheoryScheduleTable(props) {
 
       return courses;
     },
-    [theorySchedules, filled, selected, filteredCourses]
+    [theorySchedules, filled, selected, filteredCourses, generatedSlots]
   );
 
   // Cell style calculation
@@ -502,16 +505,19 @@ const TheoryScheduleTable = React.memo(function TheoryScheduleTable(props) {
                               height: "100%",
                               background: "transparent",
                             }),
-                            multiValue: (base) => ({
+                            // Generated classes are dashed: the next
+                            // generation replaces them unless they are fixed
+                            multiValue: (base, { data }) => ({
                               ...base,
-                              background: "#e9d8fd",
+                              background: data.generated ? "white" : "#e9d8fd",
+                              border: data.generated ? "1px dashed #b9a6d6" : "none",
                               borderRadius: "8px",
                               margin: "2px",
                               color: "#7c4fd5",
                             }),
-                            multiValueLabel: (base) => ({
+                            multiValueLabel: (base, { data }) => ({
                               ...base,
-                              color: "#7c4fd5",
+                              color: data.generated ? "#6c757d" : "#7c4fd5",
                               fontWeight: 500,
                               fontSize: "0.8rem",
                             }),
