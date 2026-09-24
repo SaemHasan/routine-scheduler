@@ -1,6 +1,7 @@
 import { connect } from "../config/database.js";
 import { HttpError } from "../config/error-handle.js";
 import sma from "stablematch-common";
+import { findSessionalConflict } from "./sessionalRules.js";
 
 export async function getTemplate(key) {
   const query = "SELECT * FROM configs WHERE key=$1";
@@ -563,9 +564,9 @@ export async function getSessionalPreferencesStatus() {
 
 export async function getTeacherSessionalAssignment(initial) {
   const query = `
-    SELECT tsa.course_id, tsa.batch, tsa."section", c.class_per_week
+    SELECT tsa.course_id, tsa.batch, tsa."section", c.class_per_week, tsa.share::float AS share
     FROM teacher_sessional_assignment tsa
-    JOIN courses c ON tsa.course_id = c.course_id
+    JOIN courses c ON tsa.course_id = c.course_id AND tsa.session = c.session
     WHERE tsa.initial = $1
     AND tsa."session" = (SELECT value FROM configs WHERE key='CURRENT_SESSION')
   `;
@@ -595,7 +596,7 @@ export async function getSessionalTeachers(course_id, section) {
 
 export async function getAllSessionalAssignment() {
   const query = `
-    SELECT course_id, batch, "section", initial
+    SELECT course_id, batch, "section", initial, share::float AS share
     FROM teacher_sessional_assignment
     WHERE "session" = (SELECT value FROM configs WHERE key='CURRENT_SESSION')
     ORDER BY course_id, "section", initial
@@ -946,21 +947,25 @@ export async function setTeacherAssignmentDB(assignment) {
   }
 }
 
-export async function setTeacherSessionalAssignmentDB(assignment) {
+export async function setTeacherSessionalAssignmentDB(assignment, getClient = connect) {
   if (assignment.initial === "None") {
     return;
   }
   // 0.5 when the teacher shares one lab slot with another teacher
-  const share = Number(assignment.share) === 0.5 ? 0.5 : 1;
+  const share = Number(assignment.share ?? 1);
+  if (![0.5, 1].includes(share)) throw new HttpError(400, "Choose a full or half sessional slot");
   const query = `
     INSERT INTO teacher_sessional_assignment (initial, course_id, session, batch, section, share)
     VALUES ($1, $2, (SELECT value FROM configs WHERE key='CURRENT_SESSION'), $3, $4, $5)
+    ON CONFLICT (initial, course_id, session, batch, section)
+    DO UPDATE SET share = EXCLUDED.share
   `;
   const updateScheduleQuery = `
   UPDATE schedule_assignment
-  SET teachers = teachers || $1
+  SET teachers = array_append(COALESCE(teachers, ARRAY[]::varchar[]), $1)
   WHERE course_id = $2 AND batch = $3 AND section = $4
-  AND NOT ($1 = ANY(teachers));
+  AND session = (SELECT value FROM configs WHERE key='CURRENT_SESSION')
+  AND NOT ($1 = ANY(COALESCE(teachers, ARRAY[]::varchar[])));
   `;
   const values = [
     assignment.initial,
@@ -968,13 +973,41 @@ export async function setTeacherSessionalAssignmentDB(assignment) {
     assignment.batch,
     assignment.section,
   ];
-  const client = await connect();
+  const client = await getClient();
 
   try {
+    await client.query("BEGIN");
+    await client.query("SELECT initial FROM teachers WHERE initial = $1 FOR UPDATE", [assignment.initial]);
+    const targets = (await client.query(`SELECT day, time FROM schedule_assignment
+      WHERE course_id = $1 AND batch = $2 AND section = $3
+        AND session = (SELECT value FROM configs WHERE key='CURRENT_SESSION')`,
+    [assignment.course_id, assignment.batch, assignment.section])).rows;
+    const theory = (await client.query(`SELECT DISTINCT sa.course_id, sa.day, sa.time
+      FROM schedule_assignment sa
+      JOIN courses c ON c.course_id = sa.course_id AND c.session = sa.session
+      LEFT JOIN courses_sections cs ON cs.course_id = sa.course_id AND cs.session = sa.session
+        AND cs.batch = sa.batch AND cs.section = sa.section AND cs.department = sa.department
+      WHERE sa.session = (SELECT value FROM configs WHERE key='CURRENT_SESSION')
+        AND c.type = 0 AND ($1 = ANY(sa.teachers) OR $1 = ANY(cs.teachers))`,
+    [assignment.initial])).rows;
+    const labs = (await client.query(`SELECT sa.course_id, sa.section, sa.day, sa.time
+      FROM teacher_sessional_assignment tsa
+      JOIN schedule_assignment sa ON sa.course_id = tsa.course_id AND sa.session = tsa.session
+        AND sa.batch = tsa.batch AND sa.section = tsa.section
+      WHERE tsa.initial = $1 AND tsa.session = (SELECT value FROM configs WHERE key='CURRENT_SESSION')
+        AND NOT (tsa.course_id = $2 AND tsa.batch = $3 AND tsa.section = $4)`, values)).rows;
+    const config = (await client.query("SELECT value FROM configs WHERE key = 'times'")).rows[0];
+    const times = config ? JSON.parse(config.value).map(Number) : [8, 9, 10, 11, 12, 1, 2, 3, 4];
+    const conflict = findSessionalConflict({ targets, theory, labs, share, times });
+    if (conflict) throw new HttpError(409, conflict);
     const result = await client.query(query, [...values, share]);
     if (result.rowCount <= 0) throw new HttpError(400, "Insertion Failed");
     await client.query(updateScheduleQuery, values);
+    await client.query("COMMIT");
     return result.rows;
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
   } finally {
     client.release();
   }
@@ -994,6 +1027,7 @@ export async function deleteTeacherSessionalAssignmentDB(
     UPDATE schedule_assignment
     SET teachers = array_remove(teachers, $1)
     WHERE course_id = $2 AND batch = $3 AND section = $4
+    AND session = (SELECT value FROM configs WHERE key='CURRENT_SESSION')
     AND $1 = ANY(teachers);
   `;
   const values = [initial, course_id, batch, section];

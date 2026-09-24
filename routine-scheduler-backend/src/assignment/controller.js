@@ -314,7 +314,7 @@ export async function setTeacherSessionalAssignment(req, res, next){
     await setTeacherSessionalAssignmentDB(assignment);
     res.status(200).json({message: "Assignment Successful"});
   } catch (error) {
-    res.status(500).json({message: "An error occurred in server"});
+    next(error);
   }
 }
 

@@ -1,4 +1,5 @@
 import express from "express";
+import { applyTheory, suggestTheory } from "../theory_scheduler/controller.js";
 import {
   getAllSchedule,
   getCurrStatus,
@@ -20,6 +21,8 @@ const router = express.Router();
 router.get("/theory/:department/:batch/:section", getTheoryScheduleAPI);
 router.post("/theory/:batch/:section/:course", setTheoryScheduleAPI);
 router.put("/theory/cell", setTheoryCellAPI);
+router.post("/theory/suggest", suggestTheory);
+router.post("/theory/apply-suggestion", applyTheory);
 
 router.get("/sessional/:batch/:section", getSessionalScheduleAPI);
 router.get("/sessional/departmental", getDepartmentalSessionalScheduleAPI);

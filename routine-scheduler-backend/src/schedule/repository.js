@@ -41,14 +41,25 @@ export async function getScheduleConfigs() {
 }
 
 export async function getTheorySchedule(department, batch, section) {
-  // This query gets schedules for both the main section and any subsections
+  // A single-group optional sessional is stored once (usually under A) but
+  // students from every main section can take it. Project it into each
+  // section's display without inserting duplicate schedule assignments.
   const query = `
     SELECT sa.course_id, c.type, c.name, c.optional, c.optional_section_count, sa."day", sa."time",
-           sa.department, sa."section", c.class_per_week
+           sa.department,
+           CASE WHEN c.type = 1 AND c.optional = 1 AND c.optional_section_count <= 1
+                THEN $3 ELSE sa."section" END AS section,
+           c.class_per_week
     FROM schedule_assignment sa
     JOIN courses c ON c.course_id = sa.course_id AND c.session = sa.session
     WHERE sa.department = $1 AND sa.batch = $2
-      AND (sa."section" = $3 OR sa."section" LIKE $4)
+      AND (sa."section" = $3 OR sa."section" LIKE $4
+           OR (c.type = 1 AND c.optional = 1 AND c.optional_section_count <= 1
+               AND EXISTS (
+                 SELECT 1 FROM sections target
+                 WHERE target.department = $1 AND target.batch = $2
+                   AND target.section = $3 AND target.type = 0
+               )))
       AND sa."session" = (SELECT value FROM configs WHERE key='CURRENT_SESSION')
     ORDER BY sa."section", sa."day", sa."time", sa.course_id
   `;
@@ -120,8 +131,8 @@ export async function setTheorySchedule(batch, section, course, schedule) {
         const department = deptResult.rows[0].to;
         const teacherAssignments = await getTheoryTeacherAssignmentDB(course, section);
         const insertQuery = `
-          INSERT INTO schedule_assignment (batch, "section", "session", course_id, "day", "time", department, room_no, teachers)
-          VALUES ($1, $2::varchar, (SELECT value FROM configs WHERE key='CURRENT_SESSION'), $3, $4, $5, $6::varchar, (SELECT room FROM sections WHERE batch = $1 AND section = $2::varchar AND department = $6::varchar), $7)
+          INSERT INTO schedule_assignment (batch, "section", "session", course_id, "day", "time", department, room_no, teachers, locked)
+          VALUES ($1, $2::varchar, (SELECT value FROM configs WHERE key='CURRENT_SESSION'), $3, $4, $5, $6::varchar, (SELECT room FROM sections WHERE batch = $1 AND section = $2::varchar AND department = $6::varchar), $7, true)
         `;
         await client.query(insertQuery, [batch, section, course, slot.day, slot.time, department, teacherAssignments]);
       }
@@ -239,6 +250,20 @@ export async function setTheoryCellDB({ department, batch, section, day, time, c
           [id, session, batch, sec, day, time, department, room, teachers]
         );
       }
+    }
+    // A manual edit fixes the selected theory classes for future suggestions,
+    // including the copies of a shared optional class in other sections.
+    if (theoryIds.length) {
+      await client.query(
+        `UPDATE schedule_assignment sa SET locked = true
+         FROM courses c
+         WHERE c.course_id = sa.course_id AND c.session = sa.session AND c.type = 0
+           AND sa.session = $1 AND sa.department = $2 AND sa.batch = $3
+           AND sa.day = $4 AND sa."time" = $5
+           AND sa.course_id = ANY($6::varchar[])
+           AND (sa.section = $7 OR (c.optional = 1 AND c.optional_section_count <= 1))`,
+        [session, department, batch, day, time, theoryIds, section]
+      );
     }
     await client.query("COMMIT");
     return { course_ids: theoryIds };
@@ -508,7 +533,7 @@ export async function getCourseAllSchedule(initial, course_id) {
 
 export async function getCourseSectionalSchedule(course_id, section) {
   const query = `
-    SELECT course_id, section, "day", "time"
+    SELECT course_id, batch, section, "day", "time"
     FROM schedule_assignment
     WHERE course_id = $1 
     AND "section" = $2

@@ -16,10 +16,13 @@ const TheoryScheduleTable = React.memo(function TheoryScheduleTable(props) {
     theorySchedules = {},
     sectionName = "Section",
     isDisabledTimeSlot = () => false,
+    readOnly = false,
+    suggestedSlots = {},
+    ctAvailableDays = [],
   } = props;
 
   // Memoized values for configuration settings
-  const { days, times, possibleLabTimes } = useConfig();
+  const { days, times } = useConfig();
 
   // Convert arrays to MultiSets for efficient lookup
   const filledSet = useMemo(() => MultiSet.from(filled), [filled]);
@@ -301,6 +304,17 @@ const TheoryScheduleTable = React.memo(function TheoryScheduleTable(props) {
           box-shadow: none !important;
         }
 
+        .thesis-time-slot {
+          background-color: #ebe5f8 !important;
+          color: #533778;
+          pointer-events: none !important;
+        }
+
+        .thesis-time-slot:hover {
+          transform: none !important;
+          box-shadow: none !important;
+        }
+
         .table-scroll-x {
           width: 100%;
           overflow-x: auto;
@@ -398,16 +412,12 @@ const TheoryScheduleTable = React.memo(function TheoryScheduleTable(props) {
                 {times.map((time) => {
                   const slotKey = `${day} ${time}`;
                   const cellClassName = getCellStyle(day, time);
-                  const isDisabled = isDisabledTimeSlot(day, time);
+                  const isDisabled = isDisabledTimeSlot(day, time) || { isDisabled: false };
                   const disabledClass = isDisabled.isDisabled
-                    ? "disabled-time-slot"
+                    ? isDisabled.kind === "thesis" ? "thesis-time-slot" : "disabled-time-slot"
                     : "";
 
-                  if (!possibleLabTimes.includes(time)) {
-                    if (isDisabled.isDisabled) {
-                      return null;
-                    }
-                  }
+                  if (isDisabled.isDisabled && !isDisabled.isStart) return null;
 
                   return (
                     <td
@@ -418,23 +428,36 @@ const TheoryScheduleTable = React.memo(function TheoryScheduleTable(props) {
                         position: "relative",
                         textAlign: "center",
                       }}
-                      colSpan={isDisabled.isDisabled ? 3 : 1}
+                      colSpan={isDisabled.isDisabled ? isDisabled.span : 1}
                     >
-                      {isDisabled.isDisabled ? (
+                      {isDisabled.kind === "thesis" ? (
+                        <div className="thesis-assignment" style={{ padding: 8 }}>
+                          <div style={{ fontWeight: 700 }}>{isDisabled.label}</div>
+                          <div style={{ fontSize: "0.8rem" }}>Thesis · {isDisabled.span} hours</div>
+                        </div>
+                      ) : isDisabled.isDisabled ? (
                         <div className="sessional-assignment">
-                          <div
-                            style={{ fontWeight: "bold", marginBottom: "2px" }}
-                          >
-                            {isDisabled.sessionalAssignment[0]}
-                          </div>
-                          <div
-                            style={{ fontWeight: "bold", marginBottom: "2px" }}
-                          >
-                            {isDisabled.sessionalAssignment[1]}
-                          </div>
+                          {[...new Set(isDisabled.sessionalAssignment || [])].map((label) => (
+                            <div key={label} style={{ fontWeight: "bold", marginBottom: 2 }}>
+                              {label}
+                            </div>
+                          ))}
                           <div style={{ fontSize: "0.7rem", opacity: 0.8 }}>
                             <i className="mdi mdi-flask"></i> Lab
                           </div>
+                        </div>
+                      ) : readOnly ? (
+                        <div style={{ minHeight: 60, padding: 4, display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "center", gap: 3 }}>
+                          {getCourses(slotKey).map((course) => {
+                            const proposed = (suggestedSlots[slotKey] || []).includes(course.value);
+                            return <span key={course.value} title={course.label}
+                              style={{ background: proposed ? "#e9d8fd" : "#eceff2", color: proposed ? "#6535a4" : "#495057", borderRadius: 6, padding: "3px 5px", fontSize: "0.8rem", fontWeight: proposed ? 700 : 500 }}>
+                              {course.value}
+                            </span>;
+                          })}
+                          {time === 8 && !getCourses(slotKey).length && ctAvailableDays.includes(day) && (
+                            <span style={{ color: "#46715b", fontSize: "0.75rem" }}>CT available</span>
+                          )}
                         </div>
                       ) : (
                         <Select

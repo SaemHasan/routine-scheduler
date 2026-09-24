@@ -323,9 +323,10 @@ export async function loadProblemDB() {
 
     // Teachers of each sessional class, and their theory classes
     const unitTeachers = new Map();
+    const halfSlotTeachers = new Map();
     for (const row of (
       await client.query(
-        `SELECT initial, course_id, batch, section
+        `SELECT initial, course_id, batch, section, share::float AS share
          FROM teacher_sessional_assignment
          WHERE session = ${CURRENT_SESSION}`
       )
@@ -337,6 +338,10 @@ export async function loadProblemDB() {
         const k = unitKey(u);
         if (!unitTeachers.has(k)) unitTeachers.set(k, []);
         unitTeachers.get(k).push(row.initial);
+        if (Number(row.share) === 0.5) {
+          if (!halfSlotTeachers.has(k)) halfSlotTeachers.set(k, new Set());
+          halfSlotTeachers.get(k).add(row.initial);
+        }
       }
     }
     const teacherBusy = new Map(); // initial|day|hour → description
@@ -445,6 +450,7 @@ export async function loadProblemDB() {
         }
         // Its teachers' theory classes
         for (const t of teachers) {
+          if (halfSlotTeachers.get(key)?.has(t)) continue;
           for (const h of slot.hours) {
             const what = teacherBusy.get(`${t}|${slot.day}|${h}`);
             if (what) {

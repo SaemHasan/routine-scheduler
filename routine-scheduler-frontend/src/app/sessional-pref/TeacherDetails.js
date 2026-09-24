@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useConfig } from '../shared/ConfigContext';
 import { Button, Modal } from 'react-bootstrap';
 
@@ -14,6 +14,9 @@ import {
 } from '../api/theory-assign';
 import { getCourseAllSchedule, getCourseSectionalSchedule } from '../api/theory-schedule';
 import { getDepartmentalSessionalSchedule } from '../api/sessional-schedule';
+import { getThesisSetup } from '../api/thesis';
+import { groupIntoSlots, isHalf, labPeriods, sessionalLoad, slotCount } from '../shared/sessionalTeachers';
+import TeacherCommitmentTable from './TeacherCommitmentTable';
 
 // UI components and utilities
 import toast from 'react-hot-toast';
@@ -209,14 +212,17 @@ function CourseTeachers({ courseId, section, fetchTeachers, isAlreadyScheduled, 
     <div style={{ fontSize: '0.85rem', marginTop: '3px' }}>
       <span style={textStyle}>Teachers: </span>
       <span style={textStyle}>
-        {teachers.map((teacher, index) => (
-          <span key={teacher.initial}>
-            <span style={{ fontWeight: teacher.initial === currentTeacherId ? '600' : 'normal' }}>
-              {teacher.initial}
-            </span>
-            {index < teachers.length - 1 ? ', ' : ''}
+        {groupIntoSlots(teachers).map((slot, index, slots) => (
+          <span key={slot[0].initial}>
+            {slot.map((teacher, member) => <span key={teacher.initial}
+              title={isHalf(teacher) ? 'Half slot' : 'Full slot'}
+              style={{ fontWeight: teacher.initial === currentTeacherId ? '600' : 'normal' }}>
+              {member > 0 ? '/' : ''}{teacher.initial}{slot.length === 1 && isHalf(teacher) ? ' (half)' : ''}
+            </span>)}
+            {index < slots.length - 1 ? ', ' : ''}
           </span>
         ))}
+        <small className="d-block">{slotCount(teachers)} teaching slots filled</small>
       </span>
     </div>
   );
@@ -232,7 +238,8 @@ function CourseTeachers({ courseId, section, fetchTeachers, isAlreadyScheduled, 
  */
 export default function TeacherDetails(props) {
   // Get the teacher ID and callback from props
-  const { teacherId, onAssignmentChange } = props;
+  const teacherId = props.teacherId || props.match?.params?.teacherId;
+  const onAssignmentChange = props.onAssignmentChange;
 
   // Memoized values for configuration settings
   const { days, times, possibleLabTimes } = useConfig();
@@ -261,6 +268,24 @@ export default function TeacherDetails(props) {
   const [refreshKey, setRefreshKey] = useState(0); // Add refresh key to trigger re-renders
 
   const [selectedAssignment, setSelectedAssignment] = useState(null);
+  const [assignmentShare, setAssignmentShare] = useState(1);
+  const [editingShare, setEditingShare] = useState(1);
+  const [thesisSetup, setThesisSetup] = useState({ slots: [], levelTerms: [] });
+
+  useEffect(() => {
+    if (selectedAssignment) setEditingShare(Number(selectedAssignment.share) || 1);
+  }, [selectedAssignment]);
+
+  useEffect(() => {
+    getThesisSetup().then(setThesisSetup).catch(() => toast.error('Failed to load thesis commitments'));
+  }, []);
+
+  const thesisSchedule = thesisSetup.slots.filter((slot) =>
+    teacher?.[`offers_thesis_${slot.thesis}`] &&
+    thesisSetup.levelTerms.some((lt) => lt.active && Number(lt.thesis) === Number(slot.thesis))
+  ).map((slot) => ({ ...slot, course_id: 'CSE400', hours: times.slice(
+    times.indexOf(Number(slot.start_time)), times.indexOf(Number(slot.end_time)) + 1
+  ) }));
 
 
   useEffect(() => {
@@ -274,6 +299,12 @@ export default function TeacherDetails(props) {
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setSelectedSessionalSchedules([]);
+    setAssignmentShare(1);
+    setTheorySchedule([]);
+    setSessionalSchedule([]);
     const fetchData = async () => {
       try {
         // Fetch all data in parallel for better performance
@@ -299,6 +330,7 @@ export default function TeacherDetails(props) {
           })
         ]);
 
+        if (cancelled) return;
         setTeacher(teacherData);
         setAssignedTheoryCourses(assignedTheoryCoursesData);
         setAssignedSessionalCourses(assignedSessionalCoursesData);
@@ -306,30 +338,35 @@ export default function TeacherDetails(props) {
         console.error("Error fetching teacher details:", error);
         toast.error("Failed to load teacher details");
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
     if (teacherId) {
       // Only fetch data if teacherId is provided
       fetchData();
     }
+    return () => { cancelled = true; };
   }, [teacherId]);
 
   useEffect(() => {
+    let cancelled = false;
     const fetchSchedules = async () => {
       try {
         setLoadingSchedules(true);
 
         // Create arrays to hold the promises for each course
-        const theoryPromises = assignedTheoryCourses.map(course =>
-          getCourseAllSchedule(teacherId, course.course_id).catch(error => {
-            console.error(`Error fetching schedule for teacher ${teacherId} course ${course.course_id}:`, error);
+        const theoryPromises = [...new Set(assignedTheoryCourses.map(course => course.course_id))].map(courseId =>
+          getCourseAllSchedule(teacherId, courseId).catch(error => {
+            console.error(`Error fetching schedule for teacher ${teacherId} course ${courseId}:`, error);
             return []; // Return empty array for failed requests
           })
         );
 
         const sessionalPromises = assignedSessionalCourses.map(course =>
-          getCourseSectionalSchedule(course.course_id, course.section).catch(error => {
+          getCourseSectionalSchedule(course.course_id, course.section).then(rows =>
+            rows.filter(row => Number(row.batch) === Number(course.batch))
+              .map(row => ({ ...row, share: course.share, class_per_week: course.class_per_week }))
+          ).catch(error => {
             console.error(`Error fetching sessional schedules for ${course.batch} ${course.section}:`, error);
             return []; // Return empty array for failed requests
           })
@@ -346,6 +383,7 @@ export default function TeacherDetails(props) {
         const sessionalSchedules = sessionalResults.flat();
 
         // Update state with fetched schedules
+        if (cancelled) return;
         setTheorySchedule(theorySchedules);
         setSessionalSchedule(sessionalSchedules);
 
@@ -355,13 +393,12 @@ export default function TeacherDetails(props) {
         toast.error("Failed to load schedules");
       } finally {
         // Always set loading to false when done, whether successful or not
-        setLoadingSchedules(false);
+        if (!cancelled) setLoadingSchedules(false);
       }
     };
 
-    if (assignedTheoryCourses.length > 0 || assignedSessionalCourses.length > 0) {
-      fetchSchedules();
-    }
+    fetchSchedules();
+    return () => { cancelled = true; };
   }, [assignedTheoryCourses, assignedSessionalCourses, teacherId]);
 
   // Fetch total credits whenever teacher assignments change
@@ -390,13 +427,12 @@ export default function TeacherDetails(props) {
    * @param {number} time - The time slot to check
    * @returns {object} - Detailed conflict information
    */
-  const hasTimeConflict = (day, time) => {
+  const hasTimeConflict = (day, time, share = assignmentShare) => {
     // Check theory schedules for conflicts
-    const theoryConflict = theorySchedule.some(schedule =>
+    const hours = labPeriods(times, time);
+    const theoryConflict = Number(share) !== 0.5 && theorySchedule.some(schedule =>
       schedule.day === day &&
-      (schedule.time === time ||
-        schedule.time === (time % 12) + 1 ||
-        schedule.time === ((time + 1) % 12) + 1)
+      hours.includes(Number(schedule.time))
     );
 
     // Check already assigned sessional courses for conflicts - two methods:
@@ -410,7 +446,7 @@ export default function TeacherDetails(props) {
 
     const scheduleAssignedConflict = !directAssignedConflict && sessionalSchedule.some(schedule =>
       schedule.day === day &&
-      schedule.time === time &&
+      labPeriods(times, schedule.time).some(hour => hours.includes(hour)) &&
       assignedSessionalCourses.some(course =>
         course.course_id === schedule.course_id &&
         course.section === schedule.section
@@ -526,11 +562,7 @@ export default function TeacherDetails(props) {
   const generateConflictTooltip = (day, time) => {
     // Get conflicts for all three lab hours (lab sessions are 3 hours)
     // Using spread syntax to combine arrays efficiently
-    const details = [
-      ...getConflictDetails(day, time),
-      ...getConflictDetails(day, time + 1),
-      ...getConflictDetails(day, time + 2)
-    ];
+    const details = labPeriods(times, time).flatMap(hour => getConflictDetails(day, hour));
 
     if (details.length === 0) return '';
 
@@ -834,11 +866,10 @@ export default function TeacherDetails(props) {
                           <div className="d-flex flex-column">
                             {courseInfoArray.map((courseInfo, idx) => {
                               // Check if this course is already scheduled for the teacher
-                              const isAlreadyScheduled = conflictType === 'already-scheduled' &&
-                                getConflictDetails(day, time)
-                                  .filter(d => d.type === 'already-scheduled')
-                                  .flatMap(detail => detail.courses)
-                                  .some(course => course.id === courseInfo.course_id && course.section === courseInfo.section);
+                              const existingAssignment = assignedSessionalCourses.find(course =>
+                                course.course_id === courseInfo.course_id && course.section === courseInfo.section &&
+                                Number(course.batch) === Number(courseInfo.batch));
+                              const isAlreadyScheduled = Boolean(existingAssignment);
 
                               const isSelected = selectedSchedules.some(selected =>
                                 selected.day === day &&
@@ -883,14 +914,12 @@ export default function TeacherDetails(props) {
                                     };
 
                                     // Handle click based on conflict status
-                                    if (conflictType === 'theory') {
-                                      showConflictTooltip();
+                                    if (isAlreadyScheduled) {
+                                      setSelectedAssignment(existingAssignment);
                                       return;
                                     }
-
-                                    // For already assigned courses, show options
-                                    if (isAlreadyScheduled) {
-                                      setSelectedAssignment(courseInfo);
+                                    if (conflictType === 'theory') {
+                                      showConflictTooltip();
                                       return;
                                     }
 
@@ -956,7 +985,7 @@ export default function TeacherDetails(props) {
    * @param {string} section - The section
    * @returns {Promise<Array>} - Promise resolving to an array of teachers
    */
-  const fetchCourseTeachers = async (courseId, section) => {
+  const fetchCourseTeachers = useCallback(async (courseId, section) => {
     // Create a cache key for this course-section combination
     const cacheKey = `${courseId}-${section}`;
 
@@ -979,7 +1008,7 @@ export default function TeacherDetails(props) {
       console.error(`Error fetching teachers for ${courseId} (${section}):`, error);
       return [];
     }
-  };
+  }, [courseTeachersCache]);
 
   // Helper function to prepare assignment data
   const prepareAssignmentData = (initial, schedule) => {
@@ -987,7 +1016,8 @@ export default function TeacherDetails(props) {
       initial: initial,
       course_id: schedule.course_id,
       batch: schedule.batch, // Default batch if not provided
-      section: schedule.section
+      section: schedule.section,
+      share: Number(schedule.share ?? assignmentShare),
     };
   };
 
@@ -997,6 +1027,7 @@ export default function TeacherDetails(props) {
    * @param {object} schedule - The schedule to select/deselect
    */
   const handleSessionalScheduleSelect = (schedule) => {
+    schedule = { ...schedule, share: Number(schedule.share ?? assignmentShare) };
     // Define helper functions for matching schedules
     const matchesTimeSlot = s => s.day === schedule.day && s.time === schedule.time;
     const isExactMatch = s => (
@@ -1021,11 +1052,11 @@ export default function TeacherDetails(props) {
     }
 
     // CASE 2: Check for blocking conflicts (theory or already scheduled)
-    const conflictCheck = hasTimeConflict(schedule.day, schedule.time);
+    const conflictCheck = hasTimeConflict(schedule.day, schedule.time, schedule.share);
     if (conflictCheck.theoryConflict || conflictCheck.assignedSessionalConflict) {
       // Get list of conflicting courses by type
       const getConflictingCourseNames = (type) => {
-        return getConflictDetails(schedule.day, schedule.time)
+        return labPeriods(times, schedule.time).flatMap(time => getConflictDetails(schedule.day, time))
           .filter(detail => detail.type === type)
           .flatMap(detail => detail.courses.map(c => c.id))
           .join(", ");
@@ -1048,6 +1079,7 @@ export default function TeacherDetails(props) {
       const formattedMessage = conflictInfo.message.replace('%s', conflictInfo.courses);
       toast.error(`${conflictInfo.icon} ${formattedMessage}`, {
       });
+      return;
     }
 
     // CASE 3: Replace an existing selection in the same time slot
@@ -1090,6 +1122,7 @@ export default function TeacherDetails(props) {
       let successCount = 0;
       let failCount = 0;
       let failedCourses = [];
+      const successfulSchedules = new Set();
 
       // Show a loading toast
       const loadingToast = toast.loading(`Assigning ${selectedSessionalSchedules.length} courses...`);
@@ -1101,6 +1134,7 @@ export default function TeacherDetails(props) {
           const assignment = prepareAssignmentData(teacherId, schedule);
 
           let success = false;
+          let failureReason = '';
 
           try {
             // Call the API to save assignment
@@ -1117,6 +1151,7 @@ export default function TeacherDetails(props) {
               console.warn(`Empty response received for ${schedule.course_id} assignment`);
             }
           } catch (error) {
+            failureReason = error.response?.data?.error?.message || error.response?.data?.message || error.message;
             console.error(`Error assigning ${schedule.course_id} (Section ${formatSectionDisplay(schedule.section, schedule.class_per_week)}):`, error);
 
             // Extract and log detailed error information
@@ -1132,9 +1167,10 @@ export default function TeacherDetails(props) {
 
           if (success) {
             successCount++;
+            successfulSchedules.add(schedule);
           } else {
             failCount++;
-            failedCourses.push(`${schedule.course_id} (Section ${formatSectionDisplay(schedule.section, schedule.class_per_week)})`);
+            failedCourses.push(`${schedule.course_id} (Section ${formatSectionDisplay(schedule.section, schedule.class_per_week)}): ${failureReason || 'Assignment failed'}`);
           }
         } catch (error) {
           console.error(`Error assigning course ${schedule.course_id}:`, error);
@@ -1160,8 +1196,7 @@ export default function TeacherDetails(props) {
         );
       }
 
-      // Clear the selected schedules regardless of success/failure
-      setSelectedSessionalSchedules([]);
+      setSelectedSessionalSchedules(previous => previous.filter(schedule => !successfulSchedules.has(schedule)));
 
       // If at least one assignment succeeded, update the teacher cache and refresh data
       if (successCount > 0) {
@@ -1171,29 +1206,7 @@ export default function TeacherDetails(props) {
           { duration: 3000 }
         );
 
-        // Update the course teachers cache to include the current teacher for successfully assigned courses
-        const updatedCache = { ...courseTeachersCache };
-
-        selectedSessionalSchedules.forEach(schedule => {
-          const cacheKey = `${schedule.course_id}-${schedule.section}`;
-          const existingTeachers = updatedCache[cacheKey] || [];
-
-          // Check if the current teacher is already in the list
-          const teacherExists = existingTeachers.some(teacher => teacher.initial === teacherId);
-
-          if (!teacherExists) {
-            // Add the current teacher to the list
-            updatedCache[cacheKey] = [
-              ...existingTeachers,
-              {
-                initial: teacherId,
-                name: teacher?.name || teacherId
-              }
-            ];
-          }
-        });
-
-        setCourseTeachersCache(updatedCache);
+        setCourseTeachersCache({});
 
         // Trigger a refresh of CourseTeachers components
         setRefreshKey(prev => prev + 1);
@@ -1203,7 +1216,7 @@ export default function TeacherDetails(props) {
           const updatedSessionalCourses = await getTeacherSessionalAssignment(teacherId);
           if (updatedSessionalCourses) {
             setAssignedSessionalCourses(updatedSessionalCourses);
-            onAssignmentChange();
+            onAssignmentChange?.();
           }
         } catch (error) {
           console.error("Error refreshing sessional assignments:", error);
@@ -1227,6 +1240,23 @@ export default function TeacherDetails(props) {
    * Handle unassigning a teacher from a sessional course
    * @param {object} courseInfo - The course information containing course_id and section
    */
+  const handleUpdateShare = async () => {
+    setSubmittingSessional(true);
+    try {
+      await setTeacherSessionalAssignment({ ...prepareAssignmentData(teacherId, selectedAssignment), share: editingShare });
+      setAssignedSessionalCourses(await getTeacherSessionalAssignment(teacherId));
+      setCourseTeachersCache({});
+      setRefreshKey(key => key + 1);
+      setSelectedAssignment(null);
+      onAssignmentChange?.();
+      toast.success('Teaching slot and load updated');
+    } catch (error) {
+      toast.error(error.response?.data?.error?.message || error.response?.data?.message || 'Failed to update teaching slot');
+    } finally {
+      setSubmittingSessional(false);
+    }
+  };
+
   const handleUnassignCourse = async (courseInfo) => {
     try {
       // Show loading state
@@ -1268,7 +1298,7 @@ export default function TeacherDetails(props) {
           setRefreshKey(prev => prev + 1);
 
           // Notify parent component of assignment change
-          onAssignmentChange();
+          onAssignmentChange?.();
         } else {
           toast.error("Failed to unassign from course. Please try again.");
         }
@@ -1447,7 +1477,7 @@ export default function TeacherDetails(props) {
                       <i className="mdi mdi-clipboard-text mr-2"></i>Current Schedule Assignments
                     </h4>
                   </div>
-                  {(assignedTheoryCourses.length > 0 || assignedSessionalCourses.length > 0) ? (
+                  {(assignedTheoryCourses.length > 0 || assignedSessionalCourses.length > 0 || thesisSchedule.length > 0) ? (
                     <div>
                       <style jsx="true">{`
                             .assignment-schedule-table {
@@ -1553,119 +1583,9 @@ export default function TeacherDetails(props) {
                               font-size: 0.75rem;
                             }
                           `}</style>
-                      <div className="table-responsive">
-                        <table className="table assignment-schedule-table">
-                          <thead>
-                            <tr>
-                              <th>Day / Time</th>
-                              {times.map((time) => (
-                                <th key={time}>{time}:00{time === 12 ? ' PM' : time > 12 ? ' PM' : ' AM'}</th>
-                              ))}
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {days.map((day) => {
-                              // Track merged cells to skip rendering
-                              const merged = Array(times.length).fill(false);
-
-                              return (
-                                <tr key={day}>
-                                  <th>{day}</th>
-                                  {times.map((time, timeIndex) => {
-                                    // Skip if this cell is already merged
-                                    if (merged[timeIndex]) return null;
-
-                                    // Check for theory assignment
-                                    const theoryAssignment = theorySchedule.find(schedule =>
-                                      schedule.day === day && schedule.time === time
-                                    );
-
-                                    // Check for sessional assignment - check both direct assignment and through schedule
-                                    let sessionalAssignment = assignedSessionalCourses.find(course =>
-                                      course.day === day && course.time === time
-                                    );
-
-                                    // If not found directly, check through sessionalSchedule
-                                    if (!sessionalAssignment) {
-                                      const scheduleEntry = sessionalSchedule.find(schedule =>
-                                        schedule.day === day && schedule.time === time
-                                      );
-
-                                      if (scheduleEntry) {
-                                        // Find if this schedule entry matches any assigned course
-                                        sessionalAssignment = assignedSessionalCourses.find(course =>
-                                          course.course_id === scheduleEntry.course_id &&
-                                          course.section === scheduleEntry.section
-                                        );
-                                      }
-                                    }
-
-                                    // If sessional assignment, merge 3 cells
-                                    if (sessionalAssignment) {
-                                      // Mark next 2 cells as merged
-                                      if (timeIndex + 1 < times.length) merged[timeIndex + 1] = true;
-                                      if (timeIndex + 2 < times.length) merged[timeIndex + 2] = true;
-
-                                      return (
-                                        <td
-                                          key={`${day}-${time}`}
-                                          colSpan={3}
-                                          style={{ width: '360px', minWidth: '360px', maxWidth: '360px' }}
-                                        >
-                                          <div className="sessional-assignment">
-                                            <button
-                                              onClick={() => setSelectedAssignment(sessionalAssignment)}
-                                              className="assignment-unassign-btn"
-                                              title="Unassign from this course"
-                                            >
-                                              <i className="mdi mdi-close"></i>
-                                            </button>
-                                            <div style={{ fontWeight: 'bold', marginBottom: '2px' }}>
-                                              {sessionalAssignment.course_id}
-                                            </div>
-                                            <div style={{ fontSize: '0.7rem', opacity: 0.8 }}>
-                                              Section {formatSectionDisplay(sessionalAssignment.section,sessionalAssignment.class_per_week)}
-                                            </div>
-                                            <div style={{ fontSize: '0.7rem', opacity: 0.8 }}>
-                                              <i className="mdi mdi-flask"></i> Lab
-                                            </div>
-                                          </div>
-                                        </td>
-                                      );
-                                    }
-
-                                    // If theory assignment, single cell
-                                    if (theoryAssignment) {
-                                      return (
-                                        <td key={`${day}-${time}`}>
-                                          <div className="theory-assignment">
-                                            <div style={{ fontWeight: 'bold', marginBottom: '2px' }}>
-                                              {theoryAssignment.course_id}
-                                            </div>
-                                            <div style={{ fontSize: '0.7rem', opacity: 0.8 }}>
-                                              Section {theoryAssignment.section || 'All'}
-                                            </div>
-                                            <div style={{ fontSize: '0.7rem', opacity: 0.8 }}>
-                                              <i className="mdi mdi-book-open-variant"></i> Theory
-                                            </div>
-                                          </div>
-                                        </td>
-                                      );
-                                    }
-
-                                    // Empty slot
-                                    return (
-                                      <td key={`${day}-${time}`}>
-                                        <div className="empty-slot"></div>
-                                      </td>
-                                    );
-                                  })}
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      </div>
+                      <TeacherCommitmentTable days={days} times={times}
+                        theory={theorySchedule} labs={sessionalSchedule} theses={thesisSchedule}
+                        onEdit={setSelectedAssignment} />
                     </div>
                   ) : (
                     <div className="text-center py-4">
@@ -1703,6 +1623,19 @@ export default function TeacherDetails(props) {
                       letterSpacing: "0.3px"
                     }}><i className="mdi mdi-table-large mr-2"></i>Sessional Choice Table
                     </h4>
+                  </div>
+                  <div className="mb-3">
+                    <label htmlFor="sessional-share" className="mr-2">New assignment:</label>
+                    <select id="sessional-share" value={assignmentShare}
+                      onChange={event => setAssignmentShare(Number(event.target.value))}
+                      disabled={submittingSessional} className="custom-select w-auto">
+                      <option value={1}>Full slot</option>
+                      <option value={0.5}>Half slot (shared)</option>
+                    </select>
+                    <p className="small text-muted mt-2 mb-0">
+                      Two half-slot teachers fill one teaching slot. For a 3-load sessional,
+                      each half earns 1.5. Half slots may overlap theory; all sessional slots may overlap thesis.
+                    </p>
                   </div>
                   {loadingSchedules ? (
                     <div className="text-center py-4">
@@ -1797,6 +1730,9 @@ export default function TeacherDetails(props) {
                                         </div>
                                         <div>
                                           <span className="font-weight-bold" style={{ color: '#344767', fontSize: '15px' }}>{schedule.course_id}</span>
+                                          <div className="small mt-1">
+                                            {isHalf(schedule) ? 'Half slot' : 'Full slot'} · {sessionalLoad(schedule)} load
+                                          </div>
                                         </div>
                                       </div>
                                     </td>
@@ -1953,18 +1889,26 @@ export default function TeacherDetails(props) {
               }}>
                 <i className="mdi mdi-alert-circle-outline" style={{ fontSize: "18px", color: "#dc3545" }}></i>
               </div>
-              <Modal.Title style={{ fontSize: "18px", fontWeight: "600", color: "#dc3545" }}>Unassign Course</Modal.Title>
+              <Modal.Title style={{ fontSize: "18px", fontWeight: "600" }}>Edit Sessional Assignment</Modal.Title>
             </div>
           </Modal.Header>
           <Modal.Body className="px-4 bg-white border-radius-0">
             <p style={{ fontSize: "16px", color: "#495057" }}>
-              Are you sure you want to unassign the assignment: <strong>{selectedAssignment.course_id}</strong>?
+              <strong>{selectedAssignment.course_id}</strong> · Section {selectedAssignment.section}
             </p>
-            <p style={{ fontSize: "14px", color: "#6c757d" }}>
-              This action cannot be undone. Assignment related to this course will be removed.
-            </p>
+            <label htmlFor="edit-sessional-share">Teaching slot</label>
+            <select id="edit-sessional-share" className="custom-select" value={editingShare}
+              disabled={submittingSessional} onChange={event => setEditingShare(Number(event.target.value))}>
+              <option value={1}>Full slot</option>
+              <option value={0.5}>Half slot (shared)</option>
+            </select>
+            <p className="small mt-2">Teacher load: {sessionalLoad(selectedAssignment, editingShare)}.
+              Half slots allow theory overlap; thesis overlap is allowed for both.</p>
           </Modal.Body>
           <Modal.Footer style={{ backgroundColor: "#ffffff", borderTop: "1px solid rgba(220, 53, 69, 0.2)", padding: "16px" }}>
+            <Button variant="primary" disabled={submittingSessional} onClick={handleUpdateShare}>
+              {submittingSessional ? 'Saving...' : 'Save slot'}
+            </Button>
             <Button
               style={{
                 background: "rgba(154, 77, 226, 0.15)",
@@ -1993,6 +1937,7 @@ export default function TeacherDetails(props) {
               Cancel
             </Button>
             <Button
+              disabled={submittingSessional}
               style={{
                 background: "rgba(220, 53, 69, 0.1)",
                 color: "#dc3545",

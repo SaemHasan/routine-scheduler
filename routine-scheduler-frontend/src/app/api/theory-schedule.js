@@ -18,6 +18,12 @@ export const setSchedules = (batch, section, course, schedules) =>
 export const setTheoryCell = (cell) =>
     axios.put(api_url("/schedule/theory/cell"), cell).then((res) => res.data);
 
+export const suggestTheoryRoutine = (selection) =>
+    axios.post(api_url("/schedule/theory/suggest"), selection).then((res) => res.data);
+
+export const applyTheoryRoutineSuggestion = (suggestion) =>
+    axios.post(api_url("/schedule/theory/apply-suggestion"), suggestion).then((res) => res.data);
+
 export const initiateTheorySchedule = () =>
     axios.get(api_url("/schedule/theory/initiate")).then((res) => res.data);
 

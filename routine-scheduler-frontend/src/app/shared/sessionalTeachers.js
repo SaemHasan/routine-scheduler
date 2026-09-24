@@ -3,6 +3,16 @@
 
 export const isHalf = (teacher) => Number(teacher.share) === 0.5;
 
+export const sessionalLoad = (course, share = course.share ?? 1) => {
+  const credit = Number(course.class_per_week) || 0;
+  return credit * (credit === 0.75 ? 4 : 2) * Number(share);
+};
+
+export const labPeriods = (times, time) => {
+  const start = times.indexOf(Number(time));
+  return start < 0 ? [] : times.slice(start, start + 3);
+};
+
 /** Lab slots a section's teachers fill: two half-slot teachers make one. */
 export const slotCount = (teachers) =>
   (teachers || []).reduce(

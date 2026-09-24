@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { Form, Button } from "react-bootstrap";
 import TheoryScheduleTable from "./TheoryScheduleTable";
+import TheoryRoutineSuggestion from "./TheoryRoutineSuggestion";
+import { getTheoryRoutineBlock } from "./theoryRoutineBlocks";
 import {
   getActiveDepartments,
   getDepartmentalLevelTermBatches,
@@ -249,54 +251,13 @@ export default function TheorySchedule(props) {
     setIsChanged(true);
   };
 
-  // Helper to determine if a course_id is sessional (even)
-  const isSessionalCourse = (course_id) => {
-    // Consider course_id as string, check if last char is even digit
-    if (!course_id) return false;
-    const lastDigit = course_id.match(/\d+/g)?.pop()?.slice(-1);
-    return lastDigit && parseInt(lastDigit) % 2 === 0;
-  };
-
-  // Helper to check if a time slot should be disabled due to sessional scheduling
+  // Labs occupy three periods; the six stored CSE400 periods form one thesis block.
   const isDisabledTimeSlot = useCallback(
     (sectionKey, day, time) => {
       const scheduleObj = theorySchedulesBySection[sectionKey] || {};
-
-      // Check if this time slot has a sessional course or is affected by one
-      const timeIndex = times.indexOf(time);
-      if (timeIndex < 0) return false;
-
-      // For each time slot, check if there's a sessional course in any previous slot
-      // that would affect this slot (current slot or up to 2 slots after a sessional)
-      for (let i = Math.max(0, timeIndex - 2); i <= timeIndex; i++) {
-        const checkTime = times[i];
-        const checkSlotKey = `${day} ${checkTime}`;
-
-        // Check if there are any sessional courses in this slot
-        const slotData = scheduleObj[checkSlotKey];
-        const courseIds =
-          slotData?.course_ids ||
-          (slotData?.course_id ? [slotData.course_id] : []);
-
-        // Check if any of the courses in this slot is a sessional course
-        const hasSessional = courseIds.some((id) => isSessionalCourse(id));
-
-        if (hasSessional) {
-          // Fetch the sessional assignments for this section
-          const sessionalAssignment = courseIds.filter((id) =>
-            isSessionalCourse(id)
-          );
-          if (timeIndex >= i && timeIndex <= i + 2) {
-            return {
-              isDisabled: true,
-              sessionalAssignment: sessionalAssignment || null,
-            };
-          }
-        }
-      }
-      return { isDisabled: false, sessionalAssignment: null };
+      return getTheoryRoutineBlock(scheduleObj, times, day, time);
     },
-    [theorySchedulesBySection, isSessionalCourse, times]
+    [theorySchedulesBySection, times]
   );
 
   // Fetch and populate already scheduled courses for all sections when loaded
@@ -359,9 +320,10 @@ export default function TheorySchedule(props) {
                   cellMap[slotKey].course_ids.push(sch.course_id);
                 }
 
-                // Store the type information as well
-                if (sch.type) {
-                  cellMap[slotKey].type = sch.type;
+                // Store each course's type so thesis is not mistaken for a lab.
+                if (sch.course_id) {
+                  if (!cellMap[slotKey].course_types) cellMap[slotKey].course_types = {};
+                  cellMap[slotKey].course_types[sch.course_id] = sch.type;
                 }
               });
 
@@ -791,6 +753,16 @@ export default function TheorySchedule(props) {
           </div>
         </div>
       </div>
+      {selectedDepartment && selectedLevelTermBatch && allTheorySections.length > 0 && (
+        <TheoryRoutineSuggestion
+          department={selectedDepartment}
+          levelTerm={selectedLevelTermBatch.level_term || selectedLevelTermBatch}
+          batch={selectedLevelTermBatch.batch || allTheorySections[0].batch}
+          allTheoryCourses={allTheoryCourses}
+          hasUnsavedChanges={isChanged}
+          onApplied={() => setReloadKey((key) => key + 1)}
+        />
+      )}
       {/* Show section tables after both department and level-term are selected */}
       {selectedDepartment &&
         selectedLevelTermBatch &&

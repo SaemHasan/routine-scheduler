@@ -4,6 +4,7 @@ import { getTeachers } from "../api/db-crud";
 import { getAllSessionalAssignment } from "../api/theory-assign";
 import TeacherDetails from "./TeacherDetails";
 import toast from "react-hot-toast";
+import { slotCount } from '../shared/sessionalTeachers';
 
 export default function TeachersList() {
   const [teachers, setTeachers] = useState([]);
@@ -71,7 +72,7 @@ export default function TeachersList() {
           (t) => t.initial === assignment.initial
         )
       ) {
-        courseMap[courseKey].teachers.push({ initial: assignment.initial });
+        courseMap[courseKey].teachers.push({ initial: assignment.initial, share: assignment.share });
       }
     });
 
@@ -83,7 +84,7 @@ export default function TeachersList() {
           if (!teacherMap[teacher.initial]) {
             teacherMap[teacher.initial] = [];
           }
-          teacherMap[teacher.initial].push(course);
+          teacherMap[teacher.initial].push({ ...course, share: teacher.share });
         });
       }
     });
@@ -215,6 +216,7 @@ export default function TeachersList() {
                           >
                             {sessionalAssignments[teacher.initial].length}
                           </span>
+                          <small>{slotCount(sessionalAssignments[teacher.initial])} slots</small>
                         </span>
                       ) : (
                         <span
