@@ -191,6 +191,9 @@ CREATE TABLE public.teacher_sessional_assignment (
 --   course_together: for course_id, `same_slot` puts all its sections in one
 --                 slot and `shared_room` has each section's subsections
 --                 (A1 and A2) use one room together.
+--   course_days:  course_id preferably runs on `days` (at `time`, or any
+--                 lab time when NULL).
+--   courses_apart: course_id and other_course_id preferably never share a slot.
 CREATE TABLE public.sessional_constraints (
 	id serial NOT NULL,
 	kind varchar NOT NULL,
@@ -203,9 +206,11 @@ CREATE TABLE public.sessional_constraints (
 	rooms text[] NULL,
 	same_slot boolean DEFAULT false NOT NULL,
 	shared_room boolean DEFAULT false NOT NULL,
+	days text[] NULL,
+	other_course_id varchar NULL,
 	note varchar NULL,
 	CONSTRAINT sessional_constraints_pkey PRIMARY KEY (id),
-	CONSTRAINT sessional_constraints_kind_check CHECK (kind IN ('blocked_slot', 'course_rooms', 'course_together'))
+	CONSTRAINT sessional_constraints_kind_check CHECK (kind IN ('blocked_slot', 'course_rooms', 'course_together', 'course_days', 'courses_apart'))
 );
 
 CREATE TABLE public.all_courses (

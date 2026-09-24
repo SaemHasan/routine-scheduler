@@ -168,12 +168,6 @@ class Sidebar extends Component {
             </div>
             <Collapse in={this.state.roomAssignMenuOpen}>
               <ul className="nav flex-column sub-menu">
-                <li className={this.isPathActive('/room-assign/departmental') ? 'nav-item active' : 'nav-item'}>
-                  <Link className="nav-link" to="/room-assign/departmental">
-                    <span className="menu-title">Departmental</span>
-                    <i className="mdi mdi-account-multiple menu-icon"></i>
-                  </Link>
-                </li>
                 <li className={this.isPathActive('/room-assign/non-departmental') ? 'nav-item active' : 'nav-item'}>
                   <Link className="nav-link" to="/room-assign/non-departmental">
                     <span className="menu-title">Non-Departmental</span>

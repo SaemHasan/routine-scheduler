@@ -9,6 +9,7 @@ import { formatSessionalTeachers, isHalf, slotCount } from '../shared/sessionalT
 import { getLabRooms } from '../api/db-crud';
 import { setSessionalLock, setSessionalRoom } from '../api/sessional-scheduler';
 import AutoScheduler from './AutoScheduler';
+import LabRoomStats from './LabRoomStats';
 import { getSessionalDistributionPdf } from '../api/pdf';
 import { getSchedules } from '../api/theory-schedule';
 import { Modal, Button } from 'react-bootstrap';
@@ -1553,6 +1554,8 @@ export default function ShowSessionalDistribution() {
           </div>
         </div>
       </div>
+
+      <LabRoomStats schedules={sessionalSchedules} labRooms={labRooms} />
     </div>
   );
 }

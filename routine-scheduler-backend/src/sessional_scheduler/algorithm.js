@@ -18,13 +18,15 @@
  * times in the proportion past routines used, the morning slot is avoided, a
  * slot keeps at least one lab free, the sections of a course fall on nearby
  * days and use as few rooms as possible, a section's labs are spread over
- * different days, and classes are spread evenly over slots.
+ * different days, classes are spread evenly over slots, and the week's
+ * classes are shared evenly among the lab rooms.
  *
  * The module has no database code: `problem` is plain data.
  *
  * problem = {
  *   slots: [{ day, time, dayIndex, isMorning, isMidday }],  // never placed in a morning slot
  *   middayLimit,         // most midday (11 AM) labs a section should have
+ *   apartPairs,          // [[courseKey, courseKey]] that should not share a slot
  *   rooms: [{ room, lab_type, restricted }],
  *   units: [{
  *     key, label, course_id, batch, section, department, level_term,
@@ -43,6 +45,7 @@
  *     mixWeight,         // how firmly the split is held (default 1)
  *     courseKey,         // classes of one course
  *     courseSlotLimit,   // most subsections of the course in one slot, or null
+ *     preferred,         // { [slotIndex]: true } slots the course should use, or null
  *     blocked: { [slotIndex]: reason },
  *     clashSlots: { [slotIndex]: true }, // blocked because the section is busy
  *     fixed,             // { slot, room } for classes that must not move;
@@ -67,7 +70,11 @@ export const WEIGHTS = {
   middayOver: 50,
   levelBalance: 10,
   oneTime: 60,
+  notPreferred: 40,
+  apart: 60,
   balance: 0.5,
+  // Past routines gave each software lab 6–10 classes a week
+  roomBalance: 1.5,
 };
 
 const EFFORT = {
@@ -137,6 +144,17 @@ export function solve(problem, options = {}) {
     }
   });
   const overLimit = (c, n) => Math.max(0, n - courseLimit[c]);
+  // Courses that should not share a slot with each course
+  const apartOf = Array.from({ length: C }, () => []);
+  const apartList = [];
+  for (const [a, b] of problem.apartPairs || []) {
+    const ca = courseIndex.get(a);
+    const cb = courseIndex.get(b);
+    if (ca === undefined || cb === undefined || ca === cb) continue;
+    apartOf[ca].push(cb);
+    apartOf[cb].push(ca);
+    apartList.push([ca, cb]);
+  }
   const slotDay = slots.map((s) => s.dayIndex);
 
   // ---- costs that depend only on the unit and its slot / room ------------
@@ -147,7 +165,9 @@ export function solve(problem, options = {}) {
   const randomSlot = () => openSlots[Math.floor(rand() * openSlots.length)];
   const slotStatic = units.map((u) =>
     slots.map(
-      (s, i) => (u.blocked && u.blocked[i] ? W.hard : 0)
+      (s, i) =>
+        (u.blocked && u.blocked[i] ? W.hard : 0) +
+        (u.preferred && !u.preferred[i] ? W.notPreferred : 0)
     )
   );
 
@@ -235,6 +255,8 @@ export function solve(problem, options = {}) {
   const RR = Math.max(1, R);
   const roomOcc = new Int16Array(S * RR); // distinct occupants per room and slot
   const roomsUsed = new Int16Array(S); // rooms with anyone in them, per slot
+  const roomWeek = new Int16Array(RR); // classes in each room over the week
+  const balanced = rooms.map((r) => !r.restricted);
   const occupantCount = new Int16Array(S * RR * O);
   const coverOcc = new Int16Array(S * K);
   const dayCover = new Int16Array(D * K);
@@ -319,6 +341,10 @@ export function solve(problem, options = {}) {
           roomsUsed[s]++;
         }
         roomOcc[cell]++;
+        if (balanced[r]) {
+          d += W.roomBalance * (2 * roomWeek[r] + 1);
+          roomWeek[r]++;
+        }
       }
       occupantCount[oc]++;
       d += roomStatic[u][r];
@@ -337,6 +363,9 @@ export function solve(problem, options = {}) {
     }
     const cs = s * C + course[u];
     d += W.hard * (overLimit(course[u], courseOcc[cs] + subsectionsOf[u]) - overLimit(course[u], courseOcc[cs]));
+    if (courseOcc[cs] === 0) {
+      for (const p of apartOf[course[u]]) if (courseOcc[s * C + p] > 0) d += W.apart;
+    }
     courseOcc[cs] += subsectionsOf[u];
     if (mix[u] >= 0) {
       const before = mixCost(mix[u]);
@@ -364,6 +393,10 @@ export function solve(problem, options = {}) {
       if (occupantCount[oc] === 0) {
         roomOcc[cell]--;
         d -= W.hard * roomOcc[cell];
+        if (balanced[r]) {
+          roomWeek[r]--;
+          d -= W.roomBalance * (2 * roomWeek[r] + 1);
+        }
         if (roomOcc[cell] === 0) {
           roomsUsed[s]--;
           d -= crowd(roomsUsed[s] + 1) - crowd(roomsUsed[s]);
@@ -385,6 +418,9 @@ export function solve(problem, options = {}) {
     }
     const cs = s * C + course[u];
     courseOcc[cs] -= subsectionsOf[u];
+    if (courseOcc[cs] === 0) {
+      for (const p of apartOf[course[u]]) if (courseOcc[s * C + p] > 0) d -= W.apart;
+    }
     d -= W.hard * (overLimit(course[u], courseOcc[cs] + subsectionsOf[u]) - overLimit(course[u], courseOcc[cs]));
     if (mix[u] >= 0) {
       const before = mixCost(mix[u]);
@@ -526,6 +562,7 @@ export function solve(problem, options = {}) {
   function resetState(useRooms = null) {
     roomOcc.fill(0);
     roomsUsed.fill(0);
+    roomWeek.fill(0);
     occupantCount.fill(0);
     courseRoomCount.fill(0);
     coverOcc.fill(0);
@@ -601,6 +638,9 @@ export function solve(problem, options = {}) {
         cost += (W.hard * c * (c - 1)) / 2;
       }
       for (let c = 0; c < C; c++) cost += W.hard * overLimit(c, courseOcc[s * C + c]);
+      for (const [a, b] of apartList) {
+        if (courseOcc[s * C + a] > 0 && courseOcc[s * C + b] > 0) cost += W.apart;
+      }
       cost += crowd(roomsUsed[s]);
       cost += W.balance * slotCount[s] * slotCount[s];
     }
@@ -617,6 +657,7 @@ export function solve(problem, options = {}) {
     }
     for (let g = 0; g < groups.length; g++) cost += groupCost(g);
     for (let m = 0; m < M; m++) cost += mixCost(m);
+    for (let r = 0; r < R; r++) if (balanced[r]) cost += W.roomBalance * roomWeek[r] * roomWeek[r];
     for (let k = 0; k < K; k++) cost += middayOver(k);
     for (let g = 0; g < levelCoverList.length; g++) cost += levelCost(g);
     return cost;
@@ -853,6 +894,26 @@ export function solve(problem, options = {}) {
         warnings.push(`${where} are not in the same slot`);
       }
     }
+    // Course preferences not met
+    const outsidePreferred = new Map();
+    for (let i = 0; i < U; i++) {
+      if (slotOf[i] < 0 || !units[i].preferred || units[i].preferred[slotOf[i]]) continue;
+      const key = units[i].course_id || units[i].courseKey;
+      outsidePreferred.set(key, [...(outsidePreferred.get(key) || []), label(i)]);
+    }
+    for (const [c, labels] of outsidePreferred) {
+      warnings.push(`${labels.join(", ")} ${labels.length === 1 ? "is" : "are"} not on ${c}'s preferred days`);
+    }
+    let apartBroken = 0;
+    const courseName = [...courseIndex.keys()];
+    for (let s = 0; s < S; s++) {
+      for (const [a, b] of apartList) {
+        if (courseOcc[s * C + a] > 0 && courseOcc[s * C + b] > 0) {
+          apartBroken++;
+          warnings.push(`${courseName[a]} and ${courseName[b]} are both on ${slotName(s)}`);
+        }
+      }
+    }
     // Sections with too many midday labs
     let sectionsOverMidday = 0;
     for (const [key, k] of coverIndex) {
@@ -896,8 +957,11 @@ export function solve(problem, options = {}) {
         sectionClashes,
         byTime,
         sectionsOverMidday,
+        outsidePreferred: [...outsidePreferred.values()].reduce((n, l) => n + l.length, 0),
+        apartBroken,
         lopsidedSections,
         roomCourses,
+        classesPerRoom: Object.fromEntries(rooms.map((r, i) => [r.room, roomWeek[i]]).filter((_, i) => balanced[i])),
         roomCoursesFewest,
         averageDaySpread: spreadCourses ? Math.round((spreadTotal / spreadCourses) * 10) / 10 : 0,
         fullSlots: slots.filter((_, s) => roomsUsed[s] > roomTarget).length,

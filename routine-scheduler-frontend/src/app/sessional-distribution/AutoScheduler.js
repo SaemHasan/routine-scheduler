@@ -98,6 +98,9 @@ export default function AutoScheduler({ onApplied }) {
   const blockedCount = constraints.filter((c) => c.kind === "blocked_slot").length;
   const roomRuleCount = constraints.filter((c) => c.kind === "course_rooms").length;
   const courseRuleCount = constraints.filter((c) => c.kind === "course_together").length;
+  const preferenceCount = constraints.filter(
+    (c) => c.kind === "course_days" || c.kind === "courses_apart"
+  ).length;
 
   return (
     <div className="card mb-4">
@@ -133,7 +136,8 @@ export default function AutoScheduler({ onApplied }) {
           Each section gets at most two 11 AM labs (the mornings are needed for
           theory) and a mix of 11 AM and 2 PM labs rather than all at one time.
           The sections of a course are kept on nearby days and in as few rooms as
-          possible (e.g. every CSE310 section in the same lab). Subsections of a
+          possible (e.g. every CSE310 section in the same lab), and the week's classes
+          are shared evenly among the labs. Subsections of a
           1.5-credit section are kept in the same slot, except for a course run for
           another department with only one section, whose subsections go in different
           slots. Course rules can put all of a course's sections in one slot (e.g. the
@@ -152,6 +156,10 @@ export default function AutoScheduler({ onApplied }) {
             <span className="pill muted">
               <i className="mdi mdi-link-variant"></i>
               {courseRuleCount} course rule{courseRuleCount === 1 ? "" : "s"}
+            </span>
+            <span className="pill muted">
+              <i className="mdi mdi-star-outline"></i>
+              {preferenceCount} course preference{preferenceCount === 1 ? "" : "s"}
             </span>
           </div>
         </div>
@@ -322,6 +330,23 @@ function Suggestion({ result, showAllIssues, onToggleIssues }) {
               {stats.roomCoursesFewest}/{stats.roomCourses}
             </div>
             <div className="stat-tile-label">Courses in the fewest rooms</div>
+          </div>
+        </div>
+        <div className="stat-tile">
+          <div className="stat-tile-icon blue mdi mdi-chart-bar"></div>
+          <div
+            title={Object.entries(stats.classesPerRoom || {})
+              .map(([room, n]) => `${room}: ${n}`)
+              .join(", ")}
+          >
+            <div className="stat-tile-value">
+              {Object.values(stats.classesPerRoom || {}).length
+                ? `${Math.min(...Object.values(stats.classesPerRoom))}–${Math.max(
+                    ...Object.values(stats.classesPerRoom)
+                  )}`
+                : "–"}
+            </div>
+            <div className="stat-tile-label">Classes per lab (fewest–most)</div>
           </div>
         </div>
         <div className="stat-tile">

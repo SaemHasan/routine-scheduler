@@ -273,9 +273,11 @@ export async function getAllScheduleDB() {
 export async function getDepartmentalSessionalSchedule() {
   const query = `
     SELECT sa.course_id, sa.batch, sa."section", sa."day", sa."time", sa.department, c.class_per_week,
-      sa.room_no, sa.locked
+      sa.room_no, sa.locked, c."name", s.level_term
     FROM schedule_assignment sa
     JOIN courses c ON sa.course_id = c.course_id AND sa.session = c.session
+    LEFT JOIN sections s
+      ON s.department = sa.department AND s.batch = sa.batch AND s.section = sa.section
     WHERE sa.course_id LIKE 'CSE%'
     AND c.type = 1
     AND sa."session" = (SELECT value FROM configs WHERE key='CURRENT_SESSION')

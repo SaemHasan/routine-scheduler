@@ -1395,3 +1395,10 @@
 .thesis-level .form-select {
   width: auto;
 }
+
+.constraint-subhead {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: rgb(154, 77, 226);
+  margin: 4px 0 8px;
+}

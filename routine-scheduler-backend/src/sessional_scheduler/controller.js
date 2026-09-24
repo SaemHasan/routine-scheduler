@@ -32,6 +32,12 @@ export async function addConstraint(req, res, next) {
     if (c.kind === "course_together" && (!c.course_id || !(c.same_slot || c.shared_room))) {
       throw new HttpError(400, "Choose a course and at least one option");
     }
+    if (c.kind === "course_days" && (!c.course_id || !Array.isArray(c.days) || c.days.length === 0)) {
+      throw new HttpError(400, "Choose a course and at least one day");
+    }
+    if (c.kind === "courses_apart" && (!c.course_id || !c.other_course_id || c.course_id === c.other_course_id)) {
+      throw new HttpError(400, "Choose two different courses");
+    }
     res.status(200).json(await addConstraintDB(c));
   } catch (err) {
     next(err);

@@ -23,8 +23,8 @@ export async function addConstraintDB(c) {
     const result = await client.query(
       `INSERT INTO sessional_constraints
          (kind, department, level_term, section, day, "time", course_id, rooms,
-          same_slot, shared_room, note)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+          same_slot, shared_room, days, other_course_id, note)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
        RETURNING *`,
       [
         c.kind,
@@ -37,6 +37,8 @@ export async function addConstraintDB(c) {
         c.rooms && c.rooms.length ? c.rooms : null,
         Boolean(c.same_slot),
         Boolean(c.shared_room),
+        c.days && c.days.length ? c.days : null,
+        c.other_course_id || null,
         c.note || null,
       ]
     );
@@ -303,6 +305,22 @@ export async function loadProblemDB() {
     }
     const blockedConstraints = constraints.filter((c) => c.kind === "blocked_slot");
 
+    // Slots a course should preferably use (union of its "preferred days" rules)
+    const preferredByCourse = new Map();
+    for (const c of constraints.filter((c) => c.kind === "course_days")) {
+      const set = preferredByCourse.get(c.course_id) || {};
+      slots.forEach((slot, i) => {
+        if ((c.days || []).includes(slot.day) && (c.time === null || Number(c.time) === slot.time)) {
+          set[i] = true;
+        }
+      });
+      preferredByCourse.set(c.course_id, set);
+    }
+    // Pairs of courses that should not share a slot
+    const apartPairs = constraints
+      .filter((c) => c.kind === "courses_apart" && c.course_id && c.other_course_id)
+      .map((c) => [c.course_id, c.other_course_id]);
+
     // Courses whose sections run together and/or whose subsections share a room
     const sameSlotCourses = new Set();
     const sharedRoomCourses = new Set();
@@ -419,6 +437,8 @@ export async function loadProblemDB() {
         // At most one section's subsections (two) of a course in a slot,
         // unless a course rule runs all its sections together (e.g. CSE450)
         courseKey: row.course_id,
+        // Preferred slots from a "preferred days" rule, or null
+        preferred: preferredByCourse.get(row.course_id) || null,
         courseSlotLimit: sameSlotCourses.has(row.course_id)
           ? null
           : Math.max(2, (subsOf.get(`${row.department}|${row.batch}|${letterOf(row.section)}`) || []).length),
@@ -431,7 +451,7 @@ export async function loadProblemDB() {
     });
 
     // Past routines gave a section at most two 11 AM labs a week
-    return { slots, rooms, units, middayLimit: 2 };
+    return { slots, rooms, units, middayLimit: 2, apartPairs };
   } finally {
     client.release();
   }

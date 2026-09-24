@@ -17,7 +17,9 @@ const router = express.Router();
 router.get("/constraints", getConstraints);
 router.post(
   "/constraints",
-  validate([body("kind").isIn(["blocked_slot", "course_rooms", "course_together"])]),
+  validate([
+    body("kind").isIn(["blocked_slot", "course_rooms", "course_together", "course_days", "courses_apart"]),
+  ]),
   addConstraint
 );
 router.delete("/constraints/:id", deleteConstraint);

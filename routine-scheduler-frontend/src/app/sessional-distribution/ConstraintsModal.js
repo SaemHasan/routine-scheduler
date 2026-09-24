@@ -23,7 +23,7 @@ const emptyBlock = {
 
 /** Adds and removes the rules the sessional scheduler follows. */
 export default function ConstraintsModal({ constraints, onClose, onChanged }) {
-  const { days, times } = useConfig();
+  const { days, times, possibleLabTimes } = useConfig();
   const [tab, setTab] = useState("blocked_slot");
   const [sections, setSections] = useState([]);
   const [rooms, setRooms] = useState([]);
@@ -31,6 +31,8 @@ export default function ConstraintsModal({ constraints, onClose, onChanged }) {
   const [block, setBlock] = useState(emptyBlock);
   const [courseRule, setCourseRule] = useState({ course_id: "", rooms: [] });
   const [together, setTogether] = useState({ course_id: "", same_slot: true, shared_room: true });
+  const [prefer, setPrefer] = useState({ course_id: "", days: [], time: "" });
+  const [apart, setApart] = useState({ course_id: "", other_course_id: "" });
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -90,6 +92,9 @@ export default function ConstraintsModal({ constraints, onClose, onChanged }) {
   const blocked = constraints.filter((c) => c.kind === "blocked_slot");
   const roomRules = constraints.filter((c) => c.kind === "course_rooms");
   const courseRules = constraints.filter((c) => c.kind === "course_together");
+  const preferenceRules = constraints.filter(
+    (c) => c.kind === "course_days" || c.kind === "courses_apart"
+  );
 
   const save = async (payload, reset) => {
     setSaving(true);
@@ -152,9 +157,167 @@ export default function ConstraintsModal({ constraints, onClose, onChanged }) {
           >
             Course rules ({courseRules.length})
           </button>
+          <button
+            className={tab === "preferences" ? "active" : ""}
+            onClick={() => setTab("preferences")}
+          >
+            Course preferences ({preferenceRules.length})
+          </button>
         </div>
 
-        {tab === "course_together" ? (
+        {tab === "preferences" ? (
+          <>
+            <div className="field-hint mb-2">
+              Wishes the scheduler follows where it can, e.g. CSE102 on Tuesday and
+              Wednesday, or CSE318 and CSE330 never in the same slot.
+            </div>
+            <h6 className="constraint-subhead">Preferred days</h6>
+            <div className="constraint-form">
+              <Row>
+                <Col md={4} className="px-2 py-1">
+                  <Form.Label className="form-label">Course</Form.Label>
+                  <Form.Select
+                    className="form-select"
+                    value={prefer.course_id}
+                    onChange={(e) => setPrefer({ ...prefer, course_id: e.target.value })}
+                  >
+                    <option value="">Choose…</option>
+                    {courses.map((c) => (
+                      <option key={c.course_id} value={c.course_id}>
+                        {c.course_id} – {c.name}
+                      </option>
+                    ))}
+                  </Form.Select>
+                </Col>
+                <Col md={4} className="px-2 py-1">
+                  <Form.Label className="form-label">Days</Form.Label>
+                  <div className="d-flex flex-wrap" style={{ gap: "4px 12px" }}>
+                    {days.map((d) => (
+                      <Form.Check
+                        key={d}
+                        type="checkbox"
+                        id={`prefer-${d}`}
+                        label={d.slice(0, 3)}
+                        checked={prefer.days.includes(d)}
+                        onChange={(e) =>
+                          setPrefer({
+                            ...prefer,
+                            days: e.target.checked
+                              ? [...prefer.days, d]
+                              : prefer.days.filter((x) => x !== d),
+                          })
+                        }
+                      />
+                    ))}
+                  </div>
+                </Col>
+                <Col md={2} className="px-2 py-1">
+                  <Form.Label className="form-label">Time</Form.Label>
+                  <Form.Select
+                    className="form-select"
+                    value={prefer.time}
+                    onChange={(e) => setPrefer({ ...prefer, time: e.target.value })}
+                  >
+                    <option value="">Any</option>
+                    {possibleLabTimes.map((t) => (
+                      <option key={t} value={t}>{formatHour(t)}</option>
+                    ))}
+                  </Form.Select>
+                </Col>
+                <Col md={2} className="px-2 py-1 d-flex align-items-end">
+                  <button
+                    className="card-control-button mdi mdi-plus w-100"
+                    disabled={!prefer.course_id || prefer.days.length === 0 || saving}
+                    onClick={() =>
+                      save({ kind: "course_days", ...prefer }, () =>
+                        setPrefer({ course_id: "", days: [], time: "" })
+                      )
+                    }
+                  >
+                    Add
+                  </button>
+                </Col>
+              </Row>
+            </div>
+
+            <h6 className="constraint-subhead">Keep apart</h6>
+            <div className="constraint-form">
+              <Row>
+                {["course_id", "other_course_id"].map((field, i) => (
+                  <Col md={5} className="px-2 py-1" key={field}>
+                    <Form.Label className="form-label">{i === 0 ? "Course" : "Not in the same slot as"}</Form.Label>
+                    <Form.Select
+                      className="form-select"
+                      value={apart[field]}
+                      onChange={(e) => setApart({ ...apart, [field]: e.target.value })}
+                    >
+                      <option value="">Choose…</option>
+                      {courses.map((c) => (
+                        <option key={c.course_id} value={c.course_id}>
+                          {c.course_id} – {c.name}
+                        </option>
+                      ))}
+                    </Form.Select>
+                  </Col>
+                ))}
+                <Col md={2} className="px-2 py-1 d-flex align-items-end">
+                  <button
+                    className="card-control-button mdi mdi-plus w-100"
+                    disabled={
+                      !apart.course_id ||
+                      !apart.other_course_id ||
+                      apart.course_id === apart.other_course_id ||
+                      saving
+                    }
+                    onClick={() =>
+                      save({ kind: "courses_apart", ...apart }, () =>
+                        setApart({ course_id: "", other_course_id: "" })
+                      )
+                    }
+                  >
+                    Add
+                  </button>
+                </Col>
+              </Row>
+            </div>
+
+            <div className="constraint-list">
+              {preferenceRules.length === 0 ? (
+                <div className="empty-state">
+                  <i className="mdi mdi-star-outline"></i>
+                  <div className="empty-state-title">No course preferences</div>
+                </div>
+              ) : (
+                preferenceRules.map((c) => (
+                  <div key={c.id} className="constraint-row">
+                    <i className={`mdi ${c.kind === "course_days" ? "mdi-calendar-star" : "mdi-call-split"}`}></i>
+                    <div className="flex-grow-1">
+                      {c.kind === "course_days" ? (
+                        <>
+                          <strong>{c.course_id}</strong>
+                          <span className="constraint-who">
+                            on {(c.days || []).join(", ")}
+                            {c.time !== null ? ` at ${formatHour(c.time)}` : ""}, if possible
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <strong>{c.course_id} and {c.other_course_id}</strong>
+                          <span className="constraint-who">not in the same slot, if possible</span>
+                        </>
+                      )}
+                    </div>
+                    <button
+                      className="chip-remove mdi mdi-delete-outline"
+                      title="Remove"
+                      onClick={() => remove(c.id)}
+                    ></button>
+                  </div>
+                ))
+              )}
+            </div>
+          </>
+        ) : tab === "course_together" ? (
           <>
             <div className="field-hint mb-2">
               For a course like the capstone project: run every section in the same
