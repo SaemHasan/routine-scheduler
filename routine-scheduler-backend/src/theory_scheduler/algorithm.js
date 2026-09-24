@@ -40,7 +40,7 @@ const sameOption = (a, b) =>
   a.option_group != null && a.option_group === b.option_group &&
   a.course_id !== b.course_id;
 
-function clashes(a, b) {
+export function clashes(a, b) {
   if (a.day !== b.day) return false;
   if (a.course_id === b.course_id && intersects(a.sections, b.sections)) return true;
   if (!intersects(a.hours, b.hours)) return false;
@@ -248,6 +248,31 @@ export function validatePinnedClasses(problem, pins) {
     }
   }
   return issues;
+}
+
+// Moving one class to another period by hand: the generator's hard rules
+// still hold. `events` are every class of the level-term (fixed and
+// generated) and what else its teachers have; `moving` is one of them.
+export function validateTheoryMove(problem, events, moving, day, time) {
+  const label = `${moving.course_id} (${moving.sections.map(sectionName).join("/")})`;
+  if (!problem.slots.some((s) => s.day === day && s.time === time)) {
+    return [`${label}: ${day} ${time}:00 is not a theory period`];
+  }
+  const moved = { ...moving, day, time, hours: [time] };
+  const others = events.filter((e) => !(e.course_id === moving.course_id &&
+    e.day === moving.day && e.time === moving.time && intersects(e.sections, moving.sections)));
+  const other = others.find((o) => clashes(moved, o));
+  if (other) return [`${label} on ${day} at ${time}:00 clashes with ${describeClash(moved, other)}`];
+  const required = theoryCTSlotRequirement(problem.levelTerm);
+  if (required) {
+    const free = (list) => ctSlotsFromEvents(problem, list).filter((slot) => slot.available).length;
+    const before = free([...others, moving]);
+    const after = free([...others, moved]);
+    if (after < required && after < before) {
+      return [`${problem.levelTerm} needs ${required} common 8 AM CT slots; this move would leave only ${after}`];
+    }
+  }
+  return [];
 }
 
 // Generated (unlocked) classes a pin displaces: those clashing with it (the

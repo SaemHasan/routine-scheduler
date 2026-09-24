@@ -12,7 +12,10 @@ test('PostgreSQL saves half shares, permits thesis overlaps, and rejects other l
       await client.query(`
         CREATE TEMP TABLE configs (key text, value text);
         CREATE TEMP TABLE teachers (initial varchar PRIMARY KEY);
-        CREATE TEMP TABLE courses (course_id varchar, session varchar, type integer);
+        CREATE TEMP TABLE courses (course_id varchar, session varchar, type integer,
+          "to" varchar DEFAULT 'CSE', sessional_type varchar);
+        CREATE TEMP TABLE sessional_types (code varchar PRIMARY KEY, teacher_count integer);
+        INSERT INTO sessional_types VALUES ('DEPT_SW', 3), ('DEPT_HW', 2), ('NON_DEPT', 2);
         CREATE TEMP TABLE courses_sections (course_id varchar, session varchar, batch integer,
           section varchar, department varchar, teachers varchar[]);
         CREATE TEMP TABLE schedule_assignment (course_id varchar, session varchar, batch integer,
@@ -46,6 +49,13 @@ test('PostgreSQL saves half shares, permits thesis overlaps, and rejects other l
       await client.query(`INSERT INTO teacher_sessional_assignment VALUES ('T1','CSE108','TEST',25,'B1',1);
         INSERT INTO schedule_assignment VALUES ('CSE108','TEST',25,'B1','CSE','Tuesday',11,ARRAY['T1']);`);
       await assert.rejects(save(0.5), /Already assigned to CSE108/);
+      // A software lab section takes three teachers
+      await client.query(`DELETE FROM pg_temp.teacher_sessional_assignment WHERE course_id='CSE108';
+        DELETE FROM pg_temp.schedule_assignment WHERE course_id='CSE108';
+        INSERT INTO teacher_sessional_assignment VALUES
+          ('T2','CSE106','TEST',25,'A1',1), ('T3','CSE106','TEST',25,'A1',1), ('T4','CSE106','TEST',25,'A1',0.5);`);
+      await assert.rejects(save(1), /only half a slot left/);
+      await save(0.5);
     } finally {
       client.release(true); // Close this connection and automatically discard its temporary tables.
     }

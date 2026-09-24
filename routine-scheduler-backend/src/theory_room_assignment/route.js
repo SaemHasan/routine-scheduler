@@ -8,11 +8,13 @@ import {
     getAllSectionRoomAllocationAPI,
     updateSectionRoomAllocationAPI,
     getAllNonDepartmentalLabRoomAssignmentAPI,
-    updateNonDepartmentalLabRoomAssignmentAPI
+    updateNonDepartmentalLabRoomAssignmentAPI,
+    moveTheoryClassAPI
 } from './controller.js';
 
 router.get("/get/all", getAllTheoryRoomAssignmentAPI);
 router.post("/update", updateTheoryRoomAssignmentAPI);
+router.post("/move", moveTheoryClassAPI);
 
 router.get("/section/get/all", getAllSectionRoomAllocationAPI);
 router.put("/section/update", updateSectionRoomAllocationAPI);

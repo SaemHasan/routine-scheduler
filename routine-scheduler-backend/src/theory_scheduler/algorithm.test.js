@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   displacedByPins, solveTheory, theoryCTSlotRequirement, theoryCTSlots,
-  theoryPreferenceWarnings, validatePinnedClasses, validateTheoryAssignments,
+  theoryPreferenceWarnings, validatePinnedClasses, validateTheoryAssignments, validateTheoryMove,
 } from "./algorithm.js";
 
 const days = ["Saturday", "Sunday", "Monday", "Tuesday", "Wednesday"];
@@ -318,4 +318,40 @@ test("a pin releases the generated meetings it displaces and keeps the weekly co
 
   // The same teacher's generated class in C at the pinned hour is released
   assert.ok(displacedByPins([pinAt(p, 0, "Monday", 10)], generated).includes(generated[4]));
+});
+
+test("moving a class by hand keeps the hard rules", () => {
+  const ev = (course, s, teacher, day, time, extra = {}) => ({
+    course_id: course, type: 0, sections: [sections[s]], teachers: [teacher],
+    day, time, hours: [time], optional: false, option_group: null, ...extra,
+  });
+  const moving = ev("CSE101", 0, "T1", "Sunday", 9);
+  const events = [
+    moving,
+    ev("CSE101", 0, "T1", "Tuesday", 10),
+    ev("CSE103", 0, "T2", "Monday", 9),
+    ev("CSE105", 1, "T1", "Monday", 11),
+  ];
+  const p = problem([]);
+  p.levelTerm = "L-2 T-1";
+  assert.deepEqual(validateTheoryMove(p, events, moving, "Monday", 10), []);
+  assert.ok(validateTheoryMove(p, events, moving, "Monday", 9)[0].includes("CSE103 (A)"));
+  assert.ok(validateTheoryMove(p, events, moving, "Monday", 11)[0].includes("T1's CSE105"));
+  assert.ok(validateTheoryMove(p, events, moving, "Tuesday", 12)[0].includes("already meets A on Tuesday"));
+  assert.ok(validateTheoryMove(p, events, moving, "Monday", 1)[0].includes("not a theory period"));
+  // Moving onto its own slot's day is fine: the class itself is not a clash
+  assert.deepEqual(validateTheoryMove(p, events, moving, "Sunday", 11), []);
+});
+
+test("moving a class to 8 AM cannot take the last common CT slots", () => {
+  const blocked = ["Sunday", "Tuesday"].map((day) => ({
+    course_id: "CSE202", type: 1, sections: [sections[1]], teachers: ["L"],
+    day, time: 8, hours: [8, 9, 10], optional: false, option_group: null,
+  }));
+  const moving = { course_id: "CSE201", type: 0, sections: [sections[0]], teachers: ["T"],
+    day: "Sunday", time: 11, hours: [11], optional: false, option_group: null };
+  const p = problem([]);
+  p.levelTerm = "L-2 T-1";
+  assert.ok(validateTheoryMove(p, [...blocked, moving], moving, "Monday", 8)[0]
+    .includes("needs 3 common"));
 });

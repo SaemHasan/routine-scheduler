@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { findSessionalConflict } from './sessionalRules.js';
+import { findSessionalConflict, sessionalCapacityError } from './sessionalRules.js';
 
 const times = [8, 9, 10, 11, 12, 1, 2, 3, 4];
 const targets = [{ day: 'Tuesday', time: 11 }];
@@ -26,4 +26,15 @@ test('every scheduled meeting is checked before assigning a teacher', () => {
     targets: [...targets, { day: 'Wednesday', time: 8 }],
     theory: [{ course_id: 'CSE105', day: 'Wednesday', time: 10 }],
   }), /Wednesday/);
+});
+
+test('a lab section takes no more teachers than its sessional type allows', () => {
+  const base = { course_id: 'CSE102', section: 'A1', capacity: 3 };
+  assert.equal(sessionalCapacityError({ ...base, filled: 2, share: 1 }), null);
+  assert.equal(sessionalCapacityError({ ...base, filled: 2.5, share: 0.5 }), null);
+  assert.match(sessionalCapacityError({ ...base, filled: 3, share: 0.5 }), /all 3 slots are filled/);
+  assert.match(sessionalCapacityError({ ...base, filled: 2.5, share: 1 }), /only half a slot left/);
+  assert.match(sessionalCapacityError({ ...base, capacity: 2, filled: 2, share: 1 }), /takes 2 teachers/);
+  // A course with no known type is not limited here
+  assert.equal(sessionalCapacityError({ ...base, capacity: null, filled: 9, share: 1 }), null);
 });

@@ -9,7 +9,10 @@ import {
   getDepartmentalLevelTermBatches,
   getTheorySectionsByDeptAndLevelTerm,
   getTheoryCoursesByDeptLevelTerm,
+  getRooms,
 } from "../api/db-crud";
+import { updateTheoryRoomAssignment } from "../api/theory-room-assign";
+import { byRoom } from "../theory-room-assign/RoomSelect";
 import { setTheoryCell, getSchedules, getTheoryRoutineOverview } from "../api/theory-schedule";
 import { toast } from "react-hot-toast";
 import {
@@ -17,6 +20,7 @@ import {
   mdiDomain,
   mdiPlusBoxOutline,
   mdiContentSave,
+  mdiDoor,
 } from "@mdi/js";
 import Icon from "@mdi/react";
 import { useHistory } from "react-router-dom";
@@ -40,6 +44,7 @@ export default function TheorySchedule(props) {
   );
   // Fixed and generated meetings per course and section, from the generator
   const [overview, setOverview] = useState(null);
+  const [rooms, setRooms] = useState([]);
   const history = useHistory();
   const { times } = useConfig();
 
@@ -51,6 +56,12 @@ export default function TheorySchedule(props) {
         setAllDepartments([]);
         toast.error("Failed to load departments");
       });
+  }, []);
+
+  useEffect(() => {
+    getRooms()
+      .then((list) => setRooms((list || []).filter((r) => r.active !== false).sort(byRoom)))
+      .catch(() => setRooms([]));
   }, []);
 
   // Load level-term batches when department changes
@@ -314,6 +325,44 @@ export default function TheorySchedule(props) {
     setIsChanged(true);
   };
 
+  // Holds one saved class in another room for its day and time (e.g. Tuesday
+  // 8 in 203 instead of the section's 103). Saved at once; an elective every
+  // section takes moves in all of them.
+  const handleRoomChange = (section) => async (day, time, courseId, room) => {
+    const slotKey = `${day} ${time}`;
+    try {
+      const result = await updateTheoryRoomAssignment({
+        course_id: courseId,
+        department: selectedDepartment,
+        batch: selectedLevelTermBatch?.batch,
+        section: section.section,
+        day,
+        time,
+        room_no: room,
+      });
+      // Without a room of its own a class is in its section's room
+      const held = room || (result.updated > 1 ? null : section.room) || null;
+      const setRoom = (prev) => {
+        const next = { ...prev };
+        Object.entries(prev).forEach(([key, schedule]) => {
+          const cell = schedule?.[slotKey];
+          const moves = key.endsWith(` ${section.section}`) || result.updated > 1;
+          if (!moves || !cell?.rooms || !(courseId in cell.rooms)) return;
+          next[key] = { ...schedule, [slotKey]: { ...cell, rooms: { ...cell.rooms, [courseId]: held } } };
+        });
+        return next;
+      };
+      setTheorySchedulesBySection(setRoom);
+      setOriginalSchedulesBySection(setRoom);
+      toast.success(`${courseId} on ${day} ${time}:00 now in ${held ? `${held}${room ? "" : " (section room)"}` : "no room"}`);
+      if (result.clashes?.length) {
+        toast(`Room ${room} is also used then by ${result.clashes.join(", ")}`, { icon: "⚠️", duration: 6000 });
+      }
+    } catch (error) {
+      toast.error(error?.response?.data?.error?.message || "Failed to change the room");
+    }
+  };
+
   // Labs occupy three periods; the six stored CSE400 periods form one thesis block.
   const isDisabledTimeSlot = useCallback(
     (sectionKey, day, time) => {
@@ -387,6 +436,11 @@ export default function TheorySchedule(props) {
                 if (sch.course_id) {
                   if (!cellMap[slotKey].course_types) cellMap[slotKey].course_types = {};
                   cellMap[slotKey].course_types[sch.course_id] = sch.type;
+                }
+                // Rooms of the saved theory classes (CT has none)
+                if (Number(sch.type) === 0 && sch.course_id && sch.course_id !== "CT") {
+                  if (!cellMap[slotKey].rooms) cellMap[slotKey].rooms = {};
+                  cellMap[slotKey].rooms[sch.course_id] = sch.room_no || null;
                 }
               });
 
@@ -943,8 +997,20 @@ export default function TheorySchedule(props) {
                             {section.section}
                           </span>
                           Section {section.section}
+                          <span
+                            title="The room this section's theory classes take; set on the Theory Room Assignment page"
+                            style={{
+                              marginLeft: 12, fontSize: "0.8rem", fontWeight: 600, borderRadius: 6, padding: "3px 9px",
+                              display: "inline-flex", alignItems: "center", gap: 4, textTransform: "none",
+                              background: section.room ? "#f1f3f5" : "#fdecec",
+                              color: section.room ? "#495057" : "#a52834",
+                            }}
+                          >
+                            <Icon path={mdiDoor} size={0.6} />
+                            {section.room ? `Room ${section.room}` : "No section room"}
+                          </span>
                           {Object.keys(generatedSlotsBySection[section.section] || {}).length > 0 && (
-                            <span className="ms-auto d-flex align-items-center" style={{ gap: 12, fontSize: "0.78rem", fontWeight: 500, color: "#6c757d" }}>
+                            <span className="ms-auto d-flex align-items-center" style={{ gap: 12, fontSize: "0.78rem", fontWeight: 500, color: "#6c757d", textTransform: "none", letterSpacing: 0 }}>
                               <span><span style={{ background: "#e9d8fd", color: "#7c4fd5", borderRadius: 6, padding: "1px 6px" }}>Fixed</span> kept when generating</span>
                               <span><span style={{ border: "1px dashed #b9a6d6", borderRadius: 6, padding: "0 6px" }}>Generated</span> replaced when generating again</span>
                             </span>
@@ -960,6 +1026,9 @@ export default function TheorySchedule(props) {
                             allTheoryCourses={allTheoryCourses}
                             theorySchedules={sectionData}
                             generatedSlots={generatedSlotsBySection[section.section]}
+                            rooms={rooms}
+                            sectionRoom={section.room}
+                            onRoomChange={handleRoomChange(section)}
                             onChange={handleTheoryCellChange(sectionKey)}
                             isDisabledTimeSlot={(day, time) =>
                               isDisabledTimeSlot(sectionKey, day, time)

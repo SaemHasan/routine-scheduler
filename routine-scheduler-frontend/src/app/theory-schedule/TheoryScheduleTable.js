@@ -1,7 +1,19 @@
 import React, { useMemo, useCallback } from "react";
-import Select from "react-select";
+import Select, { components } from "react-select";
+import Icon from "@mdi/react";
+import { mdiDoor } from "@mdi/js";
 import { useConfig } from "../shared/ConfigContext";
 import { MultiSet } from "mnemonist";
+
+// A class in a cell shows its course code; the name is in the tooltip
+const CodeLabel = (props) => (
+  <div title={props.data.name ? `${props.data.value} — ${props.data.name}` : props.data.value}>
+    <components.MultiValueLabel {...props} />
+  </div>
+);
+const SELECT_COMPONENTS = { MultiValueLabel: CodeLabel };
+// Codes in the cell, "code — name" in the menu
+const formatCourse = (option, { context }) => (context === "value" ? option.value : option.label);
 
 /**
  * Custom component for displaying a theory schedule table with single dropdown per cell
@@ -21,6 +33,11 @@ const TheoryScheduleTable = React.memo(function TheoryScheduleTable(props) {
     ctAvailableDays = [],
     // slot → course ids placed by the last applied suggestion (not fixed)
     generatedSlots = {},
+    // Rooms: the room list, the section's usual room, and a handler that
+    // moves one saved class to another room for its day and time
+    rooms = [],
+    sectionRoom = null,
+    onRoomChange = null,
   } = props;
 
   // Memoized values for configuration settings
@@ -64,7 +81,8 @@ const TheoryScheduleTable = React.memo(function TheoryScheduleTable(props) {
               const courseObj = filteredCourses.find((c) => c.course_id === id);
               const result = {
                 value: id,
-                label: `${id} - ${courseObj?.name || "Unknown"}`,
+                label: courseObj?.name ? `${id} — ${courseObj.name}` : id,
+                name: courseObj?.name,
                 generated: (generatedSlots[slotKey] || []).includes(id),
               };
               return result;
@@ -103,6 +121,28 @@ const TheoryScheduleTable = React.memo(function TheoryScheduleTable(props) {
       return courses;
     },
     [theorySchedules, filled, selected, filteredCourses, generatedSlots]
+  );
+
+  // Saved theory classes in a cell with their rooms (unsaved ones have none yet)
+  const roomsAt = useCallback(
+    (slotKey) => {
+      const cell = theorySchedules?.[slotKey];
+      const ids = cell?.course_ids || [];
+      return ids
+        .filter((id) => cell.rooms && Object.prototype.hasOwnProperty.call(cell.rooms, id))
+        .map((id) => ({ courseId: id, room: cell.rooms[id] }));
+    },
+    [theorySchedules]
+  );
+
+  const roomGroups = useMemo(
+    () =>
+      [
+        { label: "Theory rooms", list: rooms.filter((r) => r.type === 0) },
+        { label: "Theory & lab rooms", list: rooms.filter((r) => r.type === 2) },
+        { label: "Lab rooms", list: rooms.filter((r) => r.type === 1) },
+      ].filter((g) => g.list.length),
+    [rooms]
   );
 
   // Cell style calculation
@@ -318,6 +358,66 @@ const TheoryScheduleTable = React.memo(function TheoryScheduleTable(props) {
           box-shadow: none !important;
         }
 
+        .theory-cell {
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          min-height: 64px;
+          padding: 2px 0;
+        }
+
+        .cell-rooms {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 2px 8px;
+          justify-content: center;
+          padding: 0 4px 2px;
+          line-height: 1.2;
+        }
+
+        .cell-rooms label {
+          display: inline-flex;
+          align-items: center;
+          gap: 2px;
+          margin: 0;
+          color: #8a94a3;
+          font-size: 0.72rem;
+        }
+
+        .cell-rooms .room-course {
+          font-weight: 600;
+          margin-right: 1px;
+        }
+
+        /* Reads as text; opens the room list when clicked */
+        .room-chip {
+          appearance: none;
+          -webkit-appearance: none;
+          border: none;
+          border-bottom: 1px dotted transparent;
+          background: transparent;
+          color: #5f6b7a;
+          font-size: 0.72rem;
+          font-weight: 600;
+          padding: 0 1px;
+          cursor: pointer;
+          text-align: center;
+        }
+
+        .room-chip:hover,
+        .room-chip:focus {
+          border-bottom-color: currentColor;
+          outline: none;
+        }
+
+        .room-chip.moved {
+          color: #b35c00;
+        }
+
+        .room-chip.none {
+          color: #c0392b;
+        }
+
         .table-scroll-x {
           width: 100%;
           overflow-x: auto;
@@ -335,7 +435,7 @@ const TheoryScheduleTable = React.memo(function TheoryScheduleTable(props) {
 
         /* Multi-select styles */
         .multi-select-cell {
-          height: 100%;
+          width: 100%;
         }
 
         .multi-select-cell .react-select__control {
@@ -463,6 +563,7 @@ const TheoryScheduleTable = React.memo(function TheoryScheduleTable(props) {
                           )}
                         </div>
                       ) : (
+                        <div className="theory-cell">
                         <Select
                           isMulti
                           className={`multi-select-cell ${cellClassName}`}
@@ -476,10 +577,11 @@ const TheoryScheduleTable = React.memo(function TheoryScheduleTable(props) {
                           }
                           options={filteredCourses.map((course) => ({
                             value: course.course_id,
-                            label: `${course.course_id} - ${
-                              course.name || "Unknown"
-                            }`,
+                            label: course.name ? `${course.course_id} — ${course.name}` : course.course_id,
+                            name: course.name,
                           }))}
+                          formatOptionLabel={formatCourse}
+                          components={SELECT_COMPONENTS}
                           placeholder=""
                           noOptionsMessage={() => "No courses available"}
                           isClearable={true}
@@ -501,32 +603,39 @@ const TheoryScheduleTable = React.memo(function TheoryScheduleTable(props) {
                               borderRadius: "0",
                               border: "none",
                               boxShadow: "none",
-                              minHeight: "60px",
-                              height: "100%",
+                              minHeight: "40px",
                               background: "transparent",
+                              cursor: "pointer",
                             }),
                             // Generated classes are dashed: the next
                             // generation replaces them unless they are fixed
                             multiValue: (base, { data }) => ({
                               ...base,
-                              background: data.generated ? "white" : "#e9d8fd",
-                              border: data.generated ? "1px dashed #b9a6d6" : "none",
-                              borderRadius: "8px",
+                              background: data.generated ? "#ffffff" : "#efe4ff",
+                              border: data.generated ? "1px dashed #b9a6d6" : "1px solid #d9c2f7",
+                              borderRadius: "6px",
                               margin: "2px",
-                              color: "#7c4fd5",
+                              alignItems: "center",
                             }),
                             multiValueLabel: (base, { data }) => ({
                               ...base,
-                              color: data.generated ? "#6c757d" : "#7c4fd5",
-                              fontWeight: 500,
-                              fontSize: "0.8rem",
+                              color: data.generated ? "#5f6b7a" : "#5b2a9e",
+                              fontWeight: 700,
+                              fontSize: "0.82rem",
+                              letterSpacing: "0.3px",
+                              padding: "2px 2px 2px 7px",
+                              paddingLeft: "7px",
                             }),
-                            multiValueRemove: (base) => ({
+                            multiValueRemove: (base, { data }) => ({
                               ...base,
-                              color: "#7c4fd5",
+                              color: data.generated ? "#8a94a3" : "#8c5bd1",
+                              opacity: 0.6,
+                              padding: "0 4px",
+                              borderRadius: "0 5px 5px 0",
                               ":hover": {
                                 background: "#c289f8",
                                 color: "white",
+                                opacity: 1,
                               },
                             }),
                             placeholder: (base) => ({
@@ -548,14 +657,10 @@ const TheoryScheduleTable = React.memo(function TheoryScheduleTable(props) {
                               padding: "6px",
                               overflowY: "auto",
                             }),
-                            container: (base) => ({
-                              ...base,
-                              height: "100%",
-                            }),
                             valueContainer: (base) => ({
                               ...base,
-                              padding: "2px 8px",
-                              overflow: "auto",
+                              padding: "2px 4px",
+                              justifyContent: "center",
                             }),
                             input: (base) => ({
                               ...base,
@@ -573,6 +678,31 @@ const TheoryScheduleTable = React.memo(function TheoryScheduleTable(props) {
                             }),
                           }}
                         />
+                      {onRoomChange && roomsAt(slotKey).length > 0 && (
+                        <div className="cell-rooms">
+                          {roomsAt(slotKey).map(({ courseId, room }, _, all) => (
+                            <label key={courseId} title={`Room of ${courseId} on ${day} at ${time}:00` +
+                              (sectionRoom ? ` (section room ${sectionRoom})` : "") + ". Click to change."}>
+                              <Icon path={mdiDoor} size={0.5} />
+                              {all.length > 1 && <span className="room-course">{courseId}</span>}
+                              <select
+                                className={`room-chip ${!room ? "none" : sectionRoom && room !== sectionRoom ? "moved" : ""}`}
+                                value={room || ""}
+                                onChange={(e) => onRoomChange(day, time, courseId, e.target.value || null)}
+                              >
+                                <option value="">{sectionRoom ? `Section room (${sectionRoom})` : "No room"}</option>
+                                {room && !rooms.some((r) => r.room === room) && <option value={room}>{room}</option>}
+                                {roomGroups.map((g) => (
+                                  <optgroup key={g.label} label={g.label}>
+                                    {g.list.map((r) => <option key={r.room} value={r.room}>{r.room}</option>)}
+                                  </optgroup>
+                                ))}
+                              </select>
+                            </label>
+                          ))}
+                        </div>
+                      )}
+                        </div>
                       )}
                     </td>
                   );

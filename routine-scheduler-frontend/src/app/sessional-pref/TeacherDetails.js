@@ -15,7 +15,7 @@ import {
 import { getCourseAllSchedule, getCourseSectionalSchedule } from '../api/theory-schedule';
 import { getDepartmentalSessionalSchedule } from '../api/sessional-schedule';
 import { getThesisSetup } from '../api/thesis';
-import { groupIntoSlots, isHalf, labPeriods, sessionalLoad, slotCount } from '../shared/sessionalTeachers';
+import { groupIntoSlots, hasRoomFor, isHalf, labPeriods, sessionalLoad, slotCount } from '../shared/sessionalTeachers';
 import TeacherCommitmentTable from './TeacherCommitmentTable';
 
 // UI components and utilities
@@ -167,7 +167,7 @@ const scheduleTableStyle = {
  * Fetches and displays the teachers assigned to a specific course section.
  * Handles loading states and displays appropriate messages if no teachers are assigned.
  */
-function CourseTeachers({ courseId, section, fetchTeachers, isAlreadyScheduled, currentTeacherId, refreshKey }) {
+function CourseTeachers({ courseId, section, fetchTeachers, isAlreadyScheduled, currentTeacherId, refreshKey, capacity }) {
   const [teachers, setTeachers] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -204,8 +204,18 @@ function CourseTeachers({ courseId, section, fetchTeachers, isAlreadyScheduled, 
     return <span style={{ ...textStyle, fontSize: '0.85rem' }}>Loading teachers...</span>;
   }
 
+  // Filled slots out of those the sessional type allows (e.g. 3 for software)
+  const filled = slotCount(teachers);
+  const full = capacity && filled >= capacity;
+  const slotsLine = (
+    <small className="d-block" style={{ fontWeight: 600, color: full ? '#6c757d' : textStyle.color }}>
+      {capacity ? `${filled} / ${capacity} teaching slots filled` : `${filled} teaching slots filled`}
+      {full && <span style={{ marginLeft: 6, background: '#6c757d', color: 'white', borderRadius: 4, padding: '0 5px' }}>Full</span>}
+    </small>
+  );
+
   if (teachers.length === 0) {
-    return <span style={{ ...textStyle, fontSize: '0.85rem' }}>No teachers assigned</span>;
+    return <span style={{ ...textStyle, fontSize: '0.85rem' }}>No teachers assigned{capacity ? slotsLine : null}</span>;
   }
 
   return (
@@ -222,7 +232,7 @@ function CourseTeachers({ courseId, section, fetchTeachers, isAlreadyScheduled, 
             {index < slots.length - 1 ? ', ' : ''}
           </span>
         ))}
-        <small className="d-block">{slotCount(teachers)} teaching slots filled</small>
+        {slotsLine}
       </span>
     </div>
   );
@@ -877,6 +887,9 @@ export default function TeacherDetails(props) {
                                 selected.course_id === courseInfo.course_id &&
                                 selected.section === courseInfo.section &&
                                 selected.batch === courseInfo.batch);
+                              const cachedTeachers = courseTeachersCache[`${courseInfo.course_id}-${courseInfo.section}`];
+                              const isFull = !isAlreadyScheduled && Boolean(cachedTeachers) &&
+                                !hasRoomFor(cachedTeachers, courseInfo.teacher_count, assignmentShare);
                               return (
                                 <div
                                   key={`${courseInfo.course_id}-${courseInfo.section}-${idx}`}
@@ -922,6 +935,14 @@ export default function TeacherDetails(props) {
                                       showConflictTooltip();
                                       return;
                                     }
+                                    // The sessional type fixes how many teachers a section takes
+                                    if (!isSelected && isFull) {
+                                      toast.error(`${courseInfo.course_id} (${formatSectionDisplay(courseInfo.section, courseInfo.class_per_week)}) takes ${courseInfo.teacher_count} teacher slot${Number(courseInfo.teacher_count) === 1 ? '' : 's'} and ` +
+                                        (slotCount(cachedTeachers) >= courseInfo.teacher_count
+                                          ? 'all are filled.'
+                                          : 'only half a slot is left; choose a half slot.'));
+                                      return;
+                                    }
 
                                     // Allow selection if not blocked
                                     onSelectSchedule({ ...courseInfo, day, time });
@@ -932,7 +953,8 @@ export default function TeacherDetails(props) {
                                     ...(isAlreadyScheduled ? scheduleTableStyle.alreadyScheduledCourseItem : {}),
                                     ...(!isAlreadyScheduled && !isSelected ? getCourseColorStyles(courseInfo.course_id, courseInfo.section) : {}),
                                     ...((conflict && conflictType !== 'selected' && !isAlreadyScheduled) ? { opacity: 0.7 } : {}),
-                                    cursor: 'pointer', // Make all courses clickable
+                                    ...(isFull && !isSelected ? { opacity: 0.55, background: '#f1f3f5', border: '1px solid #ced4da' } : {}),
+                                    cursor: isFull && !isSelected ? 'not-allowed' : 'pointer',
                                     position: 'relative'
                                   }}
                                   // Keep a simple title for non-conflict items
@@ -948,6 +970,7 @@ export default function TeacherDetails(props) {
                                       isAlreadyScheduled={isAlreadyScheduled}
                                       currentTeacherId={teacherId}
                                       refreshKey={refreshKey}
+                                      capacity={Number(courseInfo.teacher_count) || null}
                                     />
                                   )}
                                   {isAlreadyScheduled && (

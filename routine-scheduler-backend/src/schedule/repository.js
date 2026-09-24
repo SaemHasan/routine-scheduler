@@ -3,6 +3,7 @@ import { HttpError } from "../config/error-handle.js";
 import { getTheoryTeacherAssignmentDB } from "../assignment/repository.js";
 import { findSectionClashes } from "../sessional_scheduler/repository.js";
 import { optionalSectionLabelSQL } from "../sessional_scheduler/sectionLabel.js";
+import { effectiveRoomSQL } from "../theory_room_assignment/roomUse.js";
 
 /**
  * Get schedule configuration values (times, days, possibleLabTimes)
@@ -49,9 +50,11 @@ export async function getTheorySchedule(department, batch, section) {
            sa.department,
            CASE WHEN c.type = 1 AND c.optional = 1 AND c.optional_section_count <= 1
                 THEN $3 ELSE sa."section" END AS section,
-           c.class_per_week
+           c.class_per_week, ${effectiveRoomSQL("sa", "c", "home")} AS room_no
     FROM schedule_assignment sa
     JOIN courses c ON c.course_id = sa.course_id AND c.session = sa.session
+    LEFT JOIN sections home
+      ON home.department = sa.department AND home.batch = sa.batch AND home.section = sa.section
     WHERE sa.department = $1 AND sa.batch = $2
       AND (sa."section" = $3 OR sa."section" LIKE $4
            OR (c.type = 1 AND c.optional = 1 AND c.optional_section_count <= 1
@@ -273,8 +276,9 @@ export async function setTheoryCellDB({ department, batch, section, day, time, c
       );
     }
     for (const id of theoryIds.filter((id) => !present.includes(id))) {
-      // CT has neither a room nor teachers
-      const room = id === "CT" ? null : roomOf.get(section) || null;
+      // CT has neither a room nor teachers; an elective every section
+      // takes together needs a room of its own, chosen on the rooms page
+      const room = id === "CT" || (await singleGroup(id)) ? null : roomOf.get(section) || null;
       for (const sec of await sectionsFor(id)) {
         const teachers =
           id === "CT"
@@ -468,12 +472,17 @@ export async function getAllScheduleDB() {
 export async function getDepartmentalSessionalSchedule() {
   const query = `
     SELECT sa.course_id, sa.batch, sa."section", sa."day", sa."time", sa.department, c.class_per_week,
-      sa.room_no, sa.locked, c."name", s.level_term,
+      sa.room_no, sa.locked, c."name", s.level_term, st.teacher_count,
       ${optionalSectionLabelSQL("c", "sa.department", "sa.batch")} AS section_label
     FROM schedule_assignment sa
     JOIN courses c ON sa.course_id = c.course_id AND sa.session = c.session
     LEFT JOIN sections s
       ON s.department = sa.department AND s.batch = sa.batch AND s.section = sa.section
+    -- Teachers a section takes: set by the sessional type (a lab for another
+    -- department is Non-Departmental; a departmental one with none is software)
+    LEFT JOIN sessional_types st ON st.code = (
+      CASE WHEN c."to" = 'CSE' THEN COALESCE(c.sessional_type, 'DEPT_SW') ELSE 'NON_DEPT' END
+    )
     WHERE sa.course_id LIKE 'CSE%'
     AND c.type = 1
     AND sa."session" = (SELECT value FROM configs WHERE key='CURRENT_SESSION')

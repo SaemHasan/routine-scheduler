@@ -1,6 +1,7 @@
 import PDFDocument from "pdfkit";
 import { connect } from "../config/database.js";
 import { termTitle, teacherLine, compareRooms } from "./format.js";
+import { effectiveRoomSQL } from "../theory_room_assignment/roomUse.js";
 
 /*
  * The department's routine books (level-term, teacher, part-time teacher,
@@ -65,7 +66,8 @@ async function loadRoutineData() {
 
     const rows = (
       await client.query(
-        `SELECT sa.course_id, sa.batch, sa.section, sa.department, sa.day, sa."time", sa.room_no,
+        `SELECT sa.course_id, sa.batch, sa.section, sa.department, sa.day, sa."time",
+                ${effectiveRoomSQL()} AS room_no,
                 sa.teachers, c.type, c.class_per_week, c.optional, c.optional_section_count,
                 c."from", c."to", s.level_term
          FROM schedule_assignment sa

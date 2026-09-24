@@ -18,6 +18,7 @@ import { getSchedules } from "../api";
 import { mdiContentSave, mdiAccountGroupOutline } from "@mdi/js";
 import Icon from "@mdi/react";
 import { useHistory } from "react-router-dom";
+import { labSessionsPerWeek } from "../shared/sessionalTeachers";
 
 /**
  * Helper function to format section display for 0.75 credit courses
@@ -586,12 +587,11 @@ export default function SessionalSchedule() {
         const selectedSlotsForCourse = (
           labSchedulesBySection[sectionKey] || []
         ).filter((slot) => slot.course_id === courseId).length;
+        const perWeek = labSessionsPerWeek(course.class_per_week);
 
-        if (selectedSlotsForCourse >= Math.ceil(course.class_per_week)) {
+        if (selectedSlotsForCourse >= perWeek) {
           toast.error(
-            `You can only select ${Math.ceil(
-              course.class_per_week
-            )} slots for ${courseId}`
+            `${courseId} (${section}) already has its ${perWeek} weekly session${perWeek === 1 ? "" : "s"}`
           );
           return;
         }
@@ -1709,112 +1709,93 @@ export default function SessionalSchedule() {
               background: 'white',
               borderRadius: '0 0 16px 16px',
             }}>
-              {allSessionalCourses.length === 0 ? (
-                <div style={{
-                  textAlign: 'center',
-                  padding: '2rem',
-                  color: '#718096',
-                  fontSize: '1rem'
-                }}>
-                  No sessional courses available for this department and level-term.
-                </div>
-              ) : (
-                <div style={{
-                  display: 'grid',
-                  gap: '16px',
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
-                }}>
-                  {allSessionalCourses.map((course) => {
-                    const mainSection = selectedCell.subsection.charAt(0);
-                    const mainSections = Object.keys(groupedSections).sort();
-                    const targetMainSections = course.optional
-                      ? mainSections.slice(0, Math.max(1, Number(course.optional_section_count) || 1))
-                      : [mainSection];
-                    const courseCards = [];
-                    targetMainSections.forEach((group) => {
-                      const targetSections = Number(course.class_per_week) === 0.75
-                        ? [group]
-                        : Object.values(groupedSections[group]?.subsections || {})
-                          .map((subsection) => subsection.section)
-                          .filter((section) => section !== group);
-                      targetSections.forEach((targetSection) => {
-                        const targetSectionKey = `${selectedDepartment} ${selectedLevelTermBatch.batch} ${targetSection}`;
-                        const isAlreadyScheduled = labSchedulesBySection[targetSectionKey]?.some(slot => 
-                          slot.day === selectedCell.day && 
-                          Number(slot.time) === Number(selectedCell.time) &&
-                          slot.course_id === course.course_id
-                        ) || false;
-                        courseCards.push({
-                          section: targetSection,
-                          sectionKey: targetSectionKey,
-                          isAlreadyScheduled,
-                          displayText: course.optional && Number(course.optional_section_count) <= 1
-                            ? `All sections (${mainSections.join('/')}) · group ${targetSection}`
-                            : `Section ${targetSection}`,
-                          courseId: course.course_id
-                        });
-                      });
+              {(() => {
+                // Only sessionals a section still has to schedule: one fully
+                // scheduled this week (or already in this slot) is left out
+                const mainSections = Object.keys(groupedSections).sort();
+                const mainSection = selectedCell.subsection.charAt(0);
+                const cards = allSessionalCourses.flatMap((course) => {
+                  const perWeek = labSessionsPerWeek(course.class_per_week);
+                  const targetMainSections = course.optional
+                    ? mainSections.slice(0, Math.max(1, Number(course.optional_section_count) || 1))
+                    : [mainSection];
+                  return targetMainSections.flatMap((group) => {
+                    const targetSections = Number(course.class_per_week) === 0.75
+                      ? [group]
+                      : Object.values(groupedSections[group]?.subsections || {})
+                        .map((subsection) => subsection.section)
+                        .filter((section) => section !== group);
+                    return targetSections.map((targetSection) => {
+                      const sectionKey = `${selectedDepartment} ${selectedLevelTermBatch.batch} ${targetSection}`;
+                      const placed = (labSchedulesBySection[sectionKey] || [])
+                        .filter((slot) => slot.course_id === course.course_id);
+                      return {
+                        course,
+                        section: targetSection,
+                        sectionKey,
+                        perWeek,
+                        placed: placed.length,
+                        inThisSlot: placed.some((slot) =>
+                          slot.day === selectedCell.day && Number(slot.time) === Number(selectedCell.time)),
+                        displayText: course.optional && Number(course.optional_section_count) <= 1
+                          ? `All sections (${mainSections.join('/')}) · group ${targetSection}`
+                          : `Section ${targetSection}`,
+                      };
                     });
-                    
-                    return courseCards.map((cardInfo) => (
+                  });
+                }).filter((card) => !card.inThisSlot && card.placed < card.perWeek);
+
+                if (cards.length === 0) {
+                  return (
+                    <div style={{ textAlign: 'center', padding: '2rem', color: '#718096', fontSize: '1rem' }}>
+                      {allSessionalCourses.length === 0
+                        ? 'No sessional courses available for this department and level-term.'
+                        : 'Every sessional for this section is already scheduled. Remove one from the routine to place it here instead.'}
+                    </div>
+                  );
+                }
+                return (
+                  <div style={{
+                    display: 'grid',
+                    gap: '16px',
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+                  }}>
+                    {cards.map((card) => (
                       <div
-                        key={`${course.course_id || course.id}-${cardInfo.section}`}
+                        key={`${card.course.course_id}-${card.section}`}
                         style={{
                           padding: '16px',
                           borderRadius: '12px',
-                          border: cardInfo.isAlreadyScheduled ? '2px solid rgba(220, 53, 69, 0.3)' : '2px solid rgba(194, 137, 248, 0.2)',
-                          backgroundColor: cardInfo.isAlreadyScheduled ? 'rgba(220, 53, 69, 0.05)' : 'rgba(255, 255, 255, 0.9)',
-                          cursor: cardInfo.isAlreadyScheduled ? 'not-allowed' : 'pointer',
+                          border: '2px solid rgba(194, 137, 248, 0.2)',
+                          backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                          cursor: 'pointer',
                           transition: 'all 0.2s ease',
                           position: 'relative',
-                          opacity: cardInfo.isAlreadyScheduled ? 0.6 : 1,
                         }}
                         onClick={() => {
-                          if (!cardInfo.isAlreadyScheduled) {
-                            // Add course to the specific section for this card
-                            handleSlotChange(selectedCell.day, selectedCell.time, cardInfo.courseId, cardInfo.sectionKey);
-                            setShowLabCoursesModal(false);
-                          }
+                          handleSlotChange(selectedCell.day, selectedCell.time, card.course.course_id, card.sectionKey);
+                          setShowLabCoursesModal(false);
                         }}
                         onMouseOver={e => {
-                          if (!cardInfo.isAlreadyScheduled) {
-                            e.currentTarget.style.transform = 'translateY(-2px)';
-                            e.currentTarget.style.boxShadow = '0 8px 25px rgba(174, 117, 228, 0.15)';
-                            e.currentTarget.style.borderColor = 'rgba(194, 137, 248, 0.4)';
-                          }
+                          e.currentTarget.style.transform = 'translateY(-2px)';
+                          e.currentTarget.style.boxShadow = '0 8px 25px rgba(174, 117, 228, 0.15)';
+                          e.currentTarget.style.borderColor = 'rgba(194, 137, 248, 0.4)';
                         }}
                         onMouseOut={e => {
-                          if (!cardInfo.isAlreadyScheduled) {
-                            e.currentTarget.style.transform = 'translateY(0)';
-                            e.currentTarget.style.boxShadow = 'none';
-                            e.currentTarget.style.borderColor = 'rgba(194, 137, 248, 0.2)';
-                          }
+                          e.currentTarget.style.transform = 'translateY(0)';
+                          e.currentTarget.style.boxShadow = 'none';
+                          e.currentTarget.style.borderColor = 'rgba(194, 137, 248, 0.2)';
                         }}
                       >
-                        <div style={{
-                          fontWeight: '700',
-                          fontSize: '1rem',
-                          color: cardInfo.isAlreadyScheduled ? '#6c757d' : '#2d3748',
-                          marginBottom: '8px',
-                          lineHeight: '1.2'
-                        }}>
-                          {course.course_id || course.course_code}
+                        <div style={{ fontWeight: '700', fontSize: '1rem', color: '#2d3748', marginBottom: '8px', lineHeight: '1.2' }}>
+                          {card.course.course_id || card.course.course_code}
                         </div>
-                        <div style={{
-                          fontSize: '0.85rem',
-                          color: cardInfo.isAlreadyScheduled ? '#6c757d' : '#718096',
-                          marginBottom: '8px',
-                          fontWeight: '500'
-                        }}>
-                          {course.name}
+                        <div style={{ fontSize: '0.85rem', color: '#718096', marginBottom: '8px', fontWeight: '500' }}>
+                          {card.course.name}
                         </div>
-                        <div style={{
-                          fontSize: '0.8rem',
-                          color: cardInfo.isAlreadyScheduled ? '#6c757d' : '#a0aec0',
-                          fontWeight: '600',
-                          marginBottom: '8px'
-                        }}>
-                          {course.class_per_week} hours/week
+                        <div style={{ fontSize: '0.8rem', color: '#a0aec0', fontWeight: '600', marginBottom: '8px' }}>
+                          {card.course.class_per_week} credits
+                          {card.perWeek > 1 && ` · ${card.placed} of ${card.perWeek} sessions placed`}
                         </div>
                         <div style={{
                           fontSize: '0.75rem',
@@ -1825,28 +1806,13 @@ export default function SessionalSchedule() {
                           fontWeight: '600',
                           textAlign: 'center'
                         }}>
-                          {cardInfo.displayText}
+                          {card.displayText}
                         </div>
-                        {cardInfo.isAlreadyScheduled && (
-                          <div style={{
-                            position: 'absolute',
-                            top: '8px',
-                            right: '8px',
-                            fontSize: '0.7rem',
-                            backgroundColor: 'rgba(220, 53, 69, 0.1)',
-                            color: '#dc3545',
-                            padding: '2px 6px',
-                            borderRadius: '4px',
-                            fontWeight: '600'
-                          }}>
-                            Already Scheduled
-                          </div>
-                        )}
                       </div>
-                    ));
-                  }).flat()}
-                </div>
-              )}
+                    ))}
+                  </div>
+                );
+              })()}
             </div>
           </div>
         </>

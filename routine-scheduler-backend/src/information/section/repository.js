@@ -29,7 +29,7 @@ export async function getSessionalSectionsByDeptLevelTerm(department, level_term
 
 export async function getTheorySectionsByDeptAndLevelTerm(department, level_term) {
   const query = `
-    SELECT section
+    SELECT section, room
     FROM sections
     WHERE department = $1
     AND level_term = $2

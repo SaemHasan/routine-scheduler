@@ -18,3 +18,18 @@ export function findSessionalConflict({ targets, theory, labs, share, times }) {
   }
   return null;
 }
+
+const slotText = (n) => (n === 0.5 ? "half a slot" : `${n} slot${n === 1 ? "" : "s"}`);
+
+// A lab section takes as many teachers as its sessional type says (e.g. 3 for
+// Departmental Software); two half-slot teachers fill one slot. `filled` is
+// the slots other teachers already hold.
+export function sessionalCapacityError({ course_id, section, capacity, filled, share }) {
+  if (!capacity || Number(filled) + Number(share) <= Number(capacity)) return null;
+  const label = `${course_id} (${section})`;
+  const left = Number(capacity) - Number(filled);
+  if (left <= 0) {
+    return `${label} takes ${capacity} teacher${capacity === 1 ? "" : "s"} and all ${capacity} slots are filled; remove a teacher first`;
+  }
+  return `${label} takes ${capacity} teachers and has only ${slotText(left)} left; assign a half slot`;
+}

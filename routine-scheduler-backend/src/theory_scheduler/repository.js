@@ -330,14 +330,14 @@ export async function fixTheoryClassesDB({ department, levelTerm, courseId, plac
       "SELECT section, room FROM sections WHERE department = $1 AND batch = $2 AND type = 0",
       [department, problem.batch]
     )).rows.map((r) => [r.section, r.room]));
-    for (const [i, pin] of pins.entries()) {
+    for (const pin of pins) {
       for (const section of pin.sectionNames) {
         await client.query(
           `INSERT INTO schedule_assignment
              (course_id, session, department, batch, section, day, "time", room_no, teachers, locked)
            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, true)`,
           [courseId, problem.session, department, problem.batch, section, pin.day, pin.time,
-            roomOf.get(placements[i].section) || null, pin.perSectionTeachers[section] || []]
+            status.shared ? null : roomOf.get(section) || null, pin.perSectionTeachers[section] || []]
         );
       }
     }
@@ -403,6 +403,13 @@ export async function applyTheorySuggestionDB({ department, levelTerm, fingerpri
          AND course_id = ANY($4::varchar[]) AND NOT locked`,
       [problem.session, department, problem.batch, problem.courseIds]
     );
+    // A class takes its section's room. An elective every section takes
+    // together gets none: parallel electives need rooms of their own.
+    const roomOf = new Map((await client.query(
+      "SELECT section, room FROM sections WHERE department = $1 AND batch = $2 AND type = 0",
+      [department, problem.batch]
+    )).rows.map((r) => [r.section, r.room]));
+    const shared = new Set(problem.courseStatus.filter((c) => c.shared).map((c) => c.course_id));
     const unitOf = new Map(problem.units.map((u) => [u.key, u]));
     for (const a of assignments) {
       const unit = unitOf.get(a.key);
@@ -410,9 +417,10 @@ export async function applyTheorySuggestionDB({ department, levelTerm, fingerpri
         await client.query(
           `INSERT INTO schedule_assignment
              (course_id, session, department, batch, section, day, "time", room_no, teachers, locked)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, NULL, $8, false)`,
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, false)`,
           [unit.course_id, problem.session, department, problem.batch, section,
-            a.day, Number(a.time), unit.perSectionTeachers[section] || []]
+            a.day, Number(a.time), shared.has(unit.course_id) ? null : roomOf.get(section) || null,
+            unit.perSectionTeachers[section] || []]
         );
       }
     }

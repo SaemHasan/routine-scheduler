@@ -5,7 +5,7 @@ import { getDepartmentalSessionalSchedule, setSessionalSchedules, teacherContrad
 import { getSessionalTeachers } from '../api/theory-assign';
 import { getTeachers, getLabCourses } from '../api/db-crud';
 import { setTeacherSessionalAssignment, deleteTeacherSessionalAssignment } from '../api/theory-assign';
-import { formatSessionalTeachers, isHalf, slotCount } from '../shared/sessionalTeachers';
+import { formatSessionalTeachers, isHalf, labSessionsPerWeek, slotCount } from '../shared/sessionalTeachers';
 import { getLabRooms } from '../api/db-crud';
 import { setSessionalLock, setSessionalRoom } from '../api/sessional-scheduler';
 import AutoScheduler from './AutoScheduler';
@@ -646,7 +646,7 @@ export default function ShowSessionalDistribution() {
       setShowModal(false);
     } catch (error) {
       console.error("Error assigning teacher:", error);
-      toast.error("Failed to assign teacher");
+      toast.error(error?.response?.data?.error?.message || "Failed to assign teacher");
     }
   };
 
@@ -664,7 +664,7 @@ export default function ShowSessionalDistribution() {
             schedule.section === course.section &&
             schedule.department === course.department
           ).length;
-          const perWeek = Math.max(1, Math.round(Number(course.class_per_week) / 1.5));
+          const perWeek = labSessionsPerWeek(course.class_per_week);
           return placed < perWeek;
         });
 

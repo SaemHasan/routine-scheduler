@@ -47,3 +47,17 @@ export const formatSessionalTeachers = (teachers) =>
   groupIntoSlots(teachers)
     .map((slot) => slot.map((teacher) => teacher.initial).join("/"))
     .join(", ");
+
+/**
+ * Whether a lab section taking `capacity` teachers (from its sessional type,
+ * e.g. 3 for Departmental Software) has room for one more with `share`.
+ * Without a known capacity there is no limit here; the server still checks.
+ */
+export const hasRoomFor = (teachers, capacity, share = 1) =>
+  !capacity || slotCount(teachers) + Number(share) <= Number(capacity);
+
+/**
+ * Lab sessions a section has each week: one per 1.5 credits (a 0.75-credit
+ * lab once), so a 3-credit lab meets twice. Matches the sessional scheduler.
+ */
+export const labSessionsPerWeek = (credit) => Math.max(1, Math.round(Number(credit) / 1.5));

@@ -1,57 +1,116 @@
 import { useEffect, useMemo, useState } from "react";
-import { Form } from "react-bootstrap";
+import { Alert, Button, Form, Modal } from "react-bootstrap";
 import { toast } from "react-hot-toast";
 import {
   getAllTheoryRoomAssignment,
   updateTheoryRoomAssignment,
   getAllSectionRoomAllocation,
   updateSectionRoomAllocation,
+  moveTheoryClass,
 } from "../api/theory-room-assign";
 import { getRooms } from "../api/db-crud";
 import { useConfig } from "../shared/ConfigContext";
+import RoomSelect, { byRoom } from "./RoomSelect";
 
-const TYPE_RANK = { 0: 0, 2: 1, 1: 2 };
-const byRoom = (a, b) =>
-  (TYPE_RANK[a.type] ?? 3) - (TYPE_RANK[b.type] ?? 3) ||
-  Number(/^\(/.test(a.room)) - Number(/^\(/.test(b.room)) ||
-  a.room.localeCompare(b.room, undefined, { numeric: true });
+const messageOf = (error, fallback) => error?.response?.data?.error?.message || fallback;
 
-/** A room picker: theory rooms first, then rooms for theory and labs, then labs. */
-function RoomSelect({ value, rooms, onChange, disabled, placeholder = "No room" }) {
-  const groups = [
-    { label: "Theory rooms", list: rooms.filter((r) => r.type === 0) },
-    { label: "Theory & lab rooms", list: rooms.filter((r) => r.type === 2) },
-    { label: "Lab rooms", list: rooms.filter((r) => r.type === 1) },
-  ];
-  const known = rooms.some((r) => r.room === value);
+const EMPTY_FILTER = {
+  department: "", level_term: "", section: "", course: "", day: "", time: "", room: "", status: "",
+};
+
+// A class is "moved" when it is away from its section's room; electives every
+// section takes together have no section room of their own.
+const isMoved = (c) => !c.elective && Boolean(c.room_no) && c.room_no !== c.section_room;
+
+const clashWarning = (clashes) => clashes?.length &&
+  toast(`Room also used then by ${clashes.join(", ")}`, { icon: "⚠️", duration: 6000 });
+
+/** Moves a class to another day and time, keeping the generator's rules. */
+function MoveClassModal({ cls, rooms, onHide, onMoved }) {
+  const { days, times } = useConfig();
+  const [day, setDay] = useState("");
+  const [time, setTime] = useState("");
+  const [room, setRoom] = useState(null);
+  const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!cls) return;
+    setDay(cls.day);
+    setTime(String(cls.time));
+    setRoom(cls.room_from_section ? null : cls.room_no);
+    setError("");
+  }, [cls]);
+
+  if (!cls) return null;
+  const unchanged = day === cls.day && Number(time) === Number(cls.time);
+
+  const save = async () => {
+    setSaving(true);
+    setError("");
+    try {
+      const result = await moveTheoryClass({
+        course_id: cls.course_id, department: cls.department, batch: cls.batch, section: cls.section,
+        day: cls.day, time: cls.time, new_day: day, new_time: Number(time), room_no: room,
+      });
+      toast.success(`${cls.course_id} (${cls.label}) moved to ${day} ${time}:00${result.room ? ` in ${result.room}` : ""}`);
+      clashWarning(result.clashes);
+      onMoved();
+      onHide();
+    } catch (e) {
+      setError(messageOf(e, "Failed to move the class"));
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
-    <Form.Select
-      className="form-select"
-      style={{ minWidth: "140px" }}
-      value={value || ""}
-      disabled={disabled}
-      onChange={(e) => onChange(e.target.value || null)}
-    >
-      <option value="">{placeholder}</option>
-      {value && !known && <option value={value}>{value}</option>}
-      {groups
-        .filter((g) => g.list.length)
-        .map((g) => (
-          <optgroup key={g.label} label={g.label}>
-            {g.list.map((r) => (
-              <option key={r.room} value={r.room}>
-                {r.room}
-              </option>
-            ))}
-          </optgroup>
-        ))}
-    </Form.Select>
+    <Modal show onHide={onHide} centered>
+      <Modal.Header closeButton>
+        <Modal.Title style={{ fontWeight: 700 }}>
+          Move {cls.course_id} ({cls.label})
+        </Modal.Title>
+      </Modal.Header>
+      <Modal.Body>
+        <p className="text-muted small">
+          Now on {cls.day} at {cls.time}:00{cls.room_no ? ` in ${cls.room_no}` : ""}. The move is checked for
+          section and teacher clashes, a second class of the course that day, 1 PM and the common CT slots.
+          A moved class is kept in place by the theory generator.
+        </p>
+        <div className="row g-2">
+          <div className="col-5">
+            <Form.Label className="small" style={{ fontWeight: 600 }}>Day</Form.Label>
+            <Form.Select value={day} onChange={(e) => setDay(e.target.value)}>
+              {days.map((d) => <option key={d} value={d}>{d}</option>)}
+            </Form.Select>
+          </div>
+          <div className="col-3">
+            <Form.Label className="small" style={{ fontWeight: 600 }}>Time</Form.Label>
+            <Form.Select value={time} onChange={(e) => setTime(e.target.value)}>
+              {times.filter((t) => Number(t) !== 1).map((t) => <option key={t} value={t}>{t}:00</option>)}
+            </Form.Select>
+          </div>
+          <div className="col-4">
+            <Form.Label className="small" style={{ fontWeight: 600 }}>Room</Form.Label>
+            <RoomSelect value={room} rooms={rooms} onChange={setRoom} style={{ minWidth: 0 }}
+              placeholder={!cls.elective && cls.section_room ? `Section room (${cls.section_room})` : "No room"} />
+          </div>
+        </div>
+        {error && <Alert variant="danger" className="mt-3 mb-0 small">{error}</Alert>}
+      </Modal.Body>
+      <Modal.Footer>
+        <Button variant="light" onClick={onHide}>Cancel</Button>
+        <Button variant="primary" onClick={save} disabled={saving || unchanged}>
+          {saving ? "Moving..." : "Move class"}
+        </Button>
+      </Modal.Footer>
+    </Modal>
   );
 }
 
 /**
  * Theory rooms: each section gets its usual room, which its classes take;
- * then any class can be moved to another room for that day and time.
+ * then any class can be moved to another room, or another day and time.
  */
 export default function TheoryRoomAssign() {
   const { days, times } = useConfig();
@@ -59,7 +118,8 @@ export default function TheoryRoomAssign() {
   const [classes, setClasses] = useState([]);
   const [rooms, setRooms] = useState([]);
   const [saving, setSaving] = useState("");
-  const [filter, setFilter] = useState({ department: "", level_term: "", section: "", course: "", moved: false });
+  const [moving, setMoving] = useState(null);
+  const [filter, setFilter] = useState(EMPTY_FILTER);
 
   const load = () =>
     Promise.all([getAllSectionRoomAllocation(), getAllTheoryRoomAssignment()])
@@ -80,11 +140,14 @@ export default function TheoryRoomAssign() {
     const key = `section|${section.department}|${section.level_term}|${section.section}`;
     setSaving(key);
     try {
-      await updateSectionRoomAllocation({ ...section, room_no });
-      toast.success(`${section.department} ${section.level_term} (${section.section}) now in ${room_no || "no room"}`);
+      const result = await updateSectionRoomAllocation({ ...section, room_no });
+      toast.success(
+        `${section.department} ${section.level_term} (${section.section}) now in ${room_no || "no room"}` +
+          (result.classes ? `; ${result.classes} class${result.classes === 1 ? "" : "es"} moved with it` : "")
+      );
       await load();
-    } catch {
-      toast.error("Failed to update the section's room");
+    } catch (e) {
+      toast.error(messageOf(e, "Failed to update the section's room"));
     } finally {
       setSaving("");
     }
@@ -94,46 +157,48 @@ export default function TheoryRoomAssign() {
     const key = `class|${c.course_id}|${c.department}|${c.section}|${c.day}|${c.time}`;
     setSaving(key);
     try {
-      await updateTheoryRoomAssignment({ course_id: c.course_id, section: c.section, day: c.day, time: c.time, room_no });
-      toast.success(`${c.course_id} (${c.label}) on ${c.day} ${c.time}:00 now in ${room_no || "no room"}`);
+      const result = await updateTheoryRoomAssignment({
+        course_id: c.course_id, department: c.department, batch: c.batch,
+        section: c.section, day: c.day, time: c.time, room_no,
+      });
+      const held = room_no || (!c.elective && c.section_room) || null;
+      toast.success(`${c.course_id} (${c.label}) on ${c.day} ${c.time}:00 now in ${held ? `${held}${room_no ? "" : " (section room)"}` : "no room"}`);
+      clashWarning(result.clashes);
       await load();
-    } catch {
-      toast.error("Failed to update the room");
+    } catch (e) {
+      toast.error(messageOf(e, "Failed to update the room"));
     } finally {
       setSaving("");
     }
   };
 
-  // Two different classes in one room at once
-  const clashes = useMemo(() => {
-    const at = new Map();
-    for (const c of classes) {
-      if (!c.room_no) continue;
-      const k = `${c.room_no}|${c.day}|${c.time}`;
-      if (!at.has(k)) at.set(k, []);
-      at.get(k).push(c);
-    }
-    const out = new Map();
-    for (const [k, list] of at) {
-      const distinct = new Set(list.map((c) => `${c.course_id}|${c.department}|${c.batch}|${c.label}`));
-      if (distinct.size > 1) out.set(k, list.map((c) => `${c.course_id} (${c.label})`));
-    }
-    return out;
-  }, [classes]);
-
-  const options = useMemo(
-    () => ({
+  const options = useMemo(() => {
+    const inDept = (s) => !filter.department || s.department === filter.department;
+    return {
       departments: [...new Set(sections.map((s) => s.department))],
-      levelTerms: [...new Set(sections.filter((s) => !filter.department || s.department === filter.department).map((s) => s.level_term))].sort(),
-      sections: [...new Set(sections.filter((s) => (!filter.department || s.department === filter.department) && (!filter.level_term || s.level_term === filter.level_term)).map((s) => s.section))].sort(),
-    }),
-    [sections, filter.department, filter.level_term]
-  );
+      levelTerms: [...new Set(sections.filter(inDept).map((s) => s.level_term))].sort(),
+      sections: [...new Set(sections.filter((s) => inDept(s) &&
+        (!filter.level_term || s.level_term === filter.level_term)).map((s) => s.section))].sort(),
+      rooms: [...new Set(classes.map((c) => c.room_no).filter(Boolean))]
+        .sort((a, b) => a.localeCompare(b, undefined, { numeric: true })),
+    };
+  }, [sections, classes, filter.department, filter.level_term]);
+
+  const counts = useMemo(() => ({
+    moved: classes.filter(isMoved).length,
+    noRoom: classes.filter((c) => !c.room_no).length,
+    clash: classes.filter((c) => c.clash?.length).length,
+  }), [classes]);
 
   const visibleClasses = useMemo(() => {
     const dayIndex = (d) => days.indexOf(d);
     const timeIndex = (t) => times.indexOf(Number(t));
     const course = filter.course.trim().toUpperCase().replace(/\s+/g, "");
+    const status = {
+      moved: isMoved,
+      "no-room": (c) => !c.room_no,
+      clash: (c) => c.clash?.length > 0,
+    }[filter.status];
     return classes
       .filter(
         (c) =>
@@ -141,7 +206,10 @@ export default function TheoryRoomAssign() {
           (!filter.level_term || c.level_term === filter.level_term) &&
           (!filter.section || c.section === filter.section || c.label.split("/").includes(filter.section)) &&
           (!course || c.course_id.toUpperCase().includes(course)) &&
-          (!filter.moved || c.room_no !== c.section_room)
+          (!filter.day || c.day === filter.day) &&
+          (!filter.time || Number(c.time) === Number(filter.time)) &&
+          (!filter.room || c.room_no === filter.room) &&
+          (!status || status(c))
       )
       .sort(
         (a, b) =>
@@ -162,7 +230,7 @@ export default function TheoryRoomAssign() {
       (!filter.section || s.section === filter.section)
   );
   const setF = (patch) => setFilter((f) => ({ ...f, ...patch }));
-  const moved = classes.filter((c) => c.room_no !== c.section_room).length;
+  const filtered = Object.values(filter).some(Boolean);
 
   return (
     <div>
@@ -180,27 +248,21 @@ export default function TheoryRoomAssign() {
               <label className="card-toolbar-label">Department</label>
               <Form.Select className="form-select" value={filter.department} onChange={(e) => setF({ department: e.target.value, level_term: "", section: "" })}>
                 <option value="">All</option>
-                {options.departments.map((d) => (
-                  <option key={d} value={d}>{d}</option>
-                ))}
+                {options.departments.map((d) => <option key={d} value={d}>{d}</option>)}
               </Form.Select>
             </div>
             <div className="card-toolbar-field">
               <label className="card-toolbar-label">Level-Term</label>
               <Form.Select className="form-select" value={filter.level_term} onChange={(e) => setF({ level_term: e.target.value, section: "" })}>
                 <option value="">All</option>
-                {options.levelTerms.map((lt) => (
-                  <option key={lt} value={lt}>{lt}</option>
-                ))}
+                {options.levelTerms.map((lt) => <option key={lt} value={lt}>{lt}</option>)}
               </Form.Select>
             </div>
             <div className="card-toolbar-field">
               <label className="card-toolbar-label">Section</label>
               <Form.Select className="form-select" value={filter.section} onChange={(e) => setF({ section: e.target.value })}>
                 <option value="">All</option>
-                {options.sections.map((s) => (
-                  <option key={s} value={s}>{s}</option>
-                ))}
+                {options.sections.map((s) => <option key={s} value={s}>{s}</option>)}
               </Form.Select>
             </div>
             <div className="card-toolbar-field grow">
@@ -210,15 +272,43 @@ export default function TheoryRoomAssign() {
                 <input type="text" placeholder="e.g. CSE401" value={filter.course} onChange={(e) => setF({ course: e.target.value })} />
               </div>
             </div>
+          </div>
+          <div className="card-toolbar">
+            <div className="card-toolbar-field">
+              <label className="card-toolbar-label">Day</label>
+              <Form.Select className="form-select" value={filter.day} onChange={(e) => setF({ day: e.target.value })}>
+                <option value="">All</option>
+                {days.map((d) => <option key={d} value={d}>{d}</option>)}
+              </Form.Select>
+            </div>
+            <div className="card-toolbar-field">
+              <label className="card-toolbar-label">Time</label>
+              <Form.Select className="form-select" value={filter.time} onChange={(e) => setF({ time: e.target.value })}>
+                <option value="">All</option>
+                {times.filter((t) => Number(t) !== 1).map((t) => <option key={t} value={t}>{t}:00</option>)}
+              </Form.Select>
+            </div>
+            <div className="card-toolbar-field">
+              <label className="card-toolbar-label">Room</label>
+              <Form.Select className="form-select" value={filter.room} onChange={(e) => setF({ room: e.target.value })}>
+                <option value="">All</option>
+                {options.rooms.map((r) => <option key={r} value={r}>{r}</option>)}
+              </Form.Select>
+            </div>
+            <div className="card-toolbar-field">
+              <label className="card-toolbar-label">Status</label>
+              <Form.Select className="form-select" value={filter.status} onChange={(e) => setF({ status: e.target.value })}>
+                <option value="">All classes</option>
+                <option value="moved">Away from section room ({counts.moved})</option>
+                <option value="no-room">Without a room ({counts.noRoom})</option>
+                <option value="clash">Room clashes ({counts.clash})</option>
+              </Form.Select>
+            </div>
             <div className="card-toolbar-field">
               <label className="card-toolbar-label">&nbsp;</label>
-              <Form.Check
-                type="switch"
-                id="moved-only"
-                label={`Moved classes only (${moved})`}
-                checked={filter.moved}
-                onChange={(e) => setF({ moved: e.target.checked })}
-              />
+              <Button variant="light" disabled={!filtered} onClick={() => setFilter(EMPTY_FILTER)}>
+                <i className="mdi mdi-filter-remove-outline me-1"></i>Clear filters
+              </Button>
             </div>
           </div>
         </div>
@@ -233,8 +323,9 @@ export default function TheoryRoomAssign() {
             </h4>
           </div>
           <div className="field-hint mb-3">
-            A section's classes take its room. Changing it moves every class that was in the old room; classes moved
-            elsewhere on their own keep their rooms.
+            A section's room is the default room of all its theory classes, every day. Changing it moves every
+            class held there; classes moved elsewhere on their own keep their rooms. Electives every section takes
+            together (A/B/C) get their rooms below.
           </div>
           <div className="card-table-container table-responsive">
             {sections.length === 0 ? (
@@ -257,8 +348,9 @@ export default function TheoryRoomAssign() {
                 <tbody className="card-table-body">
                   {visibleSections.map((s) => {
                     const key = `section|${s.department}|${s.level_term}|${s.section}`;
-                    const own = classes.filter((c) => c.department === s.department && c.batch === s.batch && c.section === s.section);
-                    const away = own.filter((c) => c.room_no !== s.room_no).length;
+                    const own = classes.filter((c) => c.department === s.department && c.batch === s.batch && c.section === s.section && !c.elective);
+                    const away = own.filter((c) => c.room_no && c.room_no !== s.room_no).length;
+                    const none = own.filter((c) => !c.room_no).length;
                     return (
                       <tr key={key}>
                         <td style={{ textAlign: "center" }}>{s.department}</td>
@@ -269,7 +361,8 @@ export default function TheoryRoomAssign() {
                         </td>
                         <td style={{ textAlign: "center" }}>
                           {own.length}
-                          {away > 0 && <span className="pill optional ms-2">{away} elsewhere</span>}
+                          {away > 0 && <span className="pill purple ms-2">{away} elsewhere</span>}
+                          {none > 0 && <span className="pill optional ms-2">{none} without room</span>}
                         </td>
                       </tr>
                     );
@@ -288,11 +381,20 @@ export default function TheoryRoomAssign() {
               <div className="card-icon mdi mdi-book-open-page-variant"></div>
               Class Rooms
             </h4>
-            {clashes.size > 0 && <span className="pill optional">{clashes.size} room clash{clashes.size > 1 ? "es" : ""}</span>}
+            <span className="text-muted small">
+              Showing {visibleClasses.length} of {classes.length}
+              {counts.clash > 0 && (
+                <button type="button" className="pill optional ms-2" style={{ border: "none", cursor: "pointer" }}
+                  onClick={() => setF({ status: "clash" })}>
+                  {counts.clash} room clash{counts.clash > 1 ? "es" : ""}
+                </button>
+              )}
+            </span>
           </div>
           <div className="field-hint mb-3">
-            Each theory class, day by day. Pick another room for a class held away from its section's room; an elective
-            every section takes (A/B/C) moves for all of them.
+            Each theory class, day by day. Pick another room for a class held away from its section's room (e.g.
+            Tuesday 8:00 in 203 instead of 103), or move it to another day and time. An elective every section takes
+            (A/B/C) changes for all of them. Rooms can also be changed from the theory schedule.
           </div>
           <div className="card-table-container table-responsive">
             {visibleClasses.length === 0 ? (
@@ -310,12 +412,12 @@ export default function TheoryRoomAssign() {
                     <th><i className="mdi mdi-calendar"></i>Day</th>
                     <th><i className="mdi mdi-clock-outline"></i>Time</th>
                     <th><i className="mdi mdi-door"></i>Room</th>
+                    <th></th>
                   </tr>
                 </thead>
                 <tbody className="card-table-body">
                   {visibleClasses.map((c) => {
                     const key = `class|${c.course_id}|${c.department}|${c.section}|${c.day}|${c.time}`;
-                    const clash = c.room_no ? clashes.get(`${c.room_no}|${c.day}|${c.time}`) : null;
                     return (
                       <tr key={key}>
                         <td style={{ textAlign: "center", fontWeight: 600 }}>{c.course_id}</td>
@@ -326,16 +428,23 @@ export default function TheoryRoomAssign() {
                         <td style={{ textAlign: "center" }}>{c.label}</td>
                         <td style={{ textAlign: "center" }}>{c.day}</td>
                         <td style={{ textAlign: "center" }}>{c.time}:00</td>
-                        <td style={{ maxWidth: "260px" }}>
+                        <td style={{ maxWidth: "280px" }}>
                           <div className="d-flex align-items-center" style={{ gap: "8px" }}>
-                            <RoomSelect value={c.room_no} rooms={rooms} disabled={saving === key} onChange={(room) => saveClassRoom(c, room)} />
-                            {c.room_no !== c.section_room && (
+                            <RoomSelect value={c.room_from_section ? null : c.room_no} rooms={rooms} disabled={saving === key}
+                              placeholder={!c.elective && c.section_room ? `Section room (${c.section_room})` : "No room"}
+                              onChange={(room) => saveClassRoom(c, room)} />
+                            {isMoved(c) && (
                               <span className="pill purple" title={`Section room: ${c.section_room || "none"}`}>moved</span>
                             )}
-                            {clash && (
-                              <span className="pill optional" title={`Also here: ${clash.join(", ")}`}>clash</span>
+                            {c.clash?.length > 0 && (
+                              <span className="pill optional" title={`Also here: ${c.clash.join(", ")}`}>clash</span>
                             )}
                           </div>
+                        </td>
+                        <td style={{ textAlign: "center" }}>
+                          <Button variant="outline-primary" size="sm" title="Move to another day and time" onClick={() => setMoving(c)}>
+                            <i className="mdi mdi-calendar-arrow-right"></i> Move
+                          </Button>
                         </td>
                       </tr>
                     );
@@ -346,6 +455,7 @@ export default function TheoryRoomAssign() {
           </div>
         </div>
       </div>
+      <MoveClassModal cls={moving} rooms={rooms} onHide={() => setMoving(null)} onMoved={load} />
     </div>
   );
 }

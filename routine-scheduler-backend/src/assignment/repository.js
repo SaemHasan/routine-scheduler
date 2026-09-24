@@ -1,7 +1,7 @@
 import { connect } from "../config/database.js";
 import { HttpError } from "../config/error-handle.js";
 import sma from "stablematch-common";
-import { findSessionalConflict } from "./sessionalRules.js";
+import { findSessionalConflict, sessionalCapacityError } from "./sessionalRules.js";
 
 export async function getTemplate(key) {
   const query = "SELECT * FROM configs WHERE key=$1";
@@ -978,7 +978,26 @@ export async function setTeacherSessionalAssignmentDB(assignment, getClient = co
   try {
     await client.query("BEGIN");
     await client.query("SELECT initial FROM teachers WHERE initial = $1 FOR UPDATE", [assignment.initial]);
-    const targets = (await client.query(`SELECT day, time FROM schedule_assignment
+    // One save per lab section at a time, so two teachers cannot both take
+    // its last slot
+    await client.query("SELECT pg_advisory_xact_lock(hashtext($1))",
+      [`sessional|${assignment.course_id}|${assignment.batch}|${assignment.section}`]);
+    const capacity = (await client.query(`SELECT st.teacher_count
+      FROM courses c
+      LEFT JOIN sessional_types st ON st.code = (
+        CASE WHEN c."to" = 'CSE' THEN COALESCE(c.sessional_type, 'DEPT_SW') ELSE 'NON_DEPT' END)
+      WHERE c.course_id = $1 AND c.session = (SELECT value FROM configs WHERE key='CURRENT_SESSION')`,
+    [assignment.course_id])).rows[0]?.teacher_count;
+    // Slots the other teachers hold; this teacher's own row is being replaced
+    const filled = (await client.query(`SELECT COALESCE(SUM(share), 0)::float AS filled
+      FROM teacher_sessional_assignment
+      WHERE course_id = $2 AND batch = $3 AND section = $4 AND initial <> $1
+        AND session = (SELECT value FROM configs WHERE key='CURRENT_SESSION')`, values)).rows[0].filled;
+    const full = sessionalCapacityError({
+      course_id: assignment.course_id, section: assignment.section, capacity, filled, share,
+    });
+    if (full) throw new HttpError(409, full);
+    const targets =(await client.query(`SELECT day, time FROM schedule_assignment
       WHERE course_id = $1 AND batch = $2 AND section = $3
         AND session = (SELECT value FROM configs WHERE key='CURRENT_SESSION')`,
     [assignment.course_id, assignment.batch, assignment.section])).rows;
