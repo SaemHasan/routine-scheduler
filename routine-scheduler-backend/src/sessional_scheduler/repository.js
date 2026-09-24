@@ -154,6 +154,8 @@ export async function loadProblemDB() {
           dayIndex,
           hours: labHours(times, time),
           isMorning: times.indexOf(time) === 0,
+          // 11 AM: its labs take morning hours the theory routine needs
+          isMidday: times.indexOf(time) > 0 && times.indexOf(time) < times.indexOf(12) + 1,
         })
       )
     );
@@ -397,6 +399,8 @@ export async function loadProblemDB() {
         spreadKey: `${row.course_id}|${row.department}|${row.batch}`,
         // A course keeps to as few rooms as possible (e.g. CSE310 all in IAC)
         roomsKey: row.course_id,
+        // Sections of a level-term get similar 11 AM / 2 PM splits
+        levelKey: `${row.department}|${row.batch}`,
         // Subsections that use one room together (e.g. A1 and A2)
         roomShareKey:
           sharedRoomCourses.has(row.course_id) && !main
@@ -426,7 +430,8 @@ export async function loadProblemDB() {
       };
     });
 
-    return { slots, rooms, units };
+    // Past routines gave a section at most two 11 AM labs a week
+    return { slots, rooms, units, middayLimit: 2 };
   } finally {
     client.release();
   }

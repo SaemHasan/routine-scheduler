@@ -23,7 +23,8 @@
  * The module has no database code: `problem` is plain data.
  *
  * problem = {
- *   slots: [{ day, time, dayIndex, isMorning }],
+ *   slots: [{ day, time, dayIndex, isMorning, isMidday }],  // never placed in a morning slot
+ *   middayLimit,         // most midday (11 AM) labs a section should have
  *   rooms: [{ room, lab_type, restricted }],
  *   units: [{
  *     key, label, course_id, batch, section, department, level_term,
@@ -32,6 +33,7 @@
  *     roomShareKey,      // classes that share one room at once, or null
  *     spreadKey,         // sections of one course, kept on nearby days
  *     roomsKey,          // classes of one course, kept in as few rooms as possible
+ *     levelKey,          // sections of one level-term, given similar time splits
  *     coverKeys: [],     // section keys the class occupies
  *     teachers: [],
  *     lab_type,          // 'SW' | 'HW' | null
@@ -57,18 +59,20 @@ export const WEIGHTS = {
   labType: 80,
   // Past routines never used the morning slot but did fill a slot now and
   // then, so a full slot is the lesser evil.
-  morning: 60,
   timeMix: 15,
   crowded: 25,
   sameDay: 6,
   daySpread: 12,
   extraRoom: 20,
+  middayOver: 50,
+  levelBalance: 10,
+  oneTime: 60,
   balance: 0.5,
 };
 
 const EFFORT = {
   quick: { iterations: 40000, restarts: 3 },
-  normal: { iterations: 150000, restarts: 4 },
+  normal: { iterations: 250000, restarts: 4 },
   thorough: { iterations: 400000, restarts: 6 },
 };
 
@@ -136,9 +140,14 @@ export function solve(problem, options = {}) {
   const slotDay = slots.map((s) => s.dayIndex);
 
   // ---- costs that depend only on the unit and its slot / room ------------
+  // The scheduler only uses the 11 AM and 2 PM slots; a class in the morning
+  // slot (8 AM) is one someone placed by hand and locked.
+  const openSlots = slots.map((_, i) => i).filter((i) => !slots[i].isMorning);
+  if (openSlots.length === 0) slots.forEach((_, i) => openSlots.push(i));
+  const randomSlot = () => openSlots[Math.floor(rand() * openSlots.length)];
   const slotStatic = units.map((u) =>
     slots.map(
-      (s, i) => (u.blocked && u.blocked[i] ? W.hard : 0) + (s.isMorning ? W.morning : 0)
+      (s, i) => (u.blocked && u.blocked[i] ? W.hard : 0)
     )
   );
 
@@ -231,7 +240,59 @@ export function solve(problem, options = {}) {
   const dayCover = new Int16Array(D * K);
   const teacherOcc = new Int16Array(S * T);
   const courseOcc = new Int16Array(S * C); // subsections of each course per slot
+
+  // Midday (11 AM) labs per section, and the 11 AM / 2 PM split of the
+  // sections of each level-term. The theory routine needs the mornings, so a
+  // section should have at most `middayLimit` midday labs, and no section of
+  // a level-term should have all its labs at one time while others differ.
+  const middayLimit = problem.middayLimit ?? 2;
+  const isMidday = slots.map((sl) => Boolean(sl.isMidday));
+  const coverTotal = new Int16Array(K);
+  const coverMidday = new Int16Array(K);
+  const [levelIndex, levelId] = indexer();
+  const levelOfUnit = units.map((u) => (u.levelKey ? levelId(u.levelKey) : -1));
+  const levelCovers = Array.from({ length: Math.max(1, levelIndex.size) }, () => new Set());
+  units.forEach((u, i) => {
+    if (levelOfUnit[i] >= 0) cover[i].forEach((k) => levelCovers[levelOfUnit[i]].add(k));
+  });
+  const levelCoverList = levelCovers.map((set) => [...set]);
+  // Too many midday labs, or every lab at one time (all 11 AM or all 2 PM)
+  const middayOver = (k) =>
+    W.middayOver * Math.max(0, coverMidday[k] - middayLimit) +
+    (coverTotal[k] >= 2 && (coverMidday[k] === 0 || coverMidday[k] === coverTotal[k]) ? W.oneTime : 0);
+  // Each section pays for how far its midday count is from its level-term's
+  // overall share
+  function levelCost(g) {
+    let total = 0;
+    let midday = 0;
+    for (const k of levelCoverList[g]) {
+      total += coverTotal[k];
+      midday += coverMidday[k];
+    }
+    if (total === 0) return 0;
+    const share = midday / total;
+    let dev = 0;
+    for (const k of levelCoverList[g]) dev += Math.abs(coverMidday[k] - coverTotal[k] * share);
+    return W.levelBalance * dev;
+  }
+  // Change in the two section costs when unit u enters (+1) or leaves (-1) slot s
+  function sectionTimeDelta(u, s, sign) {
+    const g = levelOfUnit[u];
+    let before = g >= 0 ? levelCost(g) : 0;
+    for (const k of cover[u]) before += middayOver(k);
+    for (const k of cover[u]) {
+      coverTotal[k] += sign;
+      if (isMidday[s]) coverMidday[k] += sign;
+    }
+    let after = g >= 0 ? levelCost(g) : 0;
+    for (const k of cover[u]) after += middayOver(k);
+    return after - before;
+  }
   const courseRoomCount = new Int16Array(RG * RR); // classes of a course per room
+  const roomSeen = new Int32Array(RR);
+  const slotSeen = new Int32Array(S);
+  const slotOccupants = new Int16Array(S);
+  let stamp = 0;
   const courseRoomBase = units.map((_, u) =>
     roomsGroupOf[u] >= 0 ? roomsGroupIndex.get(roomsGroupOf[u]) * RR : -1
   );
@@ -283,6 +344,7 @@ export function solve(problem, options = {}) {
       mixTotal[mix[u]]++;
       d += mixCost(mix[u]) - before;
     }
+    d += sectionTimeDelta(u, s, 1);
     d += W.balance * (2 * slotCount[s] + 1);
     slotCount[s]++;
     d += slotStatic[u][s];
@@ -330,6 +392,7 @@ export function solve(problem, options = {}) {
       mixTotal[mix[u]]--;
       d += mixCost(mix[u]) - before;
     }
+    d += sectionTimeDelta(u, s, -1);
     slotCount[s]--;
     d -= W.balance * (2 * slotCount[s] + 1);
     d -= slotStatic[u][s];
@@ -348,19 +411,39 @@ export function solve(problem, options = {}) {
     if (members.length < 2) return 0;
     if (kind === "rooms") {
       // Rooms used beyond the fewest possible: as many as the course ever
-      // needs at once (paired subsections need two)
-      const used = new Set();
-      const atOnce = new Map();
-      for (const m of members) {
-        if (slotOf[m] < 0 || roomOf[m] < 0) continue;
-        used.add(roomOf[m]);
-        const inSlot = atOnce.get(slotOf[m]) || new Set();
-        inSlot.add(occupant[m]);
-        atOnce.set(slotOf[m], inSlot);
-      }
+      // needs at once (paired subsections need two). Scratch arrays with a
+      // stamp avoid allocating on every call.
+      stamp++;
+      let used = 0;
       let needed = 0;
-      for (const set of atOnce.values()) needed = Math.max(needed, set.size);
-      return W.extraRoom * Math.max(0, used.size - needed);
+      for (let i = 0; i < members.length; i++) {
+        const m = members[i];
+        const s = slotOf[m];
+        const r = roomOf[m];
+        if (s < 0 || r < 0) continue;
+        if (roomSeen[r] !== stamp) {
+          roomSeen[r] = stamp;
+          used++;
+        }
+        // A new occupant in this slot unless an earlier member shares it
+        let fresh = true;
+        for (let j = 0; j < i; j++) {
+          const o = members[j];
+          if (slotOf[o] === s && roomOf[o] >= 0 && occupant[o] === occupant[m]) {
+            fresh = false;
+            break;
+          }
+        }
+        if (fresh) {
+          if (slotSeen[s] !== stamp) {
+            slotSeen[s] = stamp;
+            slotOccupants[s] = 0;
+          }
+          slotOccupants[s]++;
+          if (slotOccupants[s] > needed) needed = slotOccupants[s];
+        }
+      }
+      return W.extraRoom * Math.max(0, used - needed);
     }
     if (kind === "days") {
       let lo = Infinity;
@@ -451,6 +534,8 @@ export function solve(problem, options = {}) {
     courseOcc.fill(0);
     mixCount.fill(0);
     mixTotal.fill(0);
+    coverTotal.fill(0);
+    coverMidday.fill(0);
     slotCount.fill(0);
     slotOf.fill(-1);
     roomOf.fill(-1);
@@ -477,14 +562,14 @@ export function solve(problem, options = {}) {
       .filter((free) => free.length > 0)
       .map((free) => ({
         free,
-        feasible: Math.min(...free.map((m) => slotStatic[m].filter((c) => c < W.hard).length)),
+        feasible: Math.min(...free.map((m) => openSlots.filter((i) => slotStatic[m][i] < W.hard).length)),
         noise: rand(),
       }))
       .sort((a, b) => a.feasible - b.feasible || b.free.length - a.free.length || a.noise - b.noise);
 
     for (const { free } of order) {
       const options = [];
-      for (let s = 0; s < S; s++) {
+      for (const s of openSlots) {
         const { d, undo } = moveUnits(free.map((m) => [m, s]));
         undoMove(undo);
         options.push({ s, d: d + rand() * 20 });
@@ -532,6 +617,8 @@ export function solve(problem, options = {}) {
     }
     for (let g = 0; g < groups.length; g++) cost += groupCost(g);
     for (let m = 0; m < M; m++) cost += mixCost(m);
+    for (let k = 0; k < K; k++) cost += middayOver(k);
+    for (let g = 0; g < levelCoverList.length; g++) cost += levelCost(g);
     return cost;
   }
 
@@ -563,10 +650,10 @@ export function solve(problem, options = {}) {
 
       if (kind < 0.45 && groups[slotGroupOf[u]].kind === "together") {
         // Move the whole group to another slot
-        const s = Math.floor(rand() * S);
+        const s = randomSlot();
         list = groups[slotGroupOf[u]].members.filter((m) => fixedSlot[m] < 0).map((m) => [m, s]);
       } else if (kind < 0.65) {
-        list = [[u, Math.floor(rand() * S)]];
+        list = [[u, randomSlot()]];
       } else if (kind < 0.8) {
         // Another room, taking room-sharing siblings in the same slot along
         if (R > 1) {
@@ -766,14 +853,25 @@ export function solve(problem, options = {}) {
         warnings.push(`${where} are not in the same slot`);
       }
     }
+    // Sections with too many midday labs
+    let sectionsOverMidday = 0;
+    for (const [key, k] of coverIndex) {
+      if (coverMidday[k] <= middayLimit) continue;
+      sectionsOverMidday++;
+      warnings.push(`${key.split("|").slice(-1)[0]} (${key.split("|")[0]} batch ${key.split("|")[1]}) has ${coverMidday[k]} labs at 11 AM; at most ${middayLimit} leave room for theory`);
+    }
+    // Sections with every lab at one time
+    let lopsidedSections = 0;
+    for (const [key, k] of coverIndex) {
+      if (coverTotal[k] < 2 || (coverMidday[k] > 0 && coverMidday[k] < coverTotal[k])) continue;
+      lopsidedSections++;
+      warnings.push(`${key.split("|").slice(-1)[0]} (${key.split("|")[0]} batch ${key.split("|")[1]}) has all ${coverTotal[k]} labs at ${coverMidday[k] ? "11 AM" : "2 PM"}`);
+    }
     const full = slots.filter((_, s) => roomsUsed[s] > roomTarget);
     if (full.length > 0) {
       warnings.push(
         `No lab is left free on ${full.map((sl) => `${sl.day} ${sl.time}:00`).join(", ")}`
       );
-    }
-    if (morningCount > 0) {
-      warnings.push(`${morningCount} class${morningCount === 1 ? " is" : "es are"} in a morning slot`);
     }
 
     const roomUsage = slots.map((slot, s) => {
@@ -797,6 +895,8 @@ export function solve(problem, options = {}) {
         conflicts: conflicts.length,
         sectionClashes,
         byTime,
+        sectionsOverMidday,
+        lopsidedSections,
         roomCourses,
         roomCoursesFewest,
         averageDaySpread: spreadCourses ? Math.round((spreadTotal / spreadCourses) * 10) / 10 : 0,

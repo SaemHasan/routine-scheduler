@@ -130,7 +130,10 @@ export default function AutoScheduler({ onApplied }) {
           for other departments go at 11 AM wherever possible; departmental labs are
           split between 11 AM and 2 PM the way past routines were (Level 1 leans to
           11 AM, Levels 2–4 to 2 PM), leaving a lab free in every slot where possible.
-          The sections of a course are kept on nearby days. Subsections of a
+          Each section gets at most two 11 AM labs (the mornings are needed for
+          theory) and a mix of 11 AM and 2 PM labs rather than all at one time.
+          The sections of a course are kept on nearby days and in as few rooms as
+          possible (e.g. every CSE310 section in the same lab). Subsections of a
           1.5-credit section are kept in the same slot, except for a course run for
           another department with only one section, whose subsections go in different
           slots. Course rules can put all of a course's sections in one slot (e.g. the
@@ -297,6 +300,28 @@ function Suggestion({ result, showAllIssues, onToggleIssues }) {
           <div title="Average number of days between the first and last section of a course">
             <div className="stat-tile-value">{stats.averageDaySpread}</div>
             <div className="stat-tile-label">Days between a course's sections</div>
+          </div>
+        </div>
+        <div className="stat-tile">
+          <div
+            className={`stat-tile-icon mdi mdi-account-clock-outline ${
+              stats.sectionsOverMidday + stats.lopsidedSections ? "amber" : "teal"
+            }`}
+          ></div>
+          <div title="Sections with more than two 11 AM labs, or with every lab at the same time">
+            <div className="stat-tile-value">
+              {stats.sectionsOverMidday + stats.lopsidedSections}
+            </div>
+            <div className="stat-tile-label">Section timing issues</div>
+          </div>
+        </div>
+        <div className="stat-tile">
+          <div className="stat-tile-icon teal mdi mdi-door"></div>
+          <div title="Courses using no more rooms than they need at once (one lab, or two for paired subsections)">
+            <div className="stat-tile-value">
+              {stats.roomCoursesFewest}/{stats.roomCourses}
+            </div>
+            <div className="stat-tile-label">Courses in the fewest rooms</div>
           </div>
         </div>
         <div className="stat-tile">
