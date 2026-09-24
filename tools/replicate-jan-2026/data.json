@@ -1,0 +1,6821 @@
+{
+ "session": "January-26",
+ "teachers": [
+  {
+   "initial": "MMA",
+   "name": "Dr. Muhammad Masroor Ali",
+   "nickname": "Masroor",
+   "full_time": true,
+   "thesis_1": true,
+   "msc": true
+  },
+  {
+   "initial": "ASMLH",
+   "name": "Dr. Abu Sayed Md. Latiful Hoque",
+   "nickname": "Latif",
+   "full_time": true,
+   "thesis_1": true,
+   "msc": false
+  },
+  {
+   "initial": "MMI",
+   "name": "Dr. Md. Monirul Islam",
+   "nickname": "Monir",
+   "full_time": true,
+   "thesis_1": true,
+   "msc": false
+  },
+  {
+   "initial": "MMAK",
+   "name": "Dr. Md. Mostofa Akbar",
+   "nickname": "Mostofa",
+   "full_time": true,
+   "thesis_1": true,
+   "msc": false
+  },
+  {
+   "initial": "MMFZ",
+   "name": "Dr. Mohammad Mahfuzul Islam",
+   "nickname": "Mahfuz",
+   "full_time": true,
+   "thesis_1": true,
+   "msc": true
+  },
+  {
+   "initial": "AKMAR",
+   "name": "Dr. A.K.M. Ashikur Rahman",
+   "nickname": "Ashik",
+   "full_time": true,
+   "thesis_1": false,
+   "msc": false
+  },
+  {
+   "initial": "MN",
+   "name": "Dr. Mahmuda Naznin",
+   "nickname": "Mahmuda",
+   "full_time": true,
+   "thesis_1": true,
+   "msc": false
+  },
+  {
+   "initial": "MDMI",
+   "name": "Dr. Md. Monirul Islam",
+   "nickname": "Monir Jr.",
+   "full_time": true,
+   "thesis_1": true,
+   "msc": false
+  },
+  {
+   "initial": "TH",
+   "name": "Dr. Tanzima Hashem",
+   "nickname": "Tanzima",
+   "full_time": true,
+   "thesis_1": true,
+   "msc": false
+  },
+  {
+   "initial": "MSH",
+   "name": "Dr. Md. Shohrab Hossain",
+   "nickname": "Shohrab",
+   "full_time": true,
+   "thesis_1": true,
+   "msc": false
+  },
+  {
+   "initial": "AAI",
+   "name": "Dr. A. B. M. Alim Al Islam",
+   "nickname": "Alim",
+   "full_time": true,
+   "thesis_1": true,
+   "msc": true
+  },
+  {
+   "initial": "AI",
+   "name": "Dr. Anindya Iqbal",
+   "nickname": "Anindya",
+   "full_time": true,
+   "thesis_1": true,
+   "msc": false
+  },
+  {
+   "initial": "RS",
+   "name": "Dr. Rifat Shahriyar",
+   "nickname": "Rifat",
+   "full_time": true,
+   "thesis_1": true,
+   "msc": false
+  },
+  {
+   "initial": "MDAA",
+   "name": "Dr. Muhammad Abdullah Adnan",
+   "nickname": "Adnan",
+   "full_time": true,
+   "thesis_1": true,
+   "msc": true
+  },
+  {
+   "initial": "MDSR",
+   "name": "Dr. Mohammad Saifur Rahman",
+   "nickname": "Saifur",
+   "full_time": true,
+   "thesis_1": true,
+   "msc": false
+  },
+  {
+   "initial": "MSB",
+   "name": "Dr. Md. Shamsuzzoha Bayzid",
+   "nickname": "Bayzid",
+   "full_time": true,
+   "thesis_1": true,
+   "msc": true
+  },
+  {
+   "initial": "AHR",
+   "name": "Dr. Atif Hasan Rahman",
+   "nickname": "Atif",
+   "full_time": true,
+   "thesis_1": true,
+   "msc": false
+  },
+  {
+   "initial": "SS",
+   "name": "Dr. Sadia Sharmin",
+   "nickname": "Sadia",
+   "full_time": true,
+   "thesis_1": true,
+   "msc": false
+  },
+  {
+   "initial": "AW",
+   "name": "Abu Wasif",
+   "nickname": "Wasif",
+   "full_time": true,
+   "thesis_1": true,
+   "msc": false
+  },
+  {
+   "initial": "SB",
+   "name": "Sukarna Barua",
+   "nickname": "Sukarna",
+   "full_time": true,
+   "thesis_1": true,
+   "msc": false
+  },
+  {
+   "initial": "MSIB",
+   "name": "Md. Shariful Islam Bhuyan",
+   "nickname": "Sharif",
+   "full_time": true,
+   "thesis_1": true,
+   "msc": false
+  },
+  {
+   "initial": "RRR",
+   "name": "Dr. Rezwana Reaz Rimpi",
+   "nickname": "Rimpi",
+   "full_time": true,
+   "thesis_1": true,
+   "msc": false
+  },
+  {
+   "initial": "MTA",
+   "name": "Dr. Tanveer Awal",
+   "nickname": "Tanveer",
+   "full_time": true,
+   "thesis_1": false,
+   "msc": false
+  },
+  {
+   "initial": "KMS",
+   "name": "Khaled Mahmud Shahriar",
+   "nickname": "Shahriar",
+   "full_time": true,
+   "thesis_1": false,
+   "msc": false
+  },
+  {
+   "initial": "CRH",
+   "name": "Dr. Ch. Md. Rakin Haider",
+   "nickname": "Rakin",
+   "full_time": true,
+   "thesis_1": true,
+   "msc": false
+  },
+  {
+   "initial": "HT",
+   "name": "Tahmid Hasan",
+   "nickname": "Tahmid",
+   "full_time": true,
+   "thesis_1": false,
+   "msc": false
+  },
+  {
+   "initial": "NVN",
+   "name": "Dr. Novia Nurain",
+   "nickname": "Novia",
+   "full_time": true,
+   "thesis_1": true,
+   "msc": true
+  },
+  {
+   "initial": "MHE",
+   "name": "A. K. M. Mehedi Hasan",
+   "nickname": "Mehedi",
+   "full_time": true,
+   "thesis_1": false,
+   "msc": false
+  },
+  {
+   "initial": "ART",
+   "name": "Abdur Rashid Tushar",
+   "nickname": "Tushar",
+   "full_time": true,
+   "thesis_1": false,
+   "msc": false
+  },
+  {
+   "initial": "SAH",
+   "name": "Sheikh Azizul Hakim",
+   "nickname": "Hakim",
+   "full_time": true,
+   "thesis_1": false,
+   "msc": false
+  },
+  {
+   "initial": "KRV",
+   "name": "Kowshic Roy",
+   "nickname": "Vodro",
+   "full_time": true,
+   "thesis_1": false,
+   "msc": false
+  },
+  {
+   "initial": "SMH",
+   "name": "Saem Hasan",
+   "nickname": "Saem",
+   "full_time": true,
+   "thesis_1": false,
+   "msc": false
+  },
+  {
+   "initial": "EHP",
+   "name": "Md. Emamul Haque Pranta",
+   "nickname": "Pranta",
+   "full_time": true,
+   "thesis_1": false,
+   "msc": false
+  },
+  {
+   "initial": "IJ",
+   "name": "Ishrat Jahan",
+   "nickname": "Ishrat",
+   "full_time": true,
+   "thesis_1": false,
+   "msc": false
+  },
+  {
+   "initial": "MNM",
+   "name": "Md. Nurul Muttakin",
+   "nickname": "Muttakin",
+   "full_time": true,
+   "thesis_1": false,
+   "msc": false
+  },
+  {
+   "initial": "JYK",
+   "name": "Junaed Younus Khan",
+   "nickname": "Junaed",
+   "full_time": true,
+   "thesis_1": false,
+   "msc": false
+  },
+  {
+   "initial": "AMR",
+   "name": "Ahmed Mahir Sultan Rumi",
+   "nickname": "Rumi",
+   "full_time": true,
+   "thesis_1": false,
+   "msc": false
+  },
+  {
+   "initial": "RJM",
+   "name": "Rabib Jahin Ibn Momin",
+   "nickname": "Rabib",
+   "full_time": true,
+   "thesis_1": false,
+   "msc": false
+  },
+  {
+   "initial": "ADR",
+   "name": "Abdur Rafi",
+   "nickname": "Rafi",
+   "full_time": true,
+   "thesis_1": false,
+   "msc": false
+  },
+  {
+   "initial": "ABS",
+   "name": "Anwarul Bashir Shuaib",
+   "nickname": "Shuaib",
+   "full_time": true,
+   "thesis_1": false,
+   "msc": false
+  },
+  {
+   "initial": "STR",
+   "name": "Shattik Islam Rhythm",
+   "nickname": "Shattik",
+   "full_time": true,
+   "thesis_1": false,
+   "msc": false
+  },
+  {
+   "initial": "MSD",
+   "name": "Mohammad Sadat Hossain",
+   "nickname": "Sadat",
+   "full_time": true,
+   "thesis_1": false,
+   "msc": false
+  },
+  {
+   "initial": "NTD",
+   "name": "Nafis Tahmid",
+   "nickname": "Nafis",
+   "full_time": true,
+   "thesis_1": false,
+   "msc": false
+  },
+  {
+   "initial": "ARK",
+   "name": "Md. Ashrafur Rahman Khan",
+   "nickname": "Ashrafur",
+   "full_time": true,
+   "thesis_1": false,
+   "msc": false
+  },
+  {
+   "initial": "RZS",
+   "name": "MD. Roqunuzzaman Sojib",
+   "nickname": "Sojib",
+   "full_time": true,
+   "thesis_1": false,
+   "msc": false
+  },
+  {
+   "initial": "NZR",
+   "name": "Niaz Rahman",
+   "nickname": "Niaz",
+   "full_time": true,
+   "thesis_1": false,
+   "msc": false
+  },
+  {
+   "initial": "IAH",
+   "name": "Md. Ishrak Ahsan",
+   "nickname": "Ishrak",
+   "full_time": true,
+   "thesis_1": false,
+   "msc": false
+  },
+  {
+   "initial": "MLD",
+   "name": "Mahir Labib Dihan",
+   "nickname": "Dihan",
+   "full_time": true,
+   "thesis_1": false,
+   "msc": false
+  },
+  {
+   "initial": "AKS",
+   "name": "Anik Saha",
+   "nickname": "Anik",
+   "full_time": false,
+   "thesis_1": false,
+   "msc": false
+  },
+  {
+   "initial": "AMA",
+   "name": "Abdullah Muhammed Amimul Ehsan",
+   "nickname": "Amimul",
+   "full_time": false,
+   "thesis_1": false,
+   "msc": false
+  },
+  {
+   "initial": "IRK",
+   "name": "Md. Irtiaz Kabir",
+   "nickname": "Irtiaz",
+   "full_time": false,
+   "thesis_1": false,
+   "msc": false
+  },
+  {
+   "initial": "STP",
+   "name": "Swastika Pandit",
+   "nickname": "Swastika",
+   "full_time": false,
+   "thesis_1": false,
+   "msc": false
+  },
+  {
+   "initial": "AHJ",
+   "name": "Anup Halder Joy",
+   "nickname": "Anup",
+   "full_time": false,
+   "thesis_1": false,
+   "msc": false
+  },
+  {
+   "initial": "ZMS",
+   "name": "Md. Zim - Mim Siddiqee Sowdha",
+   "nickname": "Sowdha",
+   "full_time": false,
+   "thesis_1": false,
+   "msc": false
+  },
+  {
+   "initial": "FRA",
+   "name": "Farriha Afnan",
+   "nickname": "Farriha",
+   "full_time": false,
+   "thesis_1": false,
+   "msc": false
+  },
+  {
+   "initial": "IMK",
+   "name": "Md. Imtiaz Kabir",
+   "nickname": "Imtiaz",
+   "full_time": false,
+   "thesis_1": false,
+   "msc": false
+  },
+  {
+   "initial": "SSA",
+   "name": "Sumaiya Sultana",
+   "nickname": "Sumaiya",
+   "full_time": false,
+   "thesis_1": false,
+   "msc": false
+  },
+  {
+   "initial": "AMM",
+   "name": "Al Muhit Muhtadi",
+   "nickname": "Muhtadi",
+   "full_time": false,
+   "thesis_1": false,
+   "msc": false
+  }
+ ],
+ "rooms": [
+  {
+   "room": "CL",
+   "type": 1,
+   "external": false
+  },
+  {
+   "room": "IL",
+   "type": 1,
+   "external": false
+  },
+  {
+   "room": "DL",
+   "type": 1,
+   "external": false
+  },
+  {
+   "room": "PL",
+   "type": 1,
+   "external": false
+  },
+  {
+   "room": "DBL",
+   "type": 2,
+   "external": false
+  },
+  {
+   "room": "WNL",
+   "type": 1,
+   "external": false
+  },
+  {
+   "room": "VDAL",
+   "type": 1,
+   "external": false
+  },
+  {
+   "room": "CCL",
+   "type": 1,
+   "external": false
+  },
+  {
+   "room": "CSL",
+   "type": 2,
+   "external": false
+  },
+  {
+   "room": "IAC",
+   "type": 1,
+   "external": false
+  },
+  {
+   "room": "103",
+   "type": 0,
+   "external": false
+  },
+  {
+   "room": "104",
+   "type": 0,
+   "external": false
+  },
+  {
+   "room": "107",
+   "type": 0,
+   "external": false
+  },
+  {
+   "room": "108",
+   "type": 0,
+   "external": false
+  },
+  {
+   "room": "109",
+   "type": 0,
+   "external": false
+  },
+  {
+   "room": "203",
+   "type": 0,
+   "external": false
+  },
+  {
+   "room": "204",
+   "type": 0,
+   "external": false
+  },
+  {
+   "room": "205",
+   "type": 0,
+   "external": false
+  },
+  {
+   "room": "206",
+   "type": 0,
+   "external": false
+  },
+  {
+   "room": "207",
+   "type": 0,
+   "external": false
+  },
+  {
+   "room": "903",
+   "type": 0,
+   "external": false
+  },
+  {
+   "room": "905",
+   "type": 0,
+   "external": false
+  },
+  {
+   "room": "403",
+   "type": 0,
+   "external": false
+  },
+  {
+   "room": "504",
+   "type": 0,
+   "external": false
+  },
+  {
+   "room": "(EEE) R629",
+   "type": 0,
+   "external": true
+  },
+  {
+   "room": "(EEE) R921",
+   "type": 0,
+   "external": true
+  },
+  {
+   "room": "(EEE) R925",
+   "type": 0,
+   "external": true
+  },
+  {
+   "room": "(EEE) CL1",
+   "type": 1,
+   "external": true
+  },
+  {
+   "room": "(EEE) NCL",
+   "type": 1,
+   "external": true
+  },
+  {
+   "room": "(EEE) OEL",
+   "type": 1,
+   "external": true
+  },
+  {
+   "room": "(EEE) PEL",
+   "type": 1,
+   "external": true
+  },
+  {
+   "room": "(BME) 1104",
+   "type": 0,
+   "external": true
+  },
+  {
+   "room": "(BME) 1105",
+   "type": 0,
+   "external": true
+  },
+  {
+   "room": "(BME) 1106",
+   "type": 0,
+   "external": true
+  },
+  {
+   "room": "(BME) 1108",
+   "type": 0,
+   "external": true
+  },
+  {
+   "room": "(IPE) 502",
+   "type": 0,
+   "external": true
+  },
+  {
+   "room": "(IPE) 604",
+   "type": 0,
+   "external": true
+  },
+  {
+   "room": "(OAB) Physics Lab-2",
+   "type": 1,
+   "external": true
+  },
+  {
+   "room": "(OAB) Physics Lab-4",
+   "type": 1,
+   "external": true
+  },
+  {
+   "room": "(OAB) Physics Lab-1",
+   "type": 1,
+   "external": true
+  },
+  {
+   "room": "(OAB) 202E",
+   "type": 0,
+   "external": true
+  },
+  {
+   "room": "(OAB) 206",
+   "type": 0,
+   "external": true
+  },
+  {
+   "room": "(URP) 402",
+   "type": 1,
+   "external": true
+  }
+ ],
+ "level_terms": [
+  {
+   "department": "BME",
+   "level_term": "L-2 T-1",
+   "batch": 23
+  },
+  {
+   "department": "BME",
+   "level_term": "L-2 T-2",
+   "batch": 22
+  },
+  {
+   "department": "BME",
+   "level_term": "L-3 T-1",
+   "batch": 21
+  },
+  {
+   "department": "BME",
+   "level_term": "L-4 T-1",
+   "batch": 20
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-1 T-1",
+   "batch": 24
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-1",
+   "batch": 23
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-2",
+   "batch": 22
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-3 T-1",
+   "batch": 21
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-4 T-1",
+   "batch": 20
+  },
+  {
+   "department": "EEE",
+   "level_term": "L-1 T-1",
+   "batch": 24
+  },
+  {
+   "department": "IPE",
+   "level_term": "L-2 T-1",
+   "batch": 23
+  },
+  {
+   "department": "MME",
+   "level_term": "L-2 T-1",
+   "batch": 23
+  },
+  {
+   "department": "NCE",
+   "level_term": "L-2 T-1",
+   "batch": 23
+  },
+  {
+   "department": "URP",
+   "level_term": "L-2 T-2",
+   "batch": 22
+  }
+ ],
+ "courses": [
+  {
+   "course_id": "CSE101",
+   "credit": 3,
+   "to": "CSE",
+   "from": "CSE",
+   "type": 0,
+   "level_term": "L-1 T-1"
+  },
+  {
+   "course_id": "CSE102",
+   "credit": 1.5,
+   "to": "CSE",
+   "from": "CSE",
+   "type": 1,
+   "level_term": "L-1 T-1"
+  },
+  {
+   "course_id": "CSE103",
+   "credit": 3,
+   "to": "CSE",
+   "from": "CSE",
+   "type": 0,
+   "level_term": "L-1 T-1"
+  },
+  {
+   "course_id": "EEE163",
+   "credit": 3,
+   "to": "CSE",
+   "from": "EEE",
+   "type": 0,
+   "level_term": "L-1 T-1"
+  },
+  {
+   "course_id": "EEE164",
+   "credit": 1.5,
+   "to": "CSE",
+   "from": "EEE",
+   "type": 1,
+   "level_term": "L-1 T-1"
+  },
+  {
+   "course_id": "MATH141",
+   "credit": 3,
+   "to": "CSE",
+   "from": "MATH",
+   "type": 0,
+   "level_term": "L-1 T-1"
+  },
+  {
+   "course_id": "PHY114",
+   "credit": 1.5,
+   "to": "CSE",
+   "from": "PHY",
+   "type": 1,
+   "level_term": "L-1 T-1"
+  },
+  {
+   "course_id": "PHY129",
+   "credit": 3,
+   "to": "CSE",
+   "from": "PHY",
+   "type": 0,
+   "level_term": "L-1 T-1"
+  },
+  {
+   "course_id": "CSE109",
+   "credit": 3,
+   "to": "EEE",
+   "from": "CSE",
+   "type": 0,
+   "level_term": "L-1 T-1"
+  },
+  {
+   "course_id": "CSE110",
+   "credit": 1.5,
+   "to": "EEE",
+   "from": "CSE",
+   "type": 1,
+   "level_term": "L-1 T-1"
+  },
+  {
+   "course_id": "CSE205",
+   "credit": 3,
+   "to": "CSE",
+   "from": "CSE",
+   "type": 0,
+   "level_term": "L-2 T-1"
+  },
+  {
+   "course_id": "CSE206",
+   "credit": 1.5,
+   "to": "CSE",
+   "from": "CSE",
+   "type": 1,
+   "level_term": "L-2 T-1"
+  },
+  {
+   "course_id": "CSE207",
+   "credit": 3,
+   "to": "CSE",
+   "from": "CSE",
+   "type": 0,
+   "level_term": "L-2 T-1"
+  },
+  {
+   "course_id": "CSE208",
+   "credit": 1.5,
+   "to": "CSE",
+   "from": "CSE",
+   "type": 1,
+   "level_term": "L-2 T-1"
+  },
+  {
+   "course_id": "CSE215",
+   "credit": 3,
+   "to": "CSE",
+   "from": "CSE",
+   "type": 0,
+   "level_term": "L-2 T-1"
+  },
+  {
+   "course_id": "CSE216",
+   "credit": 1.5,
+   "to": "CSE",
+   "from": "CSE",
+   "type": 1,
+   "level_term": "L-2 T-1"
+  },
+  {
+   "course_id": "EEE263",
+   "credit": 3,
+   "to": "CSE",
+   "from": "EEE",
+   "type": 0,
+   "level_term": "L-2 T-1"
+  },
+  {
+   "course_id": "EEE264",
+   "credit": 1.5,
+   "to": "CSE",
+   "from": "EEE",
+   "type": 1,
+   "level_term": "L-2 T-1"
+  },
+  {
+   "course_id": "MATH241",
+   "credit": 3,
+   "to": "CSE",
+   "from": "MATH",
+   "type": 0,
+   "level_term": "L-2 T-1"
+  },
+  {
+   "course_id": "CSE281",
+   "credit": 3,
+   "to": "BME",
+   "from": "CSE",
+   "type": 0,
+   "level_term": "L-2 T-1"
+  },
+  {
+   "course_id": "CSE282",
+   "credit": 1.5,
+   "to": "BME",
+   "from": "CSE",
+   "type": 1,
+   "level_term": "L-2 T-1"
+  },
+  {
+   "course_id": "CSE287",
+   "credit": 3,
+   "to": "MME",
+   "from": "CSE",
+   "type": 0,
+   "level_term": "L-2 T-1"
+  },
+  {
+   "course_id": "CSE288",
+   "credit": 1.5,
+   "to": "MME",
+   "from": "CSE",
+   "type": 1,
+   "level_term": "L-2 T-1"
+  },
+  {
+   "course_id": "CSE295",
+   "credit": 3,
+   "to": "IPE",
+   "from": "CSE",
+   "type": 0,
+   "level_term": "L-2 T-1"
+  },
+  {
+   "course_id": "CSE296",
+   "credit": 1.5,
+   "to": "IPE",
+   "from": "CSE",
+   "type": 1,
+   "level_term": "L-2 T-1"
+  },
+  {
+   "course_id": "CSE273",
+   "credit": 3,
+   "to": "NCE",
+   "from": "CSE",
+   "type": 0,
+   "level_term": "L-2 T-1"
+  },
+  {
+   "course_id": "CSE274",
+   "credit": 1.5,
+   "to": "NCE",
+   "from": "CSE",
+   "type": 1,
+   "level_term": "L-2 T-1"
+  },
+  {
+   "course_id": "CSE200",
+   "credit": 0.75,
+   "to": "CSE",
+   "from": "CSE",
+   "type": 1,
+   "level_term": "L-2 T-2"
+  },
+  {
+   "course_id": "CSE209",
+   "credit": 3,
+   "to": "CSE",
+   "from": "CSE",
+   "type": 0,
+   "level_term": "L-2 T-2"
+  },
+  {
+   "course_id": "CSE210",
+   "credit": 0.75,
+   "to": "CSE",
+   "from": "CSE",
+   "type": 1,
+   "level_term": "L-2 T-2"
+  },
+  {
+   "course_id": "CSE211",
+   "credit": 3,
+   "to": "CSE",
+   "from": "CSE",
+   "type": 0,
+   "level_term": "L-2 T-2"
+  },
+  {
+   "course_id": "CSE213",
+   "credit": 3,
+   "to": "CSE",
+   "from": "CSE",
+   "type": 0,
+   "level_term": "L-2 T-2"
+  },
+  {
+   "course_id": "CSE214",
+   "credit": 0.75,
+   "to": "CSE",
+   "from": "CSE",
+   "type": 1,
+   "level_term": "L-2 T-2"
+  },
+  {
+   "course_id": "CSE219",
+   "credit": 3,
+   "to": "CSE",
+   "from": "CSE",
+   "type": 0,
+   "level_term": "L-2 T-2"
+  },
+  {
+   "course_id": "CSE220",
+   "credit": 1.5,
+   "to": "CSE",
+   "from": "CSE",
+   "type": 1,
+   "level_term": "L-2 T-2"
+  },
+  {
+   "course_id": "CSE272",
+   "credit": 1.5,
+   "to": "URP",
+   "from": "CSE",
+   "type": 1,
+   "level_term": "L-2 T-2"
+  },
+  {
+   "course_id": "CSE283",
+   "credit": 3,
+   "to": "BME",
+   "from": "CSE",
+   "type": 0,
+   "level_term": "L-2 T-2"
+  },
+  {
+   "course_id": "CSE284",
+   "credit": 1.5,
+   "to": "BME",
+   "from": "CSE",
+   "type": 1,
+   "level_term": "L-2 T-2"
+  },
+  {
+   "course_id": "MATH243",
+   "credit": 3,
+   "to": "CSE",
+   "from": "MATH",
+   "type": 0,
+   "level_term": "L-2 T-2"
+  },
+  {
+   "course_id": "CSE301",
+   "credit": 3,
+   "to": "CSE",
+   "from": "CSE",
+   "type": 0,
+   "level_term": "L-3 T-1"
+  },
+  {
+   "course_id": "CSE309",
+   "credit": 3,
+   "to": "CSE",
+   "from": "CSE",
+   "type": 0,
+   "level_term": "L-3 T-1"
+  },
+  {
+   "course_id": "CSE310",
+   "credit": 0.75,
+   "to": "CSE",
+   "from": "CSE",
+   "type": 1,
+   "level_term": "L-3 T-1"
+  },
+  {
+   "course_id": "CSE313",
+   "credit": 3,
+   "to": "CSE",
+   "from": "CSE",
+   "type": 0,
+   "level_term": "L-3 T-1"
+  },
+  {
+   "course_id": "CSE314",
+   "credit": 0.75,
+   "to": "CSE",
+   "from": "CSE",
+   "type": 1,
+   "level_term": "L-3 T-1"
+  },
+  {
+   "course_id": "CSE315",
+   "credit": 3,
+   "to": "CSE",
+   "from": "CSE",
+   "type": 0,
+   "level_term": "L-3 T-1"
+  },
+  {
+   "course_id": "CSE316",
+   "credit": 0.75,
+   "to": "CSE",
+   "from": "CSE",
+   "type": 1,
+   "level_term": "L-3 T-1"
+  },
+  {
+   "course_id": "CSE317",
+   "credit": 3,
+   "to": "CSE",
+   "from": "CSE",
+   "type": 0,
+   "level_term": "L-3 T-1"
+  },
+  {
+   "course_id": "CSE318",
+   "credit": 0.75,
+   "to": "CSE",
+   "from": "CSE",
+   "type": 1,
+   "level_term": "L-3 T-1"
+  },
+  {
+   "course_id": "CSE391",
+   "credit": 3,
+   "to": "BME",
+   "from": "CSE",
+   "type": 0,
+   "level_term": "L-3 T-1"
+  },
+  {
+   "course_id": "CSE392",
+   "credit": 1.5,
+   "to": "BME",
+   "from": "CSE",
+   "type": 1,
+   "level_term": "L-3 T-1"
+  },
+  {
+   "course_id": "CSE400",
+   "credit": 3,
+   "to": "CSE",
+   "from": "CSE",
+   "type": 0,
+   "level_term": "L-4 T-1"
+  },
+  {
+   "course_id": "CSE401",
+   "credit": 3,
+   "to": "CSE",
+   "from": "CSE",
+   "type": 0,
+   "level_term": "L-4 T-1"
+  },
+  {
+   "course_id": "CSE402",
+   "credit": 0.75,
+   "to": "CSE",
+   "from": "CSE",
+   "type": 1,
+   "level_term": "L-4 T-1"
+  },
+  {
+   "course_id": "CSE405",
+   "credit": 3,
+   "to": "CSE",
+   "from": "CSE",
+   "type": 0,
+   "level_term": "L-4 T-1"
+  },
+  {
+   "course_id": "CSE406",
+   "credit": 0.75,
+   "to": "CSE",
+   "from": "CSE",
+   "type": 1,
+   "level_term": "L-4 T-1"
+  },
+  {
+   "course_id": "CSE450",
+   "credit": 1.5,
+   "to": "CSE",
+   "from": "CSE",
+   "type": 1,
+   "level_term": "L-4 T-1"
+  },
+  {
+   "course_id": "CSE495",
+   "credit": 3,
+   "to": "BME",
+   "from": "CSE",
+   "type": 0,
+   "level_term": "L-4 T-1"
+  },
+  {
+   "course_id": "HUM475",
+   "credit": 3,
+   "to": "CSE",
+   "from": "HUM",
+   "type": 0,
+   "level_term": "L-4 T-1"
+  },
+  {
+   "course_id": "CSE421",
+   "credit": 3,
+   "to": "CSE",
+   "from": "CSE",
+   "type": 0,
+   "level_term": "L-4 T-1"
+  },
+  {
+   "course_id": "CSE423",
+   "credit": 3,
+   "to": "CSE",
+   "from": "CSE",
+   "type": 0,
+   "level_term": "L-4 T-1"
+  },
+  {
+   "course_id": "CSE425",
+   "credit": 3,
+   "to": "CSE",
+   "from": "CSE",
+   "type": 0,
+   "level_term": "L-4 T-1"
+  },
+  {
+   "course_id": "CSE429",
+   "credit": 3,
+   "to": "CSE",
+   "from": "CSE",
+   "type": 0,
+   "level_term": "L-4 T-1"
+  },
+  {
+   "course_id": "CSE453",
+   "credit": 3,
+   "to": "CSE",
+   "from": "CSE",
+   "type": 0,
+   "level_term": "L-4 T-1"
+  },
+  {
+   "course_id": "CSE463",
+   "credit": 3,
+   "to": "CSE",
+   "from": "CSE",
+   "type": 0,
+   "level_term": "L-4 T-1"
+  }
+ ],
+ "new_courses": [
+  {
+   "course_id": "CSE272",
+   "name": "Sessional offered to URP",
+   "type": 1,
+   "class_per_week": 1.5,
+   "from": "CSE",
+   "to": "URP",
+   "level_term": "L-2 T-2"
+  },
+  {
+   "course_id": "CSE495",
+   "name": "Course offered to BME",
+   "type": 0,
+   "class_per_week": 3,
+   "from": "CSE",
+   "to": "BME",
+   "level_term": "L-4 T-1"
+  }
+ ],
+ "retired_courses": [
+  {
+   "course_id": "CSE493",
+   "level_term": "L-4 T-1"
+  }
+ ],
+ "electives": {
+  "L-4 T-1": {
+   "1": [
+    "CSE423",
+    "CSE425",
+    "CSE463"
+   ],
+   "2": [
+    "CSE421",
+    "CSE429",
+    "CSE453"
+   ]
+  }
+ },
+ "theory_teachers": [
+  {
+   "course_id": "CSE101",
+   "sections": [
+    "A"
+   ],
+   "teachers": [
+    "MMAK",
+    "MMFZ"
+   ]
+  },
+  {
+   "course_id": "CSE101",
+   "sections": [
+    "B"
+   ],
+   "teachers": [
+    "MMAK",
+    "MMFZ"
+   ]
+  },
+  {
+   "course_id": "CSE101",
+   "sections": [
+    "C"
+   ],
+   "teachers": [
+    "MMAK",
+    "MMFZ"
+   ]
+  },
+  {
+   "course_id": "CSE103",
+   "sections": [
+    "A"
+   ],
+   "teachers": [
+    "MN",
+    "RZS"
+   ]
+  },
+  {
+   "course_id": "CSE103",
+   "sections": [
+    "B"
+   ],
+   "teachers": [
+    "MN",
+    "RZS"
+   ]
+  },
+  {
+   "course_id": "CSE103",
+   "sections": [
+    "C"
+   ],
+   "teachers": [
+    "MN",
+    "RZS"
+   ]
+  },
+  {
+   "course_id": "CSE109",
+   "sections": [
+    "A"
+   ],
+   "teachers": [
+    "SS",
+    "MSD"
+   ]
+  },
+  {
+   "course_id": "CSE109",
+   "sections": [
+    "B"
+   ],
+   "teachers": [
+    "SS",
+    "MSD"
+   ]
+  },
+  {
+   "course_id": "CSE109",
+   "sections": [
+    "C"
+   ],
+   "teachers": [
+    "SS",
+    "MSD"
+   ]
+  },
+  {
+   "course_id": "CSE205",
+   "sections": [
+    "A"
+   ],
+   "teachers": [
+    "TH",
+    "MDAA"
+   ]
+  },
+  {
+   "course_id": "CSE205",
+   "sections": [
+    "B"
+   ],
+   "teachers": [
+    "TH",
+    "MDAA"
+   ]
+  },
+  {
+   "course_id": "CSE205",
+   "sections": [
+    "C"
+   ],
+   "teachers": [
+    "TH",
+    "MDAA"
+   ]
+  },
+  {
+   "course_id": "CSE207",
+   "sections": [
+    "A"
+   ],
+   "teachers": [
+    "MDMI",
+    "MSB"
+   ]
+  },
+  {
+   "course_id": "CSE207",
+   "sections": [
+    "B"
+   ],
+   "teachers": [
+    "MDMI",
+    "MSB"
+   ]
+  },
+  {
+   "course_id": "CSE207",
+   "sections": [
+    "C"
+   ],
+   "teachers": [
+    "MDMI",
+    "MSB"
+   ]
+  },
+  {
+   "course_id": "CSE209",
+   "sections": [
+    "A"
+   ],
+   "teachers": [
+    "RS",
+    "ART"
+   ]
+  },
+  {
+   "course_id": "CSE209",
+   "sections": [
+    "B"
+   ],
+   "teachers": [
+    "RS",
+    "ART"
+   ]
+  },
+  {
+   "course_id": "CSE209",
+   "sections": [
+    "C"
+   ],
+   "teachers": [
+    "RS",
+    "ART"
+   ]
+  },
+  {
+   "course_id": "CSE211",
+   "sections": [
+    "A"
+   ],
+   "teachers": [
+    "AHR",
+    "SAH"
+   ]
+  },
+  {
+   "course_id": "CSE211",
+   "sections": [
+    "B"
+   ],
+   "teachers": [
+    "AHR",
+    "SAH"
+   ]
+  },
+  {
+   "course_id": "CSE211",
+   "sections": [
+    "C"
+   ],
+   "teachers": [
+    "AHR",
+    "SAH"
+   ]
+  },
+  {
+   "course_id": "CSE213",
+   "sections": [
+    "A"
+   ],
+   "teachers": [
+    "AI",
+    "IJ"
+   ]
+  },
+  {
+   "course_id": "CSE213",
+   "sections": [
+    "B"
+   ],
+   "teachers": [
+    "AI",
+    "IJ"
+   ]
+  },
+  {
+   "course_id": "CSE213",
+   "sections": [
+    "C"
+   ],
+   "teachers": [
+    "AI",
+    "IJ"
+   ]
+  },
+  {
+   "course_id": "CSE215",
+   "sections": [
+    "A"
+   ],
+   "teachers": [
+    "SB",
+    "IAH"
+   ]
+  },
+  {
+   "course_id": "CSE215",
+   "sections": [
+    "B"
+   ],
+   "teachers": [
+    "SB",
+    "IAH"
+   ]
+  },
+  {
+   "course_id": "CSE215",
+   "sections": [
+    "C"
+   ],
+   "teachers": [
+    "SB",
+    "IAH"
+   ]
+  },
+  {
+   "course_id": "CSE219",
+   "sections": [
+    "A"
+   ],
+   "teachers": [
+    "ARK",
+    "AKS"
+   ]
+  },
+  {
+   "course_id": "CSE219",
+   "sections": [
+    "B"
+   ],
+   "teachers": [
+    "ARK",
+    "AKS"
+   ]
+  },
+  {
+   "course_id": "CSE219",
+   "sections": [
+    "C"
+   ],
+   "teachers": [
+    "ARK",
+    "AKS"
+   ]
+  },
+  {
+   "course_id": "CSE273",
+   "sections": [
+    "A"
+   ],
+   "teachers": [
+    "MLD"
+   ]
+  },
+  {
+   "course_id": "CSE281",
+   "sections": [
+    "A"
+   ],
+   "teachers": [
+    "CRH"
+   ]
+  },
+  {
+   "course_id": "CSE283",
+   "sections": [
+    "A"
+   ],
+   "teachers": [
+    "SMH"
+   ]
+  },
+  {
+   "course_id": "CSE287",
+   "sections": [
+    "A"
+   ],
+   "teachers": [
+    "JYK"
+   ]
+  },
+  {
+   "course_id": "CSE295",
+   "sections": [
+    "A"
+   ],
+   "teachers": [
+    "RJM",
+    "ADR"
+   ]
+  },
+  {
+   "course_id": "CSE295",
+   "sections": [
+    "B"
+   ],
+   "teachers": [
+    "RJM",
+    "ADR"
+   ]
+  },
+  {
+   "course_id": "CSE301",
+   "sections": [
+    "A"
+   ],
+   "teachers": [
+    "HT",
+    "IRK"
+   ]
+  },
+  {
+   "course_id": "CSE301",
+   "sections": [
+    "B"
+   ],
+   "teachers": [
+    "HT",
+    "IRK"
+   ]
+  },
+  {
+   "course_id": "CSE301",
+   "sections": [
+    "C"
+   ],
+   "teachers": [
+    "HT",
+    "IRK"
+   ]
+  },
+  {
+   "course_id": "CSE309",
+   "sections": [
+    "A"
+   ],
+   "teachers": [
+    "KMS",
+    "AMR"
+   ]
+  },
+  {
+   "course_id": "CSE309",
+   "sections": [
+    "B"
+   ],
+   "teachers": [
+    "KMS",
+    "AMR"
+   ]
+  },
+  {
+   "course_id": "CSE309",
+   "sections": [
+    "C"
+   ],
+   "teachers": [
+    "KMS",
+    "AMR"
+   ]
+  },
+  {
+   "course_id": "CSE313",
+   "sections": [
+    "A"
+   ],
+   "teachers": [
+    "RRR",
+    "KRV"
+   ]
+  },
+  {
+   "course_id": "CSE313",
+   "sections": [
+    "B"
+   ],
+   "teachers": [
+    "RRR",
+    "KRV"
+   ]
+  },
+  {
+   "course_id": "CSE313",
+   "sections": [
+    "C"
+   ],
+   "teachers": [
+    "RRR",
+    "KRV"
+   ]
+  },
+  {
+   "course_id": "CSE315",
+   "sections": [
+    "A"
+   ],
+   "teachers": [
+    "MHE",
+    "EHP"
+   ]
+  },
+  {
+   "course_id": "CSE315",
+   "sections": [
+    "B"
+   ],
+   "teachers": [
+    "MHE",
+    "EHP"
+   ]
+  },
+  {
+   "course_id": "CSE315",
+   "sections": [
+    "C"
+   ],
+   "teachers": [
+    "MHE",
+    "EHP"
+   ]
+  },
+  {
+   "course_id": "CSE317",
+   "sections": [
+    "A"
+   ],
+   "teachers": [
+    "MMI",
+    "MNM"
+   ]
+  },
+  {
+   "course_id": "CSE317",
+   "sections": [
+    "B"
+   ],
+   "teachers": [
+    "MMI",
+    "MNM"
+   ]
+  },
+  {
+   "course_id": "CSE317",
+   "sections": [
+    "C"
+   ],
+   "teachers": [
+    "MMI",
+    "MNM"
+   ]
+  },
+  {
+   "course_id": "CSE391",
+   "sections": [
+    "A"
+   ],
+   "teachers": [
+    "AMA"
+   ]
+  },
+  {
+   "course_id": "CSE401",
+   "sections": [
+    "A"
+   ],
+   "teachers": [
+    "NTD",
+    "NZR"
+   ]
+  },
+  {
+   "course_id": "CSE401",
+   "sections": [
+    "B"
+   ],
+   "teachers": [
+    "NTD",
+    "NZR"
+   ]
+  },
+  {
+   "course_id": "CSE401",
+   "sections": [
+    "C"
+   ],
+   "teachers": [
+    "NTD",
+    "NZR"
+   ]
+  },
+  {
+   "course_id": "CSE405",
+   "sections": [
+    "A"
+   ],
+   "teachers": [
+    "MSH",
+    "ABS"
+   ]
+  },
+  {
+   "course_id": "CSE405",
+   "sections": [
+    "B"
+   ],
+   "teachers": [
+    "MSH",
+    "ABS"
+   ]
+  },
+  {
+   "course_id": "CSE405",
+   "sections": [
+    "C"
+   ],
+   "teachers": [
+    "MSH",
+    "ABS"
+   ]
+  },
+  {
+   "course_id": "CSE421",
+   "sections": [
+    "A",
+    "B",
+    "C"
+   ],
+   "teachers": [
+    "AW"
+   ]
+  },
+  {
+   "course_id": "CSE423",
+   "sections": [
+    "A",
+    "B",
+    "C"
+   ],
+   "teachers": [
+    "AAI"
+   ]
+  },
+  {
+   "course_id": "CSE425",
+   "sections": [
+    "A",
+    "B",
+    "C"
+   ],
+   "teachers": [
+    "NVN"
+   ]
+  },
+  {
+   "course_id": "CSE429",
+   "sections": [
+    "A",
+    "B",
+    "C"
+   ],
+   "teachers": [
+    "MSIB"
+   ]
+  },
+  {
+   "course_id": "CSE453",
+   "sections": [
+    "A",
+    "B",
+    "C"
+   ],
+   "teachers": [
+    "ASMLH"
+   ]
+  },
+  {
+   "course_id": "CSE463",
+   "sections": [
+    "A",
+    "B",
+    "C"
+   ],
+   "teachers": [
+    "STR"
+   ]
+  },
+  {
+   "course_id": "CSE495",
+   "sections": [
+    "A"
+   ],
+   "teachers": [
+    "MDSR"
+   ]
+  }
+ ],
+ "sessional_teachers": [
+  {
+   "course_id": "CSE102",
+   "section": "A1",
+   "slots": [
+    [
+     "MMAK"
+    ],
+    [
+     "CRH"
+    ],
+    [
+     "IAH",
+     "AMM"
+    ]
+   ]
+  },
+  {
+   "course_id": "CSE102",
+   "section": "A2",
+   "slots": [
+    [
+     "KMS"
+    ],
+    [
+     "STP"
+    ],
+    [
+     "ZMS"
+    ]
+   ]
+  },
+  {
+   "course_id": "CSE102",
+   "section": "B1",
+   "slots": [
+    [
+     "MMAK",
+     "MMFZ"
+    ],
+    [
+     "ADR"
+    ],
+    [
+     "MSD"
+    ]
+   ]
+  },
+  {
+   "course_id": "CSE102",
+   "section": "B2",
+   "slots": [
+    [
+     "JYK"
+    ],
+    [
+     "ABS"
+    ],
+    [
+     "ARK"
+    ]
+   ]
+  },
+  {
+   "course_id": "CSE102",
+   "section": "C1",
+   "slots": [
+    [
+     "SAH",
+     "IRK"
+    ],
+    [
+     "IMK"
+    ],
+    [
+     "SSA"
+    ]
+   ]
+  },
+  {
+   "course_id": "CSE102",
+   "section": "C2",
+   "slots": [
+    [
+     "JYK"
+    ],
+    [
+     "MLD"
+    ],
+    [
+     "ZMS"
+    ]
+   ]
+  },
+  {
+   "course_id": "CSE206",
+   "section": "A1",
+   "slots": [
+    [
+     "MN"
+    ],
+    [
+     "AMR"
+    ]
+   ]
+  },
+  {
+   "course_id": "CSE206",
+   "section": "A2",
+   "slots": [
+    [
+     "AW"
+    ],
+    [
+     "AHJ"
+    ]
+   ]
+  },
+  {
+   "course_id": "CSE206",
+   "section": "B1",
+   "slots": [
+    [
+     "TH",
+     "MDAA"
+    ],
+    [
+     "AHJ"
+    ]
+   ]
+  },
+  {
+   "course_id": "CSE206",
+   "section": "B2",
+   "slots": [
+    [
+     "ARK"
+    ],
+    [
+     "ZMS"
+    ]
+   ]
+  },
+  {
+   "course_id": "CSE206",
+   "section": "C1",
+   "slots": [
+    [
+     "MHE",
+     "EHP"
+    ],
+    [
+     "AHJ"
+    ]
+   ]
+  },
+  {
+   "course_id": "CSE206",
+   "section": "C2",
+   "slots": [
+    [
+     "ARK",
+     "AKS"
+    ],
+    [
+     "MLD"
+    ]
+   ]
+  },
+  {
+   "course_id": "CSE208",
+   "section": "A1",
+   "slots": [
+    [
+     "MDMI",
+     "MSB"
+    ],
+    [
+     "IJ"
+    ],
+    [
+     "STP"
+    ]
+   ]
+  },
+  {
+   "course_id": "CSE208",
+   "section": "A2",
+   "slots": [
+    [
+     "ART",
+     "AMA"
+    ],
+    [
+     "KRV"
+    ],
+    [
+     "ZMS"
+    ]
+   ]
+  },
+  {
+   "course_id": "CSE208",
+   "section": "B1",
+   "slots": [
+    [
+     "KRV"
+    ],
+    [
+     "ADR"
+    ],
+    [
+     "IAH",
+     "STP"
+    ]
+   ]
+  },
+  {
+   "course_id": "CSE208",
+   "section": "B2",
+   "slots": [
+    [
+     "RJM"
+    ],
+    [
+     "MSD"
+    ],
+    [
+     "SSA"
+    ]
+   ]
+  },
+  {
+   "course_id": "CSE208",
+   "section": "C1",
+   "slots": [
+    [
+     "KRV"
+    ],
+    [
+     "RJM"
+    ],
+    [
+     "MSD"
+    ]
+   ]
+  },
+  {
+   "course_id": "CSE208",
+   "section": "C2",
+   "slots": [
+    [
+     "IJ"
+    ],
+    [
+     "ADR"
+    ],
+    [
+     "IAH",
+     "STP"
+    ]
+   ]
+  },
+  {
+   "course_id": "CSE200",
+   "section": "A",
+   "slots": [
+    [
+     "SS",
+     "MSD"
+    ],
+    [
+     "SMH"
+    ]
+   ]
+  },
+  {
+   "course_id": "CSE200",
+   "section": "B",
+   "slots": [
+    [
+     "NVN"
+    ],
+    [
+     "STR"
+    ]
+   ]
+  },
+  {
+   "course_id": "CSE200",
+   "section": "C",
+   "slots": [
+    [
+     "SAH",
+     "AKS"
+    ],
+    [
+     "SSA"
+    ]
+   ]
+  },
+  {
+   "course_id": "CSE210",
+   "section": "A",
+   "slots": [
+    [
+     "RS",
+     "ART"
+    ],
+    [
+     "HT"
+    ]
+   ]
+  },
+  {
+   "course_id": "CSE210",
+   "section": "B",
+   "slots": [
+    [
+     "RS"
+    ],
+    [
+     "HT"
+    ]
+   ]
+  },
+  {
+   "course_id": "CSE210",
+   "section": "C",
+   "slots": [
+    [
+     "ART",
+     "FRA"
+    ],
+    [
+     "SMH"
+    ]
+   ]
+  },
+  {
+   "course_id": "CSE214",
+   "section": "A",
+   "slots": [
+    [
+     "IJ"
+    ],
+    [
+     "MHE"
+    ],
+    [
+     "EHP"
+    ]
+   ]
+  },
+  {
+   "course_id": "CSE214",
+   "section": "B",
+   "slots": [
+    [
+     "AI",
+     "IJ"
+    ],
+    [
+     "MHE"
+    ],
+    [
+     "AMM"
+    ]
+   ]
+  },
+  {
+   "course_id": "CSE214",
+   "section": "C",
+   "slots": [
+    [
+     "IJ"
+    ],
+    [
+     "EHP"
+    ],
+    [
+     "NTD",
+     "NZR"
+    ]
+   ]
+  },
+  {
+   "course_id": "CSE216",
+   "section": "A1",
+   "slots": [
+    [
+     "KRV"
+    ],
+    [
+     "FRA"
+    ],
+    [
+     "STP"
+    ]
+   ]
+  },
+  {
+   "course_id": "CSE216",
+   "section": "A2",
+   "slots": [
+    [
+     "RJM"
+    ],
+    [
+     "RZS"
+    ],
+    [
+     "AHJ"
+    ]
+   ]
+  },
+  {
+   "course_id": "CSE216",
+   "section": "B1",
+   "slots": [
+    [
+     "SB"
+    ],
+    [
+     "ART",
+     "IRK"
+    ],
+    [
+     "KRV"
+    ]
+   ]
+  },
+  {
+   "course_id": "CSE216",
+   "section": "B2",
+   "slots": [
+    [
+     "ASMLH"
+    ],
+    [
+     "IAH",
+     "ZMS"
+    ],
+    [
+     "NZR"
+    ]
+   ]
+  },
+  {
+   "course_id": "CSE216",
+   "section": "C1",
+   "slots": [
+    [
+     "ASMLH"
+    ],
+    [
+     "ART",
+     "AMA"
+    ],
+    [
+     "NZR"
+    ]
+   ]
+  },
+  {
+   "course_id": "CSE216",
+   "section": "C2",
+   "slots": [
+    [
+     "MSH",
+     "ABS"
+    ],
+    [
+     "RJM"
+    ],
+    [
+     "STP"
+    ]
+   ]
+  },
+  {
+   "course_id": "CSE220",
+   "section": "A1",
+   "slots": [
+    [
+     "ARK"
+    ],
+    [
+     "RZS"
+    ],
+    [
+     "STR"
+    ]
+   ]
+  },
+  {
+   "course_id": "CSE220",
+   "section": "A2",
+   "slots": [
+    [
+     "MNM"
+    ],
+    [
+     "JYK"
+    ],
+    [
+     "AKS"
+    ]
+   ]
+  },
+  {
+   "course_id": "CSE220",
+   "section": "B1",
+   "slots": [
+    [
+     "ARK"
+    ],
+    [
+     "MNM"
+    ],
+    [
+     "AKS"
+    ]
+   ]
+  },
+  {
+   "course_id": "CSE220",
+   "section": "B2",
+   "slots": [
+    [
+     "HT"
+    ],
+    [
+     "RZS"
+    ],
+    [
+     "AMM"
+    ]
+   ]
+  },
+  {
+   "course_id": "CSE220",
+   "section": "C1",
+   "slots": [
+    [
+     "ARK"
+    ],
+    [
+     "RZS"
+    ],
+    [
+     "FRA"
+    ]
+   ]
+  },
+  {
+   "course_id": "CSE220",
+   "section": "C2",
+   "slots": [
+    [
+     "MNM"
+    ],
+    [
+     "AKS"
+    ],
+    [
+     "IMK"
+    ]
+   ]
+  },
+  {
+   "course_id": "CSE310",
+   "section": "A",
+   "slots": [
+    [
+     "KMS"
+    ],
+    [
+     "AMR"
+    ],
+    [
+     "IRK"
+    ]
+   ]
+  },
+  {
+   "course_id": "CSE310",
+   "section": "B",
+   "slots": [
+    [
+     "KMS"
+    ],
+    [
+     "AMR"
+    ],
+    [
+     "IRK"
+    ]
+   ]
+  },
+  {
+   "course_id": "CSE310",
+   "section": "C",
+   "slots": [
+    [
+     "KMS"
+    ],
+    [
+     "AMR"
+    ],
+    [
+     "IRK"
+    ]
+   ]
+  },
+  {
+   "course_id": "CSE314",
+   "section": "A",
+   "slots": [
+    [
+     "RRR"
+    ],
+    [
+     "NTD"
+    ],
+    [
+     "IMK"
+    ]
+   ]
+  },
+  {
+   "course_id": "CSE314",
+   "section": "B",
+   "slots": [
+    [
+     "RRR",
+     "KRV"
+    ],
+    [
+     "NTD"
+    ],
+    [
+     "AMA"
+    ]
+   ]
+  },
+  {
+   "course_id": "CSE314",
+   "section": "C",
+   "slots": [
+    [
+     "MLD"
+    ],
+    [
+     "AMA"
+    ],
+    [
+     "AMM"
+    ]
+   ]
+  },
+  {
+   "course_id": "CSE316",
+   "section": "A",
+   "slots": [
+    [
+     "MHE"
+    ],
+    [
+     "EHP"
+    ]
+   ]
+  },
+  {
+   "course_id": "CSE316",
+   "section": "B",
+   "slots": [
+    [
+     "EHP"
+    ],
+    [
+     "FRA"
+    ]
+   ]
+  },
+  {
+   "course_id": "CSE316",
+   "section": "C",
+   "slots": [
+    [
+     "MHE"
+    ],
+    [
+     "AW"
+    ]
+   ]
+  },
+  {
+   "course_id": "CSE318",
+   "section": "A",
+   "slots": [
+    [
+     "MMI"
+    ],
+    [
+     "MNM"
+    ],
+    [
+     "SMH"
+    ]
+   ]
+  },
+  {
+   "course_id": "CSE318",
+   "section": "B",
+   "slots": [
+    [
+     "MNM"
+    ],
+    [
+     "SMH"
+    ],
+    [
+     "NTD"
+    ]
+   ]
+  },
+  {
+   "course_id": "CSE318",
+   "section": "C",
+   "slots": [
+    [
+     "MMI",
+     "MNM"
+    ],
+    [
+     "RZS"
+    ],
+    [
+     "NTD"
+    ]
+   ]
+  },
+  {
+   "course_id": "CSE402",
+   "section": "A",
+   "slots": [
+    [
+     "NZR"
+    ],
+    [
+     "SAH",
+     "AHJ"
+    ],
+    [
+     "IJ"
+    ]
+   ]
+  },
+  {
+   "course_id": "CSE402",
+   "section": "B",
+   "slots": [
+    [
+     "NZR"
+    ],
+    [
+     "AHR",
+     "SAH"
+    ],
+    [
+     "EHP"
+    ]
+   ]
+  },
+  {
+   "course_id": "CSE402",
+   "section": "C",
+   "slots": [
+    [
+     "NTD"
+    ],
+    [
+     "NZR"
+    ],
+    [
+     "SAH",
+     "AHJ"
+    ]
+   ]
+  },
+  {
+   "course_id": "CSE406",
+   "section": "A",
+   "slots": [
+    [
+     "ABS"
+    ],
+    [
+     "ART",
+     "IMK"
+    ],
+    [
+     "ZMS"
+    ]
+   ]
+  },
+  {
+   "course_id": "CSE406",
+   "section": "B",
+   "slots": [
+    [
+     "MSH",
+     "ZMS"
+    ],
+    [
+     "ABS"
+    ],
+    [
+     "STR"
+    ]
+   ]
+  },
+  {
+   "course_id": "CSE406",
+   "section": "C",
+   "slots": [
+    [
+     "ABS"
+    ],
+    [
+     "MSIB"
+    ],
+    [
+     "STR"
+    ]
+   ]
+  },
+  {
+   "course_id": "CSE450",
+   "section": "A1",
+   "slots": [
+    [
+     "AI"
+    ],
+    [
+     "HT"
+    ]
+   ]
+  },
+  {
+   "course_id": "CSE450",
+   "section": "A2",
+   "slots": [
+    [
+     "SS"
+    ],
+    [
+     "SAH",
+     "AKS"
+    ]
+   ]
+  },
+  {
+   "course_id": "CSE450",
+   "section": "B1",
+   "slots": [
+    [
+     "AAI"
+    ],
+    [
+     "MSD"
+    ]
+   ]
+  },
+  {
+   "course_id": "CSE450",
+   "section": "B2",
+   "slots": [
+    [
+     "MSIB"
+    ],
+    [
+     "MN",
+     "RZS"
+    ]
+   ]
+  },
+  {
+   "course_id": "CSE450",
+   "section": "C1",
+   "slots": [
+    [
+     "AHR"
+    ],
+    [
+     "MHE"
+    ]
+   ]
+  },
+  {
+   "course_id": "CSE450",
+   "section": "C2",
+   "slots": [
+    [
+     "SB",
+     "IAH"
+    ],
+    [
+     "SSA"
+    ]
+   ]
+  },
+  {
+   "course_id": "CSE110",
+   "section": "A1",
+   "slots": [
+    [
+     "MSD"
+    ],
+    [
+     "IMK"
+    ]
+   ]
+  },
+  {
+   "course_id": "CSE110",
+   "section": "A2",
+   "slots": [
+    [
+     "STR"
+    ],
+    [
+     "AMM"
+    ]
+   ]
+  },
+  {
+   "course_id": "CSE110",
+   "section": "B1",
+   "slots": [
+    [
+     "STR"
+    ],
+    [
+     "IMK"
+    ]
+   ]
+  },
+  {
+   "course_id": "CSE110",
+   "section": "B2",
+   "slots": [
+    [
+     "MLD"
+    ],
+    [
+     "AMA"
+    ]
+   ]
+  },
+  {
+   "course_id": "CSE110",
+   "section": "C1",
+   "slots": [
+    [
+     "ABS"
+    ]
+   ]
+  },
+  {
+   "course_id": "CSE110",
+   "section": "C2",
+   "slots": [
+    [
+     "ADR"
+    ],
+    [
+     "FRA"
+    ]
+   ]
+  },
+  {
+   "course_id": "CSE272",
+   "section": "A1",
+   "slots": [
+    [
+     "MLD"
+    ],
+    [
+     "STP"
+    ]
+   ]
+  },
+  {
+   "course_id": "CSE274",
+   "section": "A1",
+   "slots": [
+    [
+     "MLD"
+    ],
+    [
+     "KMS",
+     "AMR"
+    ]
+   ]
+  },
+  {
+   "course_id": "CSE282",
+   "section": "A1",
+   "slots": [
+    [
+     "CRH"
+    ],
+    [
+     "AMM"
+    ]
+   ]
+  },
+  {
+   "course_id": "CSE282",
+   "section": "A2",
+   "slots": [
+    [
+     "CRH"
+    ],
+    [
+     "JYK"
+    ]
+   ]
+  },
+  {
+   "course_id": "CSE284",
+   "section": "A1",
+   "slots": [
+    [
+     "SMH"
+    ],
+    [
+     "AHJ"
+    ]
+   ]
+  },
+  {
+   "course_id": "CSE284",
+   "section": "A2",
+   "slots": [
+    [
+     "SMH"
+    ],
+    [
+     "HT",
+     "IRK"
+    ]
+   ]
+  },
+  {
+   "course_id": "CSE288",
+   "section": "A1",
+   "slots": [
+    [
+     "JYK"
+    ],
+    [
+     "MDMI"
+    ]
+   ]
+  },
+  {
+   "course_id": "CSE288",
+   "section": "A2",
+   "slots": [
+    [
+     "JYK"
+    ],
+    [
+     "FRA"
+    ]
+   ]
+  },
+  {
+   "course_id": "CSE296",
+   "section": "A1",
+   "slots": [
+    [
+     "RJM"
+    ],
+    [
+     "IAH",
+     "SSA"
+    ]
+   ]
+  },
+  {
+   "course_id": "CSE296",
+   "section": "A2",
+   "slots": [
+    [
+     "ADR"
+    ],
+    [
+     "FRA"
+    ]
+   ]
+  },
+  {
+   "course_id": "CSE296",
+   "section": "B1",
+   "slots": [
+    [
+     "RJM"
+    ],
+    [
+     "SSA"
+    ]
+   ]
+  },
+  {
+   "course_id": "CSE296",
+   "section": "B2",
+   "slots": [
+    [
+     "ADR"
+    ],
+    [
+     "NVN"
+    ]
+   ]
+  },
+  {
+   "course_id": "CSE392",
+   "section": "A1",
+   "slots": [
+    [
+     "MDSR"
+    ],
+    [
+     "AMA"
+    ]
+   ]
+  },
+  {
+   "course_id": "CSE392",
+   "section": "A2",
+   "slots": [
+    [
+     "MDSR"
+    ],
+    [
+     "AMR"
+    ]
+   ]
+  }
+ ],
+ "theory": [
+  {
+   "department": "CSE",
+   "level_term": "L-1 T-1",
+   "course_id": "CT",
+   "day": "Monday",
+   "time": 8,
+   "room": null,
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-1 T-1",
+   "course_id": "CT",
+   "day": "Wednesday",
+   "time": 8,
+   "room": null,
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-1 T-1",
+   "course_id": "CSE101",
+   "day": "Saturday",
+   "time": 12,
+   "room": "103",
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-1 T-1",
+   "course_id": "CSE101",
+   "day": "Monday",
+   "time": 9,
+   "room": "103",
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-1 T-1",
+   "course_id": "CSE101",
+   "day": "Wednesday",
+   "time": 9,
+   "room": "103",
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-1 T-1",
+   "course_id": "CSE103",
+   "day": "Sunday",
+   "time": 10,
+   "room": "103",
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-1 T-1",
+   "course_id": "CSE103",
+   "day": "Monday",
+   "time": 12,
+   "room": "103",
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-1 T-1",
+   "course_id": "CSE103",
+   "day": "Wednesday",
+   "time": 10,
+   "room": "103",
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-1 T-1",
+   "course_id": "EEE163",
+   "day": "Saturday",
+   "time": 11,
+   "room": "103",
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-1 T-1",
+   "course_id": "EEE163",
+   "day": "Monday",
+   "time": 10,
+   "room": "103",
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-1 T-1",
+   "course_id": "EEE163",
+   "day": "Tuesday",
+   "time": 9,
+   "room": "103",
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-1 T-1",
+   "course_id": "MATH141",
+   "day": "Sunday",
+   "time": 9,
+   "room": "103",
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-1 T-1",
+   "course_id": "MATH141",
+   "day": "Monday",
+   "time": 11,
+   "room": "103",
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-1 T-1",
+   "course_id": "MATH141",
+   "day": "Wednesday",
+   "time": 11,
+   "room": "103",
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-1 T-1",
+   "course_id": "PHY129",
+   "day": "Saturday",
+   "time": 10,
+   "room": "103",
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-1 T-1",
+   "course_id": "PHY129",
+   "day": "Tuesday",
+   "time": 10,
+   "room": "103",
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-1 T-1",
+   "course_id": "PHY129",
+   "day": "Wednesday",
+   "time": 12,
+   "room": "103",
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-1 T-1",
+   "course_id": "CT",
+   "day": "Monday",
+   "time": 8,
+   "room": null,
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-1 T-1",
+   "course_id": "CT",
+   "day": "Wednesday",
+   "time": 8,
+   "room": null,
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-1 T-1",
+   "course_id": "CSE101",
+   "day": "Saturday",
+   "time": 9,
+   "room": "104",
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-1 T-1",
+   "course_id": "CSE101",
+   "day": "Monday",
+   "time": 10,
+   "room": "104",
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-1 T-1",
+   "course_id": "CSE101",
+   "day": "Wednesday",
+   "time": 10,
+   "room": "104",
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-1 T-1",
+   "course_id": "CSE103",
+   "day": "Sunday",
+   "time": 9,
+   "room": "104",
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-1 T-1",
+   "course_id": "CSE103",
+   "day": "Monday",
+   "time": 9,
+   "room": "104",
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-1 T-1",
+   "course_id": "CSE103",
+   "day": "Wednesday",
+   "time": 9,
+   "room": "104",
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-1 T-1",
+   "course_id": "EEE163",
+   "day": "Saturday",
+   "time": 10,
+   "room": "104",
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-1 T-1",
+   "course_id": "EEE163",
+   "day": "Monday",
+   "time": 11,
+   "room": "104",
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-1 T-1",
+   "course_id": "EEE163",
+   "day": "Tuesday",
+   "time": 10,
+   "room": "104",
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-1 T-1",
+   "course_id": "MATH141",
+   "day": "Sunday",
+   "time": 12,
+   "room": "104",
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-1 T-1",
+   "course_id": "MATH141",
+   "day": "Monday",
+   "time": 12,
+   "room": "104",
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-1 T-1",
+   "course_id": "MATH141",
+   "day": "Wednesday",
+   "time": 12,
+   "room": "104",
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-1 T-1",
+   "course_id": "PHY129",
+   "day": "Sunday",
+   "time": 11,
+   "room": "104",
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-1 T-1",
+   "course_id": "PHY129",
+   "day": "Tuesday",
+   "time": 8,
+   "room": "104",
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-1 T-1",
+   "course_id": "PHY129",
+   "day": "Wednesday",
+   "time": 11,
+   "room": "104",
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-1 T-1",
+   "course_id": "CT",
+   "day": "Monday",
+   "time": 8,
+   "room": null,
+   "section": "C"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-1 T-1",
+   "course_id": "CT",
+   "day": "Wednesday",
+   "time": 8,
+   "room": null,
+   "section": "C"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-1 T-1",
+   "course_id": "CSE101",
+   "day": "Saturday",
+   "time": 8,
+   "room": "107",
+   "section": "C"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-1 T-1",
+   "course_id": "CSE101",
+   "day": "Monday",
+   "time": 12,
+   "room": "107",
+   "section": "C"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-1 T-1",
+   "course_id": "CSE101",
+   "day": "Wednesday",
+   "time": 12,
+   "room": "107",
+   "section": "C"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-1 T-1",
+   "course_id": "CSE103",
+   "day": "Sunday",
+   "time": 11,
+   "room": "107",
+   "section": "C"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-1 T-1",
+   "course_id": "CSE103",
+   "day": "Monday",
+   "time": 11,
+   "room": "107",
+   "section": "C"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-1 T-1",
+   "course_id": "CSE103",
+   "day": "Wednesday",
+   "time": 11,
+   "room": "107",
+   "section": "C"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-1 T-1",
+   "course_id": "EEE163",
+   "day": "Saturday",
+   "time": 10,
+   "room": "107",
+   "section": "C"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-1 T-1",
+   "course_id": "EEE163",
+   "day": "Tuesday",
+   "time": 10,
+   "room": "107",
+   "section": "C"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-1 T-1",
+   "course_id": "EEE163",
+   "day": "Wednesday",
+   "time": 9,
+   "room": "107",
+   "section": "C"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-1 T-1",
+   "course_id": "MATH141",
+   "day": "Sunday",
+   "time": 10,
+   "room": "107",
+   "section": "C"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-1 T-1",
+   "course_id": "MATH141",
+   "day": "Monday",
+   "time": 10,
+   "room": "107",
+   "section": "C"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-1 T-1",
+   "course_id": "MATH141",
+   "day": "Wednesday",
+   "time": 10,
+   "room": "107",
+   "section": "C"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-1 T-1",
+   "course_id": "PHY129",
+   "day": "Saturday",
+   "time": 9,
+   "room": "107",
+   "section": "C"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-1 T-1",
+   "course_id": "PHY129",
+   "day": "Sunday",
+   "time": 12,
+   "room": "107",
+   "section": "C"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-1 T-1",
+   "course_id": "PHY129",
+   "day": "Tuesday",
+   "time": 9,
+   "room": "107",
+   "section": "C"
+  },
+  {
+   "department": "EEE",
+   "level_term": "L-1 T-1",
+   "course_id": "CSE109",
+   "day": "Saturday",
+   "time": 10,
+   "room": "(EEE) R921",
+   "section": "A"
+  },
+  {
+   "department": "EEE",
+   "level_term": "L-1 T-1",
+   "course_id": "CSE109",
+   "day": "Sunday",
+   "time": 9,
+   "room": "(EEE) R921",
+   "section": "A"
+  },
+  {
+   "department": "EEE",
+   "level_term": "L-1 T-1",
+   "course_id": "CSE109",
+   "day": "Tuesday",
+   "time": 9,
+   "room": "(EEE) R921",
+   "section": "A"
+  },
+  {
+   "department": "EEE",
+   "level_term": "L-1 T-1",
+   "course_id": "CSE109",
+   "day": "Saturday",
+   "time": 9,
+   "room": "(EEE) R925",
+   "section": "B"
+  },
+  {
+   "department": "EEE",
+   "level_term": "L-1 T-1",
+   "course_id": "CSE109",
+   "day": "Sunday",
+   "time": 8,
+   "room": "(EEE) R925",
+   "section": "B"
+  },
+  {
+   "department": "EEE",
+   "level_term": "L-1 T-1",
+   "course_id": "CSE109",
+   "day": "Tuesday",
+   "time": 8,
+   "room": "(EEE) R925",
+   "section": "B"
+  },
+  {
+   "department": "EEE",
+   "level_term": "L-1 T-1",
+   "course_id": "CSE109",
+   "day": "Saturday",
+   "time": 12,
+   "room": "(EEE) R629",
+   "section": "C"
+  },
+  {
+   "department": "EEE",
+   "level_term": "L-1 T-1",
+   "course_id": "CSE109",
+   "day": "Sunday",
+   "time": 12,
+   "room": "(EEE) R629",
+   "section": "C"
+  },
+  {
+   "department": "EEE",
+   "level_term": "L-1 T-1",
+   "course_id": "CSE109",
+   "day": "Tuesday",
+   "time": 10,
+   "room": "(EEE) R629",
+   "section": "C"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-1",
+   "course_id": "CT",
+   "day": "Saturday",
+   "time": 8,
+   "room": null,
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-1",
+   "course_id": "CT",
+   "day": "Monday",
+   "time": 8,
+   "room": null,
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-1",
+   "course_id": "CT",
+   "day": "Wednesday",
+   "time": 8,
+   "room": null,
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-1",
+   "course_id": "CSE205",
+   "day": "Saturday",
+   "time": 10,
+   "room": "108",
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-1",
+   "course_id": "CSE205",
+   "day": "Sunday",
+   "time": 11,
+   "room": "108",
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-1",
+   "course_id": "CSE205",
+   "day": "Tuesday",
+   "time": 10,
+   "room": "108",
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-1",
+   "course_id": "CSE207",
+   "day": "Sunday",
+   "time": 12,
+   "room": "108",
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-1",
+   "course_id": "CSE207",
+   "day": "Tuesday",
+   "time": 11,
+   "room": "108",
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-1",
+   "course_id": "CSE207",
+   "day": "Wednesday",
+   "time": 11,
+   "room": "108",
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-1",
+   "course_id": "CSE215",
+   "day": "Saturday",
+   "time": 9,
+   "room": "108",
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-1",
+   "course_id": "CSE215",
+   "day": "Sunday",
+   "time": 9,
+   "room": "108",
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-1",
+   "course_id": "CSE215",
+   "day": "Tuesday",
+   "time": 9,
+   "room": "108",
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-1",
+   "course_id": "EEE263",
+   "day": "Sunday",
+   "time": 10,
+   "room": "108",
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-1",
+   "course_id": "EEE263",
+   "day": "Monday",
+   "time": 9,
+   "room": "108",
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-1",
+   "course_id": "EEE263",
+   "day": "Wednesday",
+   "time": 10,
+   "room": "108",
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-1",
+   "course_id": "MATH241",
+   "day": "Monday",
+   "time": 10,
+   "room": "108",
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-1",
+   "course_id": "MATH241",
+   "day": "Tuesday",
+   "time": 12,
+   "room": "108",
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-1",
+   "course_id": "MATH241",
+   "day": "Wednesday",
+   "time": 9,
+   "room": "108",
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-1",
+   "course_id": "CT",
+   "day": "Saturday",
+   "time": 8,
+   "room": null,
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-1",
+   "course_id": "CT",
+   "day": "Monday",
+   "time": 8,
+   "room": null,
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-1",
+   "course_id": "CT",
+   "day": "Wednesday",
+   "time": 8,
+   "room": null,
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-1",
+   "course_id": "CSE205",
+   "day": "Saturday",
+   "time": 11,
+   "room": "109",
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-1",
+   "course_id": "CSE205",
+   "day": "Sunday",
+   "time": 10,
+   "room": "109",
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-1",
+   "course_id": "CSE205",
+   "day": "Tuesday",
+   "time": 11,
+   "room": "109",
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-1",
+   "course_id": "CSE207",
+   "day": "Sunday",
+   "time": 11,
+   "room": "109",
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-1",
+   "course_id": "CSE207",
+   "day": "Tuesday",
+   "time": 10,
+   "room": "109",
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-1",
+   "course_id": "CSE207",
+   "day": "Wednesday",
+   "time": 10,
+   "room": "109",
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-1",
+   "course_id": "CSE215",
+   "day": "Saturday",
+   "time": 10,
+   "room": "109",
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-1",
+   "course_id": "CSE215",
+   "day": "Sunday",
+   "time": 12,
+   "room": "109",
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-1",
+   "course_id": "CSE215",
+   "day": "Tuesday",
+   "time": 12,
+   "room": "109",
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-1",
+   "course_id": "EEE263",
+   "day": "Sunday",
+   "time": 9,
+   "room": "109",
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-1",
+   "course_id": "EEE263",
+   "day": "Monday",
+   "time": 10,
+   "room": "109",
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-1",
+   "course_id": "EEE263",
+   "day": "Wednesday",
+   "time": 9,
+   "room": "109",
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-1",
+   "course_id": "MATH241",
+   "day": "Saturday",
+   "time": 9,
+   "room": "109",
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-1",
+   "course_id": "MATH241",
+   "day": "Monday",
+   "time": 9,
+   "room": "109",
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-1",
+   "course_id": "MATH241",
+   "day": "Tuesday",
+   "time": 9,
+   "room": "109",
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-1",
+   "course_id": "CT",
+   "day": "Saturday",
+   "time": 8,
+   "room": null,
+   "section": "C"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-1",
+   "course_id": "CT",
+   "day": "Monday",
+   "time": 8,
+   "room": null,
+   "section": "C"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-1",
+   "course_id": "CT",
+   "day": "Wednesday",
+   "time": 8,
+   "room": null,
+   "section": "C"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-1",
+   "course_id": "CSE205",
+   "day": "Saturday",
+   "time": 9,
+   "room": "206",
+   "section": "C"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-1",
+   "course_id": "CSE205",
+   "day": "Sunday",
+   "time": 12,
+   "room": "206",
+   "section": "C"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-1",
+   "course_id": "CSE205",
+   "day": "Tuesday",
+   "time": 9,
+   "room": "206",
+   "section": "C"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-1",
+   "course_id": "CSE207",
+   "day": "Sunday",
+   "time": 9,
+   "room": "206",
+   "section": "C"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-1",
+   "course_id": "CSE207",
+   "day": "Tuesday",
+   "time": 8,
+   "room": "206",
+   "section": "C"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-1",
+   "course_id": "CSE207",
+   "day": "Wednesday",
+   "time": 12,
+   "room": "206",
+   "section": "C"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-1",
+   "course_id": "CSE215",
+   "day": "Saturday",
+   "time": 12,
+   "room": "206",
+   "section": "C"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-1",
+   "course_id": "CSE215",
+   "day": "Sunday",
+   "time": 11,
+   "room": "206",
+   "section": "C"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-1",
+   "course_id": "CSE215",
+   "day": "Tuesday",
+   "time": 10,
+   "room": "206",
+   "section": "C"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-1",
+   "course_id": "EEE263",
+   "day": "Sunday",
+   "time": 10,
+   "room": "206",
+   "section": "C"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-1",
+   "course_id": "EEE263",
+   "day": "Monday",
+   "time": 9,
+   "room": "206",
+   "section": "C"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-1",
+   "course_id": "EEE263",
+   "day": "Wednesday",
+   "time": 11,
+   "room": "206",
+   "section": "C"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-1",
+   "course_id": "MATH241",
+   "day": "Saturday",
+   "time": 10,
+   "room": "206",
+   "section": "C"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-1",
+   "course_id": "MATH241",
+   "day": "Tuesday",
+   "time": 2,
+   "room": "206",
+   "section": "C"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-1",
+   "course_id": "MATH241",
+   "day": "Wednesday",
+   "time": 10,
+   "room": "206",
+   "section": "C"
+  },
+  {
+   "department": "BME",
+   "level_term": "L-2 T-1",
+   "course_id": "CSE281",
+   "day": "Saturday",
+   "time": 10,
+   "room": "(BME) 1104",
+   "section": "A"
+  },
+  {
+   "department": "BME",
+   "level_term": "L-2 T-1",
+   "course_id": "CSE281",
+   "day": "Tuesday",
+   "time": 10,
+   "room": "(BME) 1104",
+   "section": "A"
+  },
+  {
+   "department": "BME",
+   "level_term": "L-2 T-1",
+   "course_id": "CSE281",
+   "day": "Monday",
+   "time": 10,
+   "room": "(BME) 1104",
+   "section": "A"
+  },
+  {
+   "department": "MME",
+   "level_term": "L-2 T-1",
+   "course_id": "CSE287",
+   "day": "Saturday",
+   "time": 10,
+   "room": "(OAB) 206",
+   "section": "A"
+  },
+  {
+   "department": "MME",
+   "level_term": "L-2 T-1",
+   "course_id": "CSE287",
+   "day": "Sunday",
+   "time": 10,
+   "room": "(OAB) 206",
+   "section": "A"
+  },
+  {
+   "department": "MME",
+   "level_term": "L-2 T-1",
+   "course_id": "CSE287",
+   "day": "Monday",
+   "time": 10,
+   "room": "(OAB) 206",
+   "section": "A"
+  },
+  {
+   "department": "IPE",
+   "level_term": "L-2 T-1",
+   "course_id": "CSE295",
+   "day": "Saturday",
+   "time": 10,
+   "room": "(IPE) 502",
+   "section": "A"
+  },
+  {
+   "department": "IPE",
+   "level_term": "L-2 T-1",
+   "course_id": "CSE295",
+   "day": "Tuesday",
+   "time": 9,
+   "room": "(IPE) 502",
+   "section": "A"
+  },
+  {
+   "department": "IPE",
+   "level_term": "L-2 T-1",
+   "course_id": "CSE295",
+   "day": "Wednesday",
+   "time": 9,
+   "room": "(IPE) 502",
+   "section": "A"
+  },
+  {
+   "department": "IPE",
+   "level_term": "L-2 T-1",
+   "course_id": "CSE295",
+   "day": "Saturday",
+   "time": 9,
+   "room": "(IPE) 604",
+   "section": "B"
+  },
+  {
+   "department": "IPE",
+   "level_term": "L-2 T-1",
+   "course_id": "CSE295",
+   "day": "Tuesday",
+   "time": 8,
+   "room": "(IPE) 604",
+   "section": "B"
+  },
+  {
+   "department": "IPE",
+   "level_term": "L-2 T-1",
+   "course_id": "CSE295",
+   "day": "Wednesday",
+   "time": 10,
+   "room": "(IPE) 604",
+   "section": "B"
+  },
+  {
+   "department": "NCE",
+   "level_term": "L-2 T-1",
+   "course_id": "CSE273",
+   "day": "Saturday",
+   "time": 9,
+   "room": "(OAB) 202E",
+   "section": "A"
+  },
+  {
+   "department": "NCE",
+   "level_term": "L-2 T-1",
+   "course_id": "CSE273",
+   "day": "Sunday",
+   "time": 10,
+   "room": "(OAB) 202E",
+   "section": "A"
+  },
+  {
+   "department": "NCE",
+   "level_term": "L-2 T-1",
+   "course_id": "CSE273",
+   "day": "Tuesday",
+   "time": 9,
+   "room": "(OAB) 202E",
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-2",
+   "course_id": "CT",
+   "day": "Saturday",
+   "time": 8,
+   "room": null,
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-2",
+   "course_id": "CT",
+   "day": "Monday",
+   "time": 8,
+   "room": null,
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-2",
+   "course_id": "CT",
+   "day": "Wednesday",
+   "time": 8,
+   "room": null,
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-2",
+   "course_id": "CSE209",
+   "day": "Saturday",
+   "time": 11,
+   "room": "203",
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-2",
+   "course_id": "CSE209",
+   "day": "Sunday",
+   "time": 11,
+   "room": "203",
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-2",
+   "course_id": "CSE209",
+   "day": "Wednesday",
+   "time": 12,
+   "room": "203",
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-2",
+   "course_id": "CSE211",
+   "day": "Saturday",
+   "time": 9,
+   "room": "203",
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-2",
+   "course_id": "CSE211",
+   "day": "Sunday",
+   "time": 9,
+   "room": "203",
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-2",
+   "course_id": "CSE211",
+   "day": "Monday",
+   "time": 11,
+   "room": "203",
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-2",
+   "course_id": "CSE213",
+   "day": "Saturday",
+   "time": 12,
+   "room": "203",
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-2",
+   "course_id": "CSE213",
+   "day": "Sunday",
+   "time": 12,
+   "room": "203",
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-2",
+   "course_id": "CSE213",
+   "day": "Tuesday",
+   "time": 9,
+   "room": "203",
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-2",
+   "course_id": "CSE219",
+   "day": "Saturday",
+   "time": 10,
+   "room": "203",
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-2",
+   "course_id": "CSE219",
+   "day": "Sunday",
+   "time": 10,
+   "room": "203",
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-2",
+   "course_id": "CSE219",
+   "day": "Monday",
+   "time": 10,
+   "room": "203",
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-2",
+   "course_id": "MATH243",
+   "day": "Monday",
+   "time": 9,
+   "room": "203",
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-2",
+   "course_id": "MATH243",
+   "day": "Tuesday",
+   "time": 10,
+   "room": "203",
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-2",
+   "course_id": "MATH243",
+   "day": "Wednesday",
+   "time": 11,
+   "room": "203",
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-2",
+   "course_id": "CT",
+   "day": "Saturday",
+   "time": 8,
+   "room": null,
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-2",
+   "course_id": "CT",
+   "day": "Monday",
+   "time": 8,
+   "room": null,
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-2",
+   "course_id": "CT",
+   "day": "Wednesday",
+   "time": 8,
+   "room": null,
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-2",
+   "course_id": "CSE209",
+   "day": "Saturday",
+   "time": 10,
+   "room": "204",
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-2",
+   "course_id": "CSE209",
+   "day": "Sunday",
+   "time": 10,
+   "room": "204",
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-2",
+   "course_id": "CSE209",
+   "day": "Wednesday",
+   "time": 9,
+   "room": "204",
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-2",
+   "course_id": "CSE211",
+   "day": "Saturday",
+   "time": 12,
+   "room": "204",
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-2",
+   "course_id": "CSE211",
+   "day": "Sunday",
+   "time": 12,
+   "room": "204",
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-2",
+   "course_id": "CSE211",
+   "day": "Monday",
+   "time": 9,
+   "room": "204",
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-2",
+   "course_id": "CSE213",
+   "day": "Saturday",
+   "time": 11,
+   "room": "204",
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-2",
+   "course_id": "CSE213",
+   "day": "Sunday",
+   "time": 11,
+   "room": "204",
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-2",
+   "course_id": "CSE213",
+   "day": "Tuesday",
+   "time": 10,
+   "room": "204",
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-2",
+   "course_id": "CSE219",
+   "day": "Saturday",
+   "time": 9,
+   "room": "204",
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-2",
+   "course_id": "CSE219",
+   "day": "Sunday",
+   "time": 9,
+   "room": "204",
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-2",
+   "course_id": "CSE219",
+   "day": "Monday",
+   "time": 11,
+   "room": "204",
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-2",
+   "course_id": "MATH243",
+   "day": "Monday",
+   "time": 10,
+   "room": "204",
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-2",
+   "course_id": "MATH243",
+   "day": "Tuesday",
+   "time": 9,
+   "room": "204",
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-2",
+   "course_id": "MATH243",
+   "day": "Wednesday",
+   "time": 10,
+   "room": "204",
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-2",
+   "course_id": "CT",
+   "day": "Saturday",
+   "time": 8,
+   "room": null,
+   "section": "C"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-2",
+   "course_id": "CT",
+   "day": "Monday",
+   "time": 8,
+   "room": null,
+   "section": "C"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-2",
+   "course_id": "CT",
+   "day": "Wednesday",
+   "time": 8,
+   "room": null,
+   "section": "C"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-2",
+   "course_id": "CSE209",
+   "day": "Saturday",
+   "time": 9,
+   "room": "205",
+   "section": "C"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-2",
+   "course_id": "CSE209",
+   "day": "Sunday",
+   "time": 9,
+   "room": "205",
+   "section": "C"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-2",
+   "course_id": "CSE209",
+   "day": "Wednesday",
+   "time": 10,
+   "room": "205",
+   "section": "C"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-2",
+   "course_id": "CSE211",
+   "day": "Saturday",
+   "time": 11,
+   "room": "205",
+   "section": "C"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-2",
+   "course_id": "CSE211",
+   "day": "Sunday",
+   "time": 11,
+   "room": "205",
+   "section": "C"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-2",
+   "course_id": "CSE211",
+   "day": "Monday",
+   "time": 10,
+   "room": "205",
+   "section": "C"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-2",
+   "course_id": "CSE213",
+   "day": "Saturday",
+   "time": 10,
+   "room": "205",
+   "section": "C"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-2",
+   "course_id": "CSE213",
+   "day": "Sunday",
+   "time": 10,
+   "room": "205",
+   "section": "C"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-2",
+   "course_id": "CSE213",
+   "day": "Tuesday",
+   "time": 12,
+   "room": "205",
+   "section": "C"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-2",
+   "course_id": "CSE219",
+   "day": "Saturday",
+   "time": 12,
+   "room": "205",
+   "section": "C"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-2",
+   "course_id": "CSE219",
+   "day": "Sunday",
+   "time": 12,
+   "room": "205",
+   "section": "C"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-2",
+   "course_id": "CSE219",
+   "day": "Monday",
+   "time": 9,
+   "room": "205",
+   "section": "C"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-2",
+   "course_id": "MATH243",
+   "day": "Monday",
+   "time": 11,
+   "room": "205",
+   "section": "C"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-2",
+   "course_id": "MATH243",
+   "day": "Tuesday",
+   "time": 11,
+   "room": "205",
+   "section": "C"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-2",
+   "course_id": "MATH243",
+   "day": "Wednesday",
+   "time": 9,
+   "room": "205",
+   "section": "C"
+  },
+  {
+   "department": "BME",
+   "level_term": "L-2 T-2",
+   "course_id": "CSE283",
+   "day": "Saturday",
+   "time": 10,
+   "room": "(BME) 1106",
+   "section": "A"
+  },
+  {
+   "department": "BME",
+   "level_term": "L-2 T-2",
+   "course_id": "CSE283",
+   "day": "Sunday",
+   "time": 10,
+   "room": "(BME) 1106",
+   "section": "A"
+  },
+  {
+   "department": "BME",
+   "level_term": "L-2 T-2",
+   "course_id": "CSE283",
+   "day": "Wednesday",
+   "time": 10,
+   "room": "(BME) 1106",
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-3 T-1",
+   "course_id": "CT",
+   "day": "Saturday",
+   "time": 8,
+   "room": null,
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-3 T-1",
+   "course_id": "CT",
+   "day": "Monday",
+   "time": 8,
+   "room": null,
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-3 T-1",
+   "course_id": "CT",
+   "day": "Wednesday",
+   "time": 8,
+   "room": null,
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-3 T-1",
+   "course_id": "CSE301",
+   "day": "Saturday",
+   "time": 9,
+   "room": "903",
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-3 T-1",
+   "course_id": "CSE301",
+   "day": "Sunday",
+   "time": 12,
+   "room": "903",
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-3 T-1",
+   "course_id": "CSE301",
+   "day": "Monday",
+   "time": 10,
+   "room": "903",
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-3 T-1",
+   "course_id": "CSE309",
+   "day": "Monday",
+   "time": 12,
+   "room": "903",
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-3 T-1",
+   "course_id": "CSE309",
+   "day": "Tuesday",
+   "time": 9,
+   "room": "903",
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-3 T-1",
+   "course_id": "CSE309",
+   "day": "Wednesday",
+   "time": 10,
+   "room": "903",
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-3 T-1",
+   "course_id": "CSE313",
+   "day": "Sunday",
+   "time": 11,
+   "room": "903",
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-3 T-1",
+   "course_id": "CSE313",
+   "day": "Tuesday",
+   "time": 12,
+   "room": "903",
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-3 T-1",
+   "course_id": "CSE313",
+   "day": "Wednesday",
+   "time": 9,
+   "room": "903",
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-3 T-1",
+   "course_id": "CSE315",
+   "day": "Saturday",
+   "time": 11,
+   "room": "903",
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-3 T-1",
+   "course_id": "CSE315",
+   "day": "Sunday",
+   "time": 9,
+   "room": "903",
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-3 T-1",
+   "course_id": "CSE315",
+   "day": "Monday",
+   "time": 9,
+   "room": "903",
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-3 T-1",
+   "course_id": "CSE317",
+   "day": "Saturday",
+   "time": 12,
+   "room": "903",
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-3 T-1",
+   "course_id": "CSE317",
+   "day": "Sunday",
+   "time": 10,
+   "room": "903",
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-3 T-1",
+   "course_id": "CSE317",
+   "day": "Tuesday",
+   "time": 11,
+   "room": "903",
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-3 T-1",
+   "course_id": "CT",
+   "day": "Saturday",
+   "time": 8,
+   "room": null,
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-3 T-1",
+   "course_id": "CT",
+   "day": "Monday",
+   "time": 8,
+   "room": null,
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-3 T-1",
+   "course_id": "CT",
+   "day": "Wednesday",
+   "time": 8,
+   "room": null,
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-3 T-1",
+   "course_id": "CSE301",
+   "day": "Saturday",
+   "time": 10,
+   "room": "905",
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-3 T-1",
+   "course_id": "CSE301",
+   "day": "Sunday",
+   "time": 9,
+   "room": "905",
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-3 T-1",
+   "course_id": "CSE301",
+   "day": "Monday",
+   "time": 12,
+   "room": "905",
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-3 T-1",
+   "course_id": "CSE309",
+   "day": "Monday",
+   "time": 9,
+   "room": "905",
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-3 T-1",
+   "course_id": "CSE309",
+   "day": "Tuesday",
+   "time": 12,
+   "room": "905",
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-3 T-1",
+   "course_id": "CSE309",
+   "day": "Wednesday",
+   "time": 12,
+   "room": "905",
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-3 T-1",
+   "course_id": "CSE313",
+   "day": "Sunday",
+   "time": 10,
+   "room": "905",
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-3 T-1",
+   "course_id": "CSE313",
+   "day": "Tuesday",
+   "time": 10,
+   "room": "905",
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-3 T-1",
+   "course_id": "CSE313",
+   "day": "Wednesday",
+   "time": 11,
+   "room": "905",
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-3 T-1",
+   "course_id": "CSE315",
+   "day": "Saturday",
+   "time": 12,
+   "room": "905",
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-3 T-1",
+   "course_id": "CSE315",
+   "day": "Sunday",
+   "time": 8,
+   "room": "905",
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-3 T-1",
+   "course_id": "CSE315",
+   "day": "Monday",
+   "time": 10,
+   "room": "905",
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-3 T-1",
+   "course_id": "CSE317",
+   "day": "Saturday",
+   "time": 9,
+   "room": "905",
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-3 T-1",
+   "course_id": "CSE317",
+   "day": "Sunday",
+   "time": 12,
+   "room": "905",
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-3 T-1",
+   "course_id": "CSE317",
+   "day": "Tuesday",
+   "time": 9,
+   "room": "905",
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-3 T-1",
+   "course_id": "CT",
+   "day": "Saturday",
+   "time": 8,
+   "room": null,
+   "section": "C"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-3 T-1",
+   "course_id": "CT",
+   "day": "Monday",
+   "time": 8,
+   "room": null,
+   "section": "C"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-3 T-1",
+   "course_id": "CT",
+   "day": "Wednesday",
+   "time": 8,
+   "room": null,
+   "section": "C"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-3 T-1",
+   "course_id": "CSE301",
+   "day": "Saturday",
+   "time": 12,
+   "room": "504",
+   "section": "C"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-3 T-1",
+   "course_id": "CSE301",
+   "day": "Sunday",
+   "time": 10,
+   "room": "504",
+   "section": "C"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-3 T-1",
+   "course_id": "CSE301",
+   "day": "Monday",
+   "time": 9,
+   "room": "504",
+   "section": "C"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-3 T-1",
+   "course_id": "CSE309",
+   "day": "Monday",
+   "time": 11,
+   "room": "504",
+   "section": "C"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-3 T-1",
+   "course_id": "CSE309",
+   "day": "Tuesday",
+   "time": 10,
+   "room": "504",
+   "section": "C"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-3 T-1",
+   "course_id": "CSE309",
+   "day": "Wednesday",
+   "time": 9,
+   "room": "504",
+   "section": "C"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-3 T-1",
+   "course_id": "CSE313",
+   "day": "Sunday",
+   "time": 12,
+   "room": "504",
+   "section": "C"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-3 T-1",
+   "course_id": "CSE313",
+   "day": "Tuesday",
+   "time": 9,
+   "room": "504",
+   "section": "C"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-3 T-1",
+   "course_id": "CSE313",
+   "day": "Wednesday",
+   "time": 12,
+   "room": "504",
+   "section": "C"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-3 T-1",
+   "course_id": "CSE315",
+   "day": "Saturday",
+   "time": 9,
+   "room": "504",
+   "section": "C"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-3 T-1",
+   "course_id": "CSE315",
+   "day": "Sunday",
+   "time": 11,
+   "room": "504",
+   "section": "C"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-3 T-1",
+   "course_id": "CSE315",
+   "day": "Monday",
+   "time": 12,
+   "room": "504",
+   "section": "C"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-3 T-1",
+   "course_id": "CSE317",
+   "day": "Saturday",
+   "time": 10,
+   "room": "504",
+   "section": "C"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-3 T-1",
+   "course_id": "CSE317",
+   "day": "Sunday",
+   "time": 9,
+   "room": "504",
+   "section": "C"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-3 T-1",
+   "course_id": "CSE317",
+   "day": "Tuesday",
+   "time": 8,
+   "room": "504",
+   "section": "C"
+  },
+  {
+   "department": "BME",
+   "level_term": "L-3 T-1",
+   "course_id": "CSE391",
+   "day": "Saturday",
+   "time": 10,
+   "room": "(BME) 1105",
+   "section": "A"
+  },
+  {
+   "department": "BME",
+   "level_term": "L-3 T-1",
+   "course_id": "CSE391",
+   "day": "Sunday",
+   "time": 10,
+   "room": "(BME) 1105",
+   "section": "A"
+  },
+  {
+   "department": "BME",
+   "level_term": "L-3 T-1",
+   "course_id": "CSE391",
+   "day": "Monday",
+   "time": 10,
+   "room": "(BME) 1105",
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-4 T-1",
+   "course_id": "CT",
+   "day": "Saturday",
+   "time": 8,
+   "room": null,
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-4 T-1",
+   "course_id": "CT",
+   "day": "Monday",
+   "time": 8,
+   "room": null,
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-4 T-1",
+   "course_id": "CT",
+   "day": "Wednesday",
+   "time": 8,
+   "room": null,
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-4 T-1",
+   "course_id": "CSE401",
+   "day": "Saturday",
+   "time": 11,
+   "room": "104",
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-4 T-1",
+   "course_id": "CSE401",
+   "day": "Sunday",
+   "time": 12,
+   "room": "103",
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-4 T-1",
+   "course_id": "CSE401",
+   "day": "Monday",
+   "time": 9,
+   "room": "DBL",
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-4 T-1",
+   "course_id": "CSE405",
+   "day": "Saturday",
+   "time": 10,
+   "room": "DBL",
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-4 T-1",
+   "course_id": "CSE405",
+   "day": "Sunday",
+   "time": 11,
+   "room": "103",
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-4 T-1",
+   "course_id": "CSE405",
+   "day": "Monday",
+   "time": 10,
+   "room": "DBL",
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-4 T-1",
+   "course_id": "CSE423",
+   "day": "Saturday",
+   "time": 9,
+   "room": "DBL",
+   "section": "A",
+   "all_sections": [
+    "A",
+    "B",
+    "C"
+   ]
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-4 T-1",
+   "course_id": "CSE425",
+   "day": "Tuesday",
+   "time": 9,
+   "room": "403",
+   "section": "A",
+   "all_sections": [
+    "A",
+    "B",
+    "C"
+   ]
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-4 T-1",
+   "course_id": "CSE463",
+   "day": "Wednesday",
+   "time": 10,
+   "room": "207",
+   "section": "A",
+   "all_sections": [
+    "A",
+    "B",
+    "C"
+   ]
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-4 T-1",
+   "course_id": "CSE453",
+   "day": "Sunday",
+   "time": 9,
+   "room": "DBL",
+   "section": "A",
+   "all_sections": [
+    "A",
+    "B",
+    "C"
+   ]
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-4 T-1",
+   "course_id": "CSE421",
+   "day": "Tuesday",
+   "time": 10,
+   "room": "403",
+   "section": "A",
+   "all_sections": [
+    "A",
+    "B",
+    "C"
+   ]
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-4 T-1",
+   "course_id": "CSE429",
+   "day": "Wednesday",
+   "time": 9,
+   "room": "CSL",
+   "section": "A",
+   "all_sections": [
+    "A",
+    "B",
+    "C"
+   ]
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-4 T-1",
+   "course_id": "CSE463",
+   "day": "Saturday",
+   "time": 9,
+   "room": "207",
+   "section": "A",
+   "all_sections": [
+    "A",
+    "B",
+    "C"
+   ]
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-4 T-1",
+   "course_id": "CSE423",
+   "day": "Tuesday",
+   "time": 9,
+   "room": "DBL",
+   "section": "A",
+   "all_sections": [
+    "A",
+    "B",
+    "C"
+   ]
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-4 T-1",
+   "course_id": "CSE425",
+   "day": "Wednesday",
+   "time": 10,
+   "room": "403",
+   "section": "A",
+   "all_sections": [
+    "A",
+    "B",
+    "C"
+   ]
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-4 T-1",
+   "course_id": "CSE421",
+   "day": "Sunday",
+   "time": 9,
+   "room": "403",
+   "section": "A",
+   "all_sections": [
+    "A",
+    "B",
+    "C"
+   ]
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-4 T-1",
+   "course_id": "CSE429",
+   "day": "Tuesday",
+   "time": 10,
+   "room": "CSL",
+   "section": "A",
+   "all_sections": [
+    "A",
+    "B",
+    "C"
+   ]
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-4 T-1",
+   "course_id": "CSE453",
+   "day": "Wednesday",
+   "time": 9,
+   "room": "DBL",
+   "section": "A",
+   "all_sections": [
+    "A",
+    "B",
+    "C"
+   ]
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-4 T-1",
+   "course_id": "CSE425",
+   "day": "Saturday",
+   "time": 9,
+   "room": "403",
+   "section": "A",
+   "all_sections": [
+    "A",
+    "B",
+    "C"
+   ]
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-4 T-1",
+   "course_id": "CSE463",
+   "day": "Tuesday",
+   "time": 9,
+   "room": "207",
+   "section": "A",
+   "all_sections": [
+    "A",
+    "B",
+    "C"
+   ]
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-4 T-1",
+   "course_id": "CSE423",
+   "day": "Wednesday",
+   "time": 10,
+   "room": "DBL",
+   "section": "A",
+   "all_sections": [
+    "A",
+    "B",
+    "C"
+   ]
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-4 T-1",
+   "course_id": "CSE429",
+   "day": "Sunday",
+   "time": 9,
+   "room": "CSL",
+   "section": "A",
+   "all_sections": [
+    "A",
+    "B",
+    "C"
+   ]
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-4 T-1",
+   "course_id": "CSE453",
+   "day": "Tuesday",
+   "time": 10,
+   "room": "DBL",
+   "section": "A",
+   "all_sections": [
+    "A",
+    "B",
+    "C"
+   ]
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-4 T-1",
+   "course_id": "CSE421",
+   "day": "Wednesday",
+   "time": 9,
+   "room": "403",
+   "section": "A",
+   "all_sections": [
+    "A",
+    "B",
+    "C"
+   ]
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-4 T-1",
+   "course_id": "HUM475",
+   "day": "Saturday",
+   "time": 12,
+   "room": "104",
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-4 T-1",
+   "course_id": "HUM475",
+   "day": "Sunday",
+   "time": 10,
+   "room": "DBL",
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-4 T-1",
+   "course_id": "HUM475",
+   "day": "Monday",
+   "time": 11,
+   "room": "108",
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-4 T-1",
+   "course_id": "CT",
+   "day": "Saturday",
+   "time": 8,
+   "room": null,
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-4 T-1",
+   "course_id": "CT",
+   "day": "Monday",
+   "time": 8,
+   "room": null,
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-4 T-1",
+   "course_id": "CT",
+   "day": "Wednesday",
+   "time": 8,
+   "room": null,
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-4 T-1",
+   "course_id": "CSE401",
+   "day": "Saturday",
+   "time": 10,
+   "room": "207",
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-4 T-1",
+   "course_id": "CSE401",
+   "day": "Sunday",
+   "time": 11,
+   "room": "207",
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-4 T-1",
+   "course_id": "CSE401",
+   "day": "Monday",
+   "time": 10,
+   "room": "207",
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-4 T-1",
+   "course_id": "CSE405",
+   "day": "Saturday",
+   "time": 12,
+   "room": "207",
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-4 T-1",
+   "course_id": "CSE405",
+   "day": "Sunday",
+   "time": 10,
+   "room": "207",
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-4 T-1",
+   "course_id": "CSE405",
+   "day": "Monday",
+   "time": 12,
+   "room": "207",
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-4 T-1",
+   "course_id": "HUM475",
+   "day": "Saturday",
+   "time": 11,
+   "room": "207",
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-4 T-1",
+   "course_id": "HUM475",
+   "day": "Sunday",
+   "time": 12,
+   "room": "207",
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-4 T-1",
+   "course_id": "HUM475",
+   "day": "Monday",
+   "time": 9,
+   "room": "207",
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-4 T-1",
+   "course_id": "CT",
+   "day": "Saturday",
+   "time": 8,
+   "room": null,
+   "section": "C"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-4 T-1",
+   "course_id": "CT",
+   "day": "Monday",
+   "time": 8,
+   "room": null,
+   "section": "C"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-4 T-1",
+   "course_id": "CT",
+   "day": "Wednesday",
+   "time": 8,
+   "room": null,
+   "section": "C"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-4 T-1",
+   "course_id": "CSE401",
+   "day": "Saturday",
+   "time": 12,
+   "room": "403",
+   "section": "C"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-4 T-1",
+   "course_id": "CSE401",
+   "day": "Sunday",
+   "time": 10,
+   "room": "403",
+   "section": "C"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-4 T-1",
+   "course_id": "CSE401",
+   "day": "Monday",
+   "time": 12,
+   "room": "403",
+   "section": "C"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-4 T-1",
+   "course_id": "CSE405",
+   "day": "Saturday",
+   "time": 11,
+   "room": "403",
+   "section": "C"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-4 T-1",
+   "course_id": "CSE405",
+   "day": "Sunday",
+   "time": 8,
+   "room": "403",
+   "section": "C"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-4 T-1",
+   "course_id": "CSE405",
+   "day": "Monday",
+   "time": 9,
+   "room": "403",
+   "section": "C"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-4 T-1",
+   "course_id": "HUM475",
+   "day": "Saturday",
+   "time": 10,
+   "room": "403",
+   "section": "C"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-4 T-1",
+   "course_id": "HUM475",
+   "day": "Sunday",
+   "time": 11,
+   "room": "403",
+   "section": "C"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-4 T-1",
+   "course_id": "HUM475",
+   "day": "Monday",
+   "time": 10,
+   "room": "403",
+   "section": "C"
+  },
+  {
+   "department": "BME",
+   "level_term": "L-4 T-1",
+   "course_id": "CSE495",
+   "day": "Saturday",
+   "time": 10,
+   "room": "(BME) 1108",
+   "section": "A"
+  },
+  {
+   "department": "BME",
+   "level_term": "L-4 T-1",
+   "course_id": "CSE495",
+   "day": "Sunday",
+   "time": 10,
+   "room": "(BME) 1108",
+   "section": "A"
+  },
+  {
+   "department": "BME",
+   "level_term": "L-4 T-1",
+   "course_id": "CSE495",
+   "day": "Monday",
+   "time": 10,
+   "room": "(BME) 1108",
+   "section": "A"
+  }
+ ],
+ "labs": [
+  {
+   "department": "CSE",
+   "level_term": "L-1 T-1",
+   "course_id": "CSE102",
+   "day": "Monday",
+   "time": 2,
+   "room": "VDAL",
+   "section": "A1"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-1 T-1",
+   "course_id": "CSE102",
+   "day": "Sunday",
+   "time": 11,
+   "room": "CCL",
+   "section": "A2"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-1 T-1",
+   "course_id": "EEE164",
+   "day": "Sunday",
+   "time": 11,
+   "room": "(EEE) PEL",
+   "section": "A1"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-1 T-1",
+   "course_id": "EEE164",
+   "day": "Monday",
+   "time": 2,
+   "room": "(EEE) NCL",
+   "section": "A2"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-1 T-1",
+   "course_id": "PHY114",
+   "day": "Sunday",
+   "time": 2,
+   "room": "(OAB) Physics Lab-1",
+   "section": "A1"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-1 T-1",
+   "course_id": "PHY114",
+   "day": "Sunday",
+   "time": 2,
+   "room": "(OAB) Physics Lab-2",
+   "section": "A2"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-1 T-1",
+   "course_id": "CSE102",
+   "day": "Wednesday",
+   "time": 2,
+   "room": "VDAL",
+   "section": "B1"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-1 T-1",
+   "course_id": "CSE102",
+   "day": "Wednesday",
+   "time": 2,
+   "room": "IAC",
+   "section": "B2"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-1 T-1",
+   "course_id": "EEE164",
+   "day": "Tuesday",
+   "time": 11,
+   "room": "(EEE) CL1",
+   "section": "B1"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-1 T-1",
+   "course_id": "EEE164",
+   "day": "Tuesday",
+   "time": 11,
+   "room": "(EEE) OEL",
+   "section": "B2"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-1 T-1",
+   "course_id": "PHY114",
+   "day": "Tuesday",
+   "time": 2,
+   "room": "(OAB) Physics Lab-2",
+   "section": "B1"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-1 T-1",
+   "course_id": "PHY114",
+   "day": "Tuesday",
+   "time": 2,
+   "room": "(OAB) Physics Lab-4",
+   "section": "B2"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-1 T-1",
+   "course_id": "CSE102",
+   "day": "Tuesday",
+   "time": 11,
+   "room": "VDAL",
+   "section": "C1"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-1 T-1",
+   "course_id": "CSE102",
+   "day": "Tuesday",
+   "time": 11,
+   "room": "CL",
+   "section": "C2"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-1 T-1",
+   "course_id": "EEE164",
+   "day": "Saturday",
+   "time": 11,
+   "room": "(EEE) PEL",
+   "section": "C1"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-1 T-1",
+   "course_id": "EEE164",
+   "day": "Saturday",
+   "time": 11,
+   "room": "(EEE) NCL",
+   "section": "C2"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-1 T-1",
+   "course_id": "PHY114",
+   "day": "Saturday",
+   "time": 2,
+   "room": "(OAB) Physics Lab-1",
+   "section": "C1"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-1 T-1",
+   "course_id": "PHY114",
+   "day": "Saturday",
+   "time": 2,
+   "room": "(OAB) Physics Lab-2",
+   "section": "C2"
+  },
+  {
+   "department": "EEE",
+   "level_term": "L-1 T-1",
+   "course_id": "CSE110",
+   "day": "Monday",
+   "time": 11,
+   "room": "PL",
+   "section": "A1"
+  },
+  {
+   "department": "EEE",
+   "level_term": "L-1 T-1",
+   "course_id": "CSE110",
+   "day": "Monday",
+   "time": 11,
+   "room": "VDAL",
+   "section": "A2"
+  },
+  {
+   "department": "EEE",
+   "level_term": "L-1 T-1",
+   "course_id": "CSE110",
+   "day": "Sunday",
+   "time": 11,
+   "room": "PL",
+   "section": "B1"
+  },
+  {
+   "department": "EEE",
+   "level_term": "L-1 T-1",
+   "course_id": "CSE110",
+   "day": "Sunday",
+   "time": 11,
+   "room": "VDAL",
+   "section": "B2"
+  },
+  {
+   "department": "EEE",
+   "level_term": "L-1 T-1",
+   "course_id": "CSE110",
+   "day": "Wednesday",
+   "time": 11,
+   "room": "PL",
+   "section": "C1"
+  },
+  {
+   "department": "EEE",
+   "level_term": "L-1 T-1",
+   "course_id": "CSE110",
+   "day": "Wednesday",
+   "time": 11,
+   "room": "VDAL",
+   "section": "C2"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-1",
+   "course_id": "CSE206",
+   "day": "Wednesday",
+   "time": 2,
+   "room": "IL",
+   "section": "A1"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-1",
+   "course_id": "CSE206",
+   "day": "Wednesday",
+   "time": 2,
+   "room": "DL",
+   "section": "A2"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-1",
+   "course_id": "CSE208",
+   "day": "Monday",
+   "time": 11,
+   "room": "IAC",
+   "section": "A1"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-1",
+   "course_id": "CSE208",
+   "day": "Monday",
+   "time": 11,
+   "room": "CSL",
+   "section": "A2"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-1",
+   "course_id": "CSE216",
+   "day": "Saturday",
+   "time": 11,
+   "room": "DBL",
+   "section": "A1"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-1",
+   "course_id": "CSE216",
+   "day": "Saturday",
+   "time": 11,
+   "room": "WNL",
+   "section": "A2"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-1",
+   "course_id": "EEE264",
+   "day": "Monday",
+   "time": 2,
+   "room": "(EEE) OEL",
+   "section": "A1"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-1",
+   "course_id": "EEE264",
+   "day": "Monday",
+   "time": 2,
+   "room": "(EEE) CL1",
+   "section": "A2"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-1",
+   "course_id": "CSE206",
+   "day": "Wednesday",
+   "time": 11,
+   "room": "IL",
+   "section": "B1"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-1",
+   "course_id": "CSE206",
+   "day": "Wednesday",
+   "time": 11,
+   "room": "DL",
+   "section": "B2"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-1",
+   "course_id": "CSE208",
+   "day": "Saturday",
+   "time": 2,
+   "room": "PL",
+   "section": "B1"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-1",
+   "course_id": "CSE208",
+   "day": "Saturday",
+   "time": 2,
+   "room": "VDAL",
+   "section": "B2"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-1",
+   "course_id": "CSE216",
+   "day": "Wednesday",
+   "time": 2,
+   "room": "DBL",
+   "section": "B1"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-1",
+   "course_id": "CSE216",
+   "day": "Wednesday",
+   "time": 2,
+   "room": "WNL",
+   "section": "B2"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-1",
+   "course_id": "EEE264",
+   "day": "Tuesday",
+   "time": 2,
+   "room": "(EEE) OEL",
+   "section": "B1"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-1",
+   "course_id": "EEE264",
+   "day": "Tuesday",
+   "time": 2,
+   "room": "(EEE) PEL",
+   "section": "B2"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-1",
+   "course_id": "CSE206",
+   "day": "Monday",
+   "time": 11,
+   "room": "IL",
+   "section": "C1"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-1",
+   "course_id": "CSE206",
+   "day": "Monday",
+   "time": 11,
+   "room": "DL",
+   "section": "C2"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-1",
+   "course_id": "CSE208",
+   "day": "Sunday",
+   "time": 2,
+   "room": "PL",
+   "section": "C1"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-1",
+   "course_id": "CSE208",
+   "day": "Sunday",
+   "time": 2,
+   "room": "VDAL",
+   "section": "C2"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-1",
+   "course_id": "CSE216",
+   "day": "Tuesday",
+   "time": 11,
+   "room": "DBL",
+   "section": "C1"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-1",
+   "course_id": "CSE216",
+   "day": "Tuesday",
+   "time": 11,
+   "room": "WNL",
+   "section": "C2"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-1",
+   "course_id": "EEE264",
+   "day": "Wednesday",
+   "time": 2,
+   "room": "(EEE) OEL",
+   "section": "C1"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-1",
+   "course_id": "EEE264",
+   "day": "Wednesday",
+   "time": 2,
+   "room": "(EEE) PEL",
+   "section": "C2"
+  },
+  {
+   "department": "BME",
+   "level_term": "L-2 T-1",
+   "course_id": "CSE282",
+   "day": "Sunday",
+   "time": 11,
+   "room": "WNL",
+   "section": "A1"
+  },
+  {
+   "department": "BME",
+   "level_term": "L-2 T-1",
+   "course_id": "CSE282",
+   "day": "Monday",
+   "time": 11,
+   "room": "WNL",
+   "section": "A2"
+  },
+  {
+   "department": "MME",
+   "level_term": "L-2 T-1",
+   "course_id": "CSE288",
+   "day": "Saturday",
+   "time": 11,
+   "room": "CL",
+   "section": "A1"
+  },
+  {
+   "department": "MME",
+   "level_term": "L-2 T-1",
+   "course_id": "CSE288",
+   "day": "Sunday",
+   "time": 11,
+   "room": "CL",
+   "section": "A2"
+  },
+  {
+   "department": "IPE",
+   "level_term": "L-2 T-1",
+   "course_id": "CSE296",
+   "day": "Monday",
+   "time": 11,
+   "room": "DBL",
+   "section": "A1"
+  },
+  {
+   "department": "IPE",
+   "level_term": "L-2 T-1",
+   "course_id": "CSE296",
+   "day": "Monday",
+   "time": 11,
+   "room": "CL",
+   "section": "A2"
+  },
+  {
+   "department": "IPE",
+   "level_term": "L-2 T-1",
+   "course_id": "CSE296",
+   "day": "Sunday",
+   "time": 11,
+   "room": "DBL",
+   "section": "B1"
+  },
+  {
+   "department": "IPE",
+   "level_term": "L-2 T-1",
+   "course_id": "CSE296",
+   "day": "Sunday",
+   "time": 11,
+   "room": "IAC",
+   "section": "B2"
+  },
+  {
+   "department": "NCE",
+   "level_term": "L-2 T-1",
+   "course_id": "CSE274",
+   "day": "Saturday",
+   "time": 11,
+   "room": "VDAL",
+   "section": "A1"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-2",
+   "course_id": "CSE200",
+   "day": "Tuesday",
+   "time": 11,
+   "room": "IAC",
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-2",
+   "course_id": "CSE210",
+   "day": "Monday",
+   "time": 2,
+   "room": "IL",
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-2",
+   "course_id": "CSE214",
+   "day": "Wednesday",
+   "time": 2,
+   "room": "CSL",
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-2",
+   "course_id": "CSE220",
+   "day": "Saturday",
+   "time": 2,
+   "room": "DBL",
+   "section": "A1"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-2",
+   "course_id": "CSE220",
+   "day": "Saturday",
+   "time": 2,
+   "room": "CCL",
+   "section": "A2"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-2",
+   "course_id": "CSE200",
+   "day": "Wednesday",
+   "time": 11,
+   "room": "IAC",
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-2",
+   "course_id": "CSE210",
+   "day": "Saturday",
+   "time": 2,
+   "room": "IL",
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-2",
+   "course_id": "CSE214",
+   "day": "Tuesday",
+   "time": 11,
+   "room": "CSL",
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-2",
+   "course_id": "CSE220",
+   "day": "Sunday",
+   "time": 2,
+   "room": "DBL",
+   "section": "B1"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-2",
+   "course_id": "CSE220",
+   "day": "Sunday",
+   "time": 2,
+   "room": "CCL",
+   "section": "B2"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-2",
+   "course_id": "CSE200",
+   "day": "Wednesday",
+   "time": 2,
+   "room": "PL",
+   "section": "C"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-2",
+   "course_id": "CSE210",
+   "day": "Sunday",
+   "time": 2,
+   "room": "IL",
+   "section": "C"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-2",
+   "course_id": "CSE214",
+   "day": "Wednesday",
+   "time": 11,
+   "room": "CSL",
+   "section": "C"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-2",
+   "course_id": "CSE220",
+   "day": "Monday",
+   "time": 2,
+   "room": "DBL",
+   "section": "C1"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-2 T-2",
+   "course_id": "CSE220",
+   "day": "Monday",
+   "time": 2,
+   "room": "CCL",
+   "section": "C2"
+  },
+  {
+   "department": "BME",
+   "level_term": "L-2 T-2",
+   "course_id": "CSE284",
+   "day": "Sunday",
+   "time": 11,
+   "room": "IL",
+   "section": "A1"
+  },
+  {
+   "department": "BME",
+   "level_term": "L-2 T-2",
+   "course_id": "CSE284",
+   "day": "Saturday",
+   "time": 11,
+   "room": "IL",
+   "section": "A2"
+  },
+  {
+   "department": "URP",
+   "level_term": "L-2 T-2",
+   "course_id": "CSE272",
+   "day": "Monday",
+   "time": 2,
+   "room": "(URP) 402",
+   "section": "A1"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-3 T-1",
+   "course_id": "CSE310",
+   "day": "Saturday",
+   "time": 2,
+   "room": "WNL",
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-3 T-1",
+   "course_id": "CSE314",
+   "day": "Sunday",
+   "time": 2,
+   "room": "IAC",
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-3 T-1",
+   "course_id": "CSE316",
+   "day": "Monday",
+   "time": 2,
+   "room": "DL",
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-3 T-1",
+   "course_id": "CSE318",
+   "day": "Wednesday",
+   "time": 11,
+   "room": "CCL",
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-3 T-1",
+   "course_id": "CSE310",
+   "day": "Sunday",
+   "time": 2,
+   "room": "WNL",
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-3 T-1",
+   "course_id": "CSE314",
+   "day": "Monday",
+   "time": 2,
+   "room": "IAC",
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-3 T-1",
+   "course_id": "CSE316",
+   "day": "Saturday",
+   "time": 2,
+   "room": "DL",
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-3 T-1",
+   "course_id": "CSE318",
+   "day": "Wednesday",
+   "time": 2,
+   "room": "CCL",
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-3 T-1",
+   "course_id": "CSE310",
+   "day": "Monday",
+   "time": 2,
+   "room": "WNL",
+   "section": "C"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-3 T-1",
+   "course_id": "CSE314",
+   "day": "Saturday",
+   "time": 2,
+   "room": "IAC",
+   "section": "C"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-3 T-1",
+   "course_id": "CSE316",
+   "day": "Sunday",
+   "time": 2,
+   "room": "DL",
+   "section": "C"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-3 T-1",
+   "course_id": "CSE318",
+   "day": "Tuesday",
+   "time": 11,
+   "room": "CCL",
+   "section": "C"
+  },
+  {
+   "department": "BME",
+   "level_term": "L-3 T-1",
+   "course_id": "CSE392",
+   "day": "Saturday",
+   "time": 11,
+   "room": "DL",
+   "section": "A1"
+  },
+  {
+   "department": "BME",
+   "level_term": "L-3 T-1",
+   "course_id": "CSE392",
+   "day": "Sunday",
+   "time": 11,
+   "room": "DL",
+   "section": "A2"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-4 T-1",
+   "course_id": "CSE402",
+   "day": "Monday",
+   "time": 2,
+   "room": "CL",
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-4 T-1",
+   "course_id": "CSE450",
+   "day": "Wednesday",
+   "time": 11,
+   "room": "CL",
+   "section": "A1"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-4 T-1",
+   "course_id": "CSE450",
+   "day": "Wednesday",
+   "time": 11,
+   "room": "CL",
+   "section": "A2"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-4 T-1",
+   "course_id": "CSE406",
+   "day": "Saturday",
+   "time": 2,
+   "room": "CSL",
+   "section": "A"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-4 T-1",
+   "course_id": "CSE402",
+   "day": "Sunday",
+   "time": 2,
+   "room": "CL",
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-4 T-1",
+   "course_id": "CSE450",
+   "day": "Wednesday",
+   "time": 11,
+   "room": "DBL",
+   "section": "B1"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-4 T-1",
+   "course_id": "CSE450",
+   "day": "Wednesday",
+   "time": 11,
+   "room": "DBL",
+   "section": "B2"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-4 T-1",
+   "course_id": "CSE406",
+   "day": "Monday",
+   "time": 2,
+   "room": "CSL",
+   "section": "B"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-4 T-1",
+   "course_id": "CSE402",
+   "day": "Saturday",
+   "time": 2,
+   "room": "CL",
+   "section": "C"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-4 T-1",
+   "course_id": "CSE450",
+   "day": "Wednesday",
+   "time": 11,
+   "room": "WNL",
+   "section": "C1"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-4 T-1",
+   "course_id": "CSE450",
+   "day": "Wednesday",
+   "time": 11,
+   "room": "WNL",
+   "section": "C2"
+  },
+  {
+   "department": "CSE",
+   "level_term": "L-4 T-1",
+   "course_id": "CSE406",
+   "day": "Sunday",
+   "time": 2,
+   "room": "CSL",
+   "section": "C"
+  }
+ ]
+}

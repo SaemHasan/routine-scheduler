@@ -614,33 +614,20 @@ export async function getSessionalCoursesByDeptLevelTerm(
 }
 
 export async function getTheoryCoursesByDeptLevelTerm(department, level_term) {
-  console.log(`Fetching theory courses for department: ${department}, level_term: ${level_term}`);
-  
-  // First, let's see what courses exist in the courses table
-  const debugQuery = `SELECT course_id, name, type, "to", level_term FROM courses ORDER BY course_id`;
-  const client = await connect();
-  const debugResults = await client.query(debugQuery);
-  console.log(`All courses in database:`);
-  console.log(JSON.stringify(debugResults.rows, null, 2));
-  
+  // CT (class test) periods go in every CSE level-term's routine
   const query = `
-    SELECT course_id, name, class_per_week, "to", level_term
+    SELECT course_id, name, class_per_week, "to", level_term, optional,
+           optional_section_count, option_group
     FROM courses
     WHERE type = 0
-    AND "to" = $1
-    AND level_term = $2
-    ORDER BY course_id
+    AND session = (SELECT value FROM configs WHERE key = 'CURRENT_SESSION')
+    AND (("to" = $1 AND level_term = $2) OR (course_id = 'CT' AND $1 = 'CSE'))
+    ORDER BY course_id = 'CT', course_id
     `;
-  const values = [department, level_term];
-  
-  console.log(`Query: ${query}`);
-  console.log(`Values: ${JSON.stringify(values)}`);
-  
-  const results = await client.query(query, values);
-  
-  console.log(`Found ${results.rows.length} theory courses:`);
-  console.log(JSON.stringify(results.rows, null, 2));
-  
-  client.release();
-  return results.rows;
+  const client = await connect();
+  try {
+    return (await client.query(query, [department, level_term])).rows;
+  } finally {
+    client.release();
+  }
 }

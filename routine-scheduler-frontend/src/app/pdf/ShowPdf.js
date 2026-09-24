@@ -24,6 +24,7 @@ import {
 } from "../api/pdf";
 import { toast } from "react-hot-toast";
 import { sendMail } from "../api/pdf";
+import RoutineBooks from "./RoutineBooks";
 
 export default function ShowPdf() {
   const [forStudent, setForStudent] = useState(true);
@@ -429,6 +430,8 @@ export default function ShowPdf() {
           </ol>
         </nav>
       </div>
+
+      <RoutineBooks />
 
       {/* Control Panel */}
       <div className="row mb-4">

@@ -134,6 +134,120 @@ export async function setTheorySchedule(batch, section, course, schedule) {
   }
 }
 
+/**
+ * Sets the theory classes a section has in one period. `course_ids` is the
+ * whole list for the cell: classes not in it are taken out, new ones put in.
+ * Labs and thesis in the cell are left alone.
+ *
+ * Only electives share a period (the courses of an option run side by side).
+ * An elective that runs as a single group is taken by students of every
+ * section, so it is placed in, and taken out of, all the batch's sections
+ * together, in one room.
+ */
+export async function setTheoryCellDB({ department, batch, section, day, time, course_ids }) {
+  const client = await connect();
+  try {
+    await client.query("BEGIN");
+    const session = (await client.query(`SELECT value FROM configs WHERE key='CURRENT_SESSION'`)).rows[0].value;
+    const wanted = [...new Set((course_ids || []).filter(Boolean))];
+
+    const courses = (
+      await client.query(
+        `SELECT course_id, type, optional, optional_section_count
+         FROM courses WHERE session = $1 AND course_id = ANY($2::varchar[])`,
+        [session, wanted]
+      )
+    ).rows;
+    const courseOf = new Map(courses.map((c) => [c.course_id, c]));
+    // Labs and thesis are set elsewhere; CT is a theory period of its own
+    const theoryIds = wanted.filter((id) => courseOf.get(id) && Number(courseOf.get(id).type) === 0);
+    const unknown = wanted.filter((id) => !courseOf.has(id));
+    if (unknown.length) throw new HttpError(404, `${unknown.join(", ")} is not running this session`);
+    if (theoryIds.length > 1 && theoryIds.some((id) => !courseOf.get(id).optional)) {
+      throw new HttpError(409, `Only electives can share a period (${theoryIds.join(", ")})`);
+    }
+
+    const thesis = await client.query(
+      `SELECT 1 FROM schedule_assignment sa
+       JOIN courses c ON c.course_id = sa.course_id AND c.session = sa.session
+       WHERE sa.department = $1 AND sa.batch = $2 AND sa.section = $3 AND sa.day = $4
+         AND sa."time" = $5 AND c.type = 2 AND sa.session = $6`,
+      [department, batch, section, day, time, session]
+    );
+    if (thesis.rowCount > 0 && theoryIds.length > 0) {
+      throw new HttpError(409, `Section ${section} has thesis on ${day} at ${time}:00`);
+    }
+
+    const mainSections = (
+      await client.query(
+        `SELECT section, room FROM sections
+         WHERE department = $1 AND batch = $2 AND type = 0 ORDER BY section`,
+        [department, batch]
+      )
+    ).rows;
+    const roomOf = new Map(mainSections.map((s) => [s.section, s.room]));
+    const singleGroup = async (id) => {
+      const c = courseOf.get(id) ||
+        (await client.query(
+          "SELECT optional, optional_section_count, type FROM courses WHERE course_id = $1 AND session = $2",
+          [id, session]
+        )).rows[0];
+      return Boolean(c && c.optional && Number(c.type) === 0 && Number(c.optional_section_count) <= 1);
+    };
+    // The sections a class of this course occupies when put in `section`
+    const sectionsFor = async (id) =>
+      (await singleGroup(id)) ? mainSections.map((s) => s.section) : [section];
+
+    const present = (
+      await client.query(
+        `SELECT sa.course_id FROM schedule_assignment sa
+         JOIN courses c ON c.course_id = sa.course_id AND c.session = sa.session
+         WHERE sa.department = $1 AND sa.batch = $2 AND sa.section = $3 AND sa.day = $4
+           AND sa."time" = $5 AND sa.session = $6 AND c.type = 0`,
+        [department, batch, section, day, time, session]
+      )
+    ).rows.map((r) => r.course_id);
+
+    for (const id of present.filter((id) => !theoryIds.includes(id))) {
+      await client.query(
+        `DELETE FROM schedule_assignment
+         WHERE course_id = $1 AND department = $2 AND batch = $3 AND section = ANY($4::varchar[])
+           AND day = $5 AND "time" = $6 AND session = $7`,
+        [id, department, batch, await sectionsFor(id), day, time, session]
+      );
+    }
+    for (const id of theoryIds.filter((id) => !present.includes(id))) {
+      // CT has neither a room nor teachers
+      const room = id === "CT" ? null : roomOf.get(section) || null;
+      for (const sec of await sectionsFor(id)) {
+        const teachers =
+          id === "CT"
+            ? []
+            : (
+                await client.query(
+                  `SELECT teachers FROM courses_sections
+                   WHERE course_id = $1 AND session = $2 AND batch = $3 AND section = $4 AND department = $5`,
+                  [id, session, batch, sec, department]
+                )
+              ).rows[0]?.teachers || [];
+        await client.query(
+          `INSERT INTO schedule_assignment (course_id, session, batch, section, day, "time", department, room_no, teachers)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+           ON CONFLICT (course_id, session, batch, section, day, "time", department) DO NOTHING`,
+          [id, session, batch, sec, day, time, department, room, teachers]
+        );
+      }
+    }
+    await client.query("COMMIT");
+    return { course_ids: theoryIds };
+  } catch (e) {
+    await client.query("ROLLBACK");
+    throw e;
+  } finally {
+    client.release();
+  }
+}
+
 export async function getSessionalSchedule(batch, section) {
   const query = `
     SELECT course_id, "day", "time", department, "section"

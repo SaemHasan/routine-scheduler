@@ -1055,16 +1055,15 @@ export async function calculateTeacherTotalCredit(initial) {
     }
 
     // Get all sessional assignments for the teacher
-    // A sessional counts once per course; a teacher sharing a lab slot with
-    // another teacher (share 0.5) gets half of it.
+    // Each lab section taught counts (as in the department's load sheet); a
+    // teacher sharing a lab slot with another teacher (share 0.5) gets half.
     const sessionalQuery = `
-      SELECT tsa.course_id, c.class_per_week, MAX(tsa.share)::float AS share
+      SELECT tsa.course_id, tsa.section, c.class_per_week, tsa.share::float AS share
       FROM teacher_sessional_assignment tsa
       JOIN courses c ON tsa.course_id = c.course_id AND tsa.session = c.session
       WHERE tsa.initial = $1
       AND tsa.session = (SELECT value FROM configs WHERE key='CURRENT_SESSION')
       AND c.type = 1
-      GROUP BY tsa.course_id, c.class_per_week
     `;
     const sessionalResult = await client.query(sessionalQuery, [initial]);
 
@@ -1120,7 +1119,7 @@ export async function calculateTeacherTotalCredit(initial) {
         thesis1: teacher.offers_thesis_1 ? 6 : 0,
         thesis2: teacher.offers_thesis_2 ? 6 : 0,
         msc: teacher.offers_msc ? 3 : 0,
-        sessionalCourses: sessionalResult.rows.length,
+        sessionalCourses: new Set(sessionalResult.rows.map((r) => r.course_id)).size,
         theoryCourses: theoryResult.rows.length,
       },
     };

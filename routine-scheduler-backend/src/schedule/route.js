@@ -8,6 +8,7 @@ import {
   initiate,
   setSessionalScheduleAPI,
   setTheoryScheduleAPI,
+  setTheoryCellAPI,
   teacherContradiction,
   getCourseAllScheduleAPI,
   getCourseSectionalScheduleAPI,
@@ -18,6 +19,7 @@ const router = express.Router();
 
 router.get("/theory/:department/:batch/:section", getTheoryScheduleAPI);
 router.post("/theory/:batch/:section/:course", setTheoryScheduleAPI);
+router.put("/theory/cell", setTheoryCellAPI);
 
 router.get("/sessional/:batch/:section", getSessionalScheduleAPI);
 router.get("/sessional/departmental", getDepartmentalSessionalScheduleAPI);

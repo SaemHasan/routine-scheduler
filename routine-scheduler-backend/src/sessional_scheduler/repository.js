@@ -165,12 +165,13 @@ export async function loadProblemDB() {
 
     const constraints = (await client.query("SELECT * FROM sessional_constraints")).rows;
 
-    // Lab rooms; a non-lab room is usable only by a course that names it.
+    // Lab rooms; a non-lab room, or another department's lab (written with
+    // its department, e.g. "(EEE) PEL"), is usable only by a course that names it.
     const roomRows = (
       await client.query("SELECT room, type, lab_type FROM rooms WHERE active = true ORDER BY room")
     ).rows;
     const rooms = roomRows
-      .filter((r) => r.type === 1 || r.type === 2)
+      .filter((r) => (r.type === 1 || r.type === 2) && !/\(.*\)/.test(r.room))
       .map((r) => ({ room: r.room, lab_type: r.lab_type, restricted: false }));
     const named = new Set(constraints.filter((c) => c.kind === "course_rooms").flatMap((c) => c.rooms || []));
     for (const room of named) {

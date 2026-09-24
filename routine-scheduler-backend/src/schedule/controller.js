@@ -4,6 +4,7 @@ import {
   getScheduleConfigs,
   getTheorySchedule,
   setTheorySchedule,
+  setTheoryCellDB,
   getTheoryScheduleForms,
   getTheoryScheduleTeachers,
   nextInSeniority,
@@ -58,6 +59,22 @@ export async function setTheoryScheduleAPI(req, res, next) {
     const ok = await setTheorySchedule(batch, section, course, schedule);
     if (ok) res.status(200).json({ msg: "successfully send", body: schedule });
     else throw new HttpError(400, "Insert Failed");
+  } catch (e) {
+    next(e);
+  }
+}
+
+// Sets every theory class a section has in one period
+export async function setTheoryCellAPI(req, res, next) {
+  try {
+    const { department, section, day, course_ids } = req.body;
+    const batch = parseInt(req.body.batch, 10);
+    const time = parseInt(req.body.time, 10);
+    if (!department || !section || !day || isNaN(batch) || isNaN(time) || !Array.isArray(course_ids)) {
+      throw new HttpError(400, "department, batch, section, day, time and course_ids are required");
+    }
+    const result = await setTheoryCellDB({ department, batch, section, day, time, course_ids });
+    res.status(200).json(result);
   } catch (e) {
     next(e);
   }

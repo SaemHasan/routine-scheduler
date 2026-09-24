@@ -90,3 +90,10 @@ export const getPdfForAllDepartments = () =>
   axios
     .get(api_url(`/pdf/showAllDepartments`), { responseType: "blob" })
     .then((res) => res.data);
+
+// A whole routine book (see RoutineBooks.js), with the file name to save it as
+export const getRoutineBook = (kind) =>
+  axios.get(api_url(`/pdf/book/${kind}`), { responseType: "blob" }).then((res) => {
+    const match = /filename="([^"]+)"/.exec(res.headers["content-disposition"] || "");
+    return { blob: res.data, filename: match ? match[1] : `${kind}.pdf` };
+  });
