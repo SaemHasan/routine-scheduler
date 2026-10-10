@@ -41,3 +41,9 @@ coverage/
 *.swo
 .DS_Store
 Thumbs.db
+
+# Neon CLI link (org, project and branch for this checkout)
+.neon
+
+# Claude Code personal settings (shared skills and .mcp.json are committed)
+.claude/settings.local.json

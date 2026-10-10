@@ -6,15 +6,14 @@ This is the backend for the Routine Scheduler project. It is a RESTful API built
 
 ### Database
 
-1. Install PostgreSQL
-2. Create a new database
-3. Create a new user and grant all privileges on the new database
-4. Create a `.env` file in the root directory of the project and add the following environment variables:
+The database is hosted on Neon (project `autumn-rice-37215895`, branch `production`). There is no local Postgres.
 
-5. Use dump file to restore the database
+1. Get the connection string from the Neon console, or run `neon env pull` in the repository root (it reads `.neon`)
+2. Set it as `CONNECTION_URL` in the `.env` file (see below)
+3. To set up a fresh database or branch, load the schema and seed data:
 
 ```bash
-psql -U user -d database_name -f dump.sql
+psql "<connection string>" -v ON_ERROR_STOP=1 --single-transaction -f init.sql
 ```
 
 ### Running the server
@@ -27,7 +26,7 @@ npm install
 
 2. Create a `.env` file in the root directory of the project and add the following environment variables:
 ```
-CONNECTION_URL="postgresql://user:password@localhost:5432/routine_scheduler?sslmode=disable"
+CONNECTION_URL="postgresql://user:password@ep-xxxx-pooler.us-east-2.aws.neon.tech/neondb?sslmode=verify-full"
 SECRET=jst_secret_set_1234
 SENDEREMAIL= '___@gmail.com'
 SENDERPASSWORD = ''
