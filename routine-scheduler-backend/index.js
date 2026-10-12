@@ -10,7 +10,8 @@ import { connect } from "./src/config/database.js";
 import { initSystemConfigs } from './src/config/init-config.js';
 
 connect()
-  .then(() => {
+  .then((client) => {
+    client.release();
     console.log("Connected to the database ... ");
     // Initialize system configurations
     return initSystemConfigs();
