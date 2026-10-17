@@ -243,6 +243,15 @@ export default function ShowSessionalDistribution() {
   const [courseToRemove, setCourseToRemove] = useState(null);
   const [courseColors, setCourseColors] = useState({}); // Cache for course color styles
   const [labRooms, setLabRooms] = useState([]);
+  // Scheduler constraints, loaded by AutoScheduler
+  const [schedulerConstraints, setSchedulerConstraints] = useState([]);
+
+  // Room -> the courses it is reserved for
+  const reservedFor = new Map();
+  schedulerConstraints
+    .filter((c) => c.kind === 'lab_reserved')
+    .forEach((c) => (c.rooms || []).forEach((room) =>
+      reservedFor.set(room, [...(reservedFor.get(room) || []), c.course_id])));
 
   // Modal Style
   const modalStyle = {
@@ -350,7 +359,7 @@ export default function ShowSessionalDistribution() {
         )
       );
     } catch (error) {
-      toast.error('Failed to change the room');
+      toast.error(error?.response?.data?.error?.message || 'Failed to change the room');
     }
   };
 
@@ -884,7 +893,7 @@ export default function ShowSessionalDistribution() {
         </h3>
       </div>
 
-      <AutoScheduler onApplied={reloadSchedules} />
+      <AutoScheduler onApplied={reloadSchedules} onConstraintsChange={setSchedulerConstraints} />
 
       {/* Control Panel */}
       <div className="row mb-4">
@@ -1089,11 +1098,17 @@ export default function ShowSessionalDistribution() {
                                       {schedule.room_no && !labRooms.includes(schedule.room_no) && (
                                         <option value={schedule.room_no}>{schedule.room_no}</option>
                                       )}
-                                      {labRooms.map((room) => (
-                                        <option key={room} value={room}>
-                                          {room}{room !== schedule.room_no && roomsInUse.has(room) ? ' (in use)' : ''}
-                                        </option>
-                                      ))}
+                                      {labRooms.map((room) => {
+                                        const owners = reservedFor.get(room);
+                                        const kept = owners && !owners.includes(schedule.course_id);
+                                        return (
+                                          <option key={room} value={room} disabled={kept && room !== schedule.room_no}>
+                                            {room}
+                                            {kept ? ` (${owners.join(', ')} only)` : ''}
+                                            {room !== schedule.room_no && roomsInUse.has(room) ? ' (in use)' : ''}
+                                          </option>
+                                        );
+                                      })}
                                     </select>
                                     <button
                                       className={`lock-toggle mdi ${schedule.locked ? 'mdi-lock locked' : 'mdi-lock-open-variant-outline'}`}

@@ -29,6 +29,9 @@ export async function addConstraint(req, res, next) {
     if (c.kind === "course_rooms" && (!c.course_id || !Array.isArray(c.rooms) || c.rooms.length === 0)) {
       throw new HttpError(400, "Choose a course and at least one room");
     }
+    if (c.kind === "lab_reserved" && (!c.course_id || !Array.isArray(c.rooms) || c.rooms.length === 0)) {
+      throw new HttpError(400, "Choose a lab and the course it is reserved for");
+    }
     if (c.kind === "course_together" && (!c.course_id || !(c.same_slot || c.shared_room))) {
       throw new HttpError(400, "Choose a course and at least one option");
     }

@@ -25,7 +25,7 @@ const EFFORTS = [
  * saved constraints. A suggestion is only a preview until it is applied;
  * locked classes are never moved.
  */
-export default function AutoScheduler({ onApplied }) {
+export default function AutoScheduler({ onApplied, onConstraintsChange }) {
   const [constraints, setConstraints] = useState([]);
   const [showConstraints, setShowConstraints] = useState(false);
   const [effort, setEffort] = useState("normal");
@@ -37,9 +37,12 @@ export default function AutoScheduler({ onApplied }) {
   const loadConstraints = useCallback(
     () =>
       getSchedulerConstraints()
-        .then((res) => setConstraints(res || []))
+        .then((res) => {
+          setConstraints(res || []);
+          onConstraintsChange?.(res || []);
+        })
         .catch(() => toast.error("Failed to load scheduling constraints")),
-    []
+    [onConstraintsChange]
   );
 
   useEffect(() => {
@@ -96,7 +99,7 @@ export default function AutoScheduler({ onApplied }) {
   };
 
   const blockedCount = constraints.filter((c) => c.kind === "blocked_slot").length;
-  const roomRuleCount = constraints.filter((c) => c.kind === "course_rooms").length;
+  const roomRuleCount = constraints.filter((c) => c.kind === "course_rooms" || c.kind === "lab_reserved").length;
   const courseRuleCount = constraints.filter((c) => c.kind === "course_together").length;
   const preferenceCount = constraints.filter(
     (c) => c.kind === "course_days" || c.kind === "courses_apart"

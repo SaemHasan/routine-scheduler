@@ -8,18 +8,18 @@
  *
  * Hard rules (never broken if avoidable): one class per room per slot, a
  * section never has two classes at once, no class in a slot the section is
- * busy or blocked, a course only in its allowed rooms, a teacher in one place
- * at a time, and at most `courseSlotLimit` subsections of one course in a
- * slot.
+ * busy or blocked, a course only in its allowed rooms, a reserved lab only
+ * for the courses it is reserved for, a teacher in one place at a time, and
+ * at most `courseSlotLimit` subsections of one course in a slot.
  *
  * Preferences: grouped classes share a slot (or, for an "apart" group, sit in
  * different slots), classes marked to share a room use one room together, labs
- * match the course's lab type, each kind of class is split between the lab
- * times in the proportion past routines used, the morning slot is avoided, a
- * slot keeps at least one lab free, the sections of a course fall on nearby
- * days and use as few rooms as possible, a section's labs are spread over
- * different days, classes are spread evenly over slots, and the week's
- * classes are shared evenly among the lab rooms.
+ * match the course's lab type, a course with a reserved lab uses it, each kind
+ * of class is split between the lab times in the proportion past routines
+ * used, the morning slot is avoided, a slot keeps at least one lab free, the
+ * sections of a course fall on nearby days and use as few rooms as possible,
+ * a section's labs are spread over different days, classes are spread evenly
+ * over slots, and the week's classes are shared evenly among the lab rooms.
  *
  * The module has no database code: `problem` is plain data.
  *
@@ -27,7 +27,8 @@
  *   slots: [{ day, time, dayIndex, isMorning, isMidday }],  // never placed in a morning slot
  *   middayLimit,         // most midday (11 AM) labs a section should have
  *   apartPairs,          // [[courseKey, courseKey]] that should not share a slot
- *   rooms: [{ room, lab_type, restricted }],
+ *   rooms: [{ room, lab_type, restricted,
+ *             reservedFor }],  // [course_id] the only courses that may use it, or null
  *   units: [{
  *     key, label, course_id, batch, section, department, level_term,
  *     groupKey,          // classes placed together (or apart)
@@ -63,6 +64,8 @@ export const WEIGHTS = {
   pairSplit: 80,
   shareRoom: 30,
   labType: 80,
+  // A course with a reserved lab holding a class in another lab
+  ownLab: 40,
   // Past routines never used the morning slot but did fill a slot now and
   // then, so a full slot is the lesser evil.
   timeMix: 15,
@@ -132,8 +135,13 @@ export function solve(problem, options = {}) {
   const K = Math.max(1, coverIndex.size);
   const T = Math.max(1, teacherIndex.size);
   const O = Math.max(1, occupantIndex.size);
+  // A reserved lab takes only the courses it is reserved for
+  const reservedFor = rooms.map((r) => (r.reservedFor && r.reservedFor.length ? new Set(r.reservedFor) : null));
+  // Labs any course may use. Only these count towards keeping a lab free and
+  // towards sharing the week's classes evenly among the labs.
+  const general = rooms.map((r, i) => !r.restricted && !reservedFor[i]);
   // A slot should leave at least one lab free
-  const roomTarget = Math.max(1, rooms.filter((r) => !r.restricted).length - 1);
+  const roomTarget = Math.max(1, general.filter(Boolean).length - 1);
   const crowd = (used) => W.crowded * Math.max(0, used - roomTarget);
   // Subsections of one course in one slot are capped (e.g. at two)
   const [courseIndex, courseId] = indexer();
@@ -194,13 +202,26 @@ export function solve(problem, options = {}) {
     });
     if (u.mixWeight) mixWeight[mix[i]] = u.mixWeight;
   });
-  const roomStatic = units.map((u) => {
+  // Labs reserved for each class's course that the class may use
+  const ownLabs = units.map((u) => {
     const allowed = u.allowedRooms && u.allowedRooms.length ? new Set(u.allowedRooms) : null;
-    return rooms.map((r) => {
-      if (allowed) return allowed.has(r.room) ? 0 : W.hard;
+    return rooms
+      .map((_, i) => i)
+      .filter((i) => reservedFor[i] && reservedFor[i].has(u.course_id) && (!allowed || allowed.has(rooms[i].room)));
+  });
+  // What a class pays for a room other than its course's reserved labs
+  const awayCost = (u, r) => (ownLabs[u].length && !ownLabs[u].includes(r) ? W.ownLab : 0);
+  const roomStatic = units.map((u, ui) => {
+    const allowed = u.allowedRooms && u.allowedRooms.length ? new Set(u.allowedRooms) : null;
+    return rooms.map((r, ri) => {
+      if (reservedFor[ri] && !reservedFor[ri].has(u.course_id)) return W.hard;
+      if (allowed && !allowed.has(r.room)) return W.hard;
+      if (reservedFor[ri]) return 0;
+      const away = awayCost(ui, ri);
+      if (allowed) return away;
       if (r.restricted) return W.hard;
-      if (u.lab_type && r.lab_type && u.lab_type !== r.lab_type) return W.labType;
-      return 0;
+      if (u.lab_type && r.lab_type && u.lab_type !== r.lab_type) return W.labType + away;
+      return away;
     });
   });
 
@@ -262,9 +283,8 @@ export function solve(problem, options = {}) {
   // ---- mutable state -----------------------------------------------------
   const RR = Math.max(1, R);
   const roomOcc = new Int16Array(S * RR); // distinct occupants per room and slot
-  const roomsUsed = new Int16Array(S); // rooms with anyone in them, per slot
-  const roomWeek = new Int16Array(RR); // classes in each room over the week
-  const balanced = rooms.map((r) => !r.restricted);
+  const roomsUsed = new Int16Array(S); // general labs with anyone in them, per slot
+  const roomWeek = new Int16Array(RR); // classes in each general lab over the week
   const occupantCount = new Int16Array(S * RR * O);
   const coverOcc = new Int16Array(S * K);
   const dayCover = new Int16Array(D * K);
@@ -344,12 +364,12 @@ export function solve(problem, options = {}) {
       const oc = cell * O + occupant[u];
       if (occupantCount[oc] === 0) {
         d += W.hard * roomOcc[cell];
-        if (roomOcc[cell] === 0) {
+        if (roomOcc[cell] === 0 && general[r]) {
           d += crowd(roomsUsed[s] + 1) - crowd(roomsUsed[s]);
           roomsUsed[s]++;
         }
         roomOcc[cell]++;
-        if (balanced[r]) {
+        if (general[r]) {
           d += W.roomBalance * (2 * roomWeek[r] + 1);
           roomWeek[r]++;
         }
@@ -401,11 +421,11 @@ export function solve(problem, options = {}) {
       if (occupantCount[oc] === 0) {
         roomOcc[cell]--;
         d -= W.hard * roomOcc[cell];
-        if (balanced[r]) {
+        if (general[r]) {
           roomWeek[r]--;
           d -= W.roomBalance * (2 * roomWeek[r] + 1);
         }
-        if (roomOcc[cell] === 0) {
+        if (roomOcc[cell] === 0 && general[r]) {
           roomsUsed[s]--;
           d -= crowd(roomsUsed[s] + 1) - crowd(roomsUsed[s]);
         }
@@ -678,7 +698,7 @@ export function solve(problem, options = {}) {
     }
     for (let g = 0; g < groups.length; g++) cost += groupCost(g);
     for (let m = 0; m < M; m++) cost += mixCost(m);
-    for (let r = 0; r < R; r++) if (balanced[r]) cost += W.roomBalance * roomWeek[r] * roomWeek[r];
+    for (let r = 0; r < R; r++) if (general[r]) cost += W.roomBalance * roomWeek[r] * roomWeek[r];
     for (let k = 0; k < K; k++) cost += middayOver(k);
     for (let g = 0; g < levelCoverList.length; g++) cost += levelCost(g);
     return cost;
@@ -859,15 +879,25 @@ export function solve(problem, options = {}) {
       if (r >= 0 && roomStatic[i][r] >= W.hard) {
         const allowed = units[i].allowedRooms;
         conflicts.push(
-          allowed && allowed.length
-            ? `${label(i)} is in ${rooms[r].room}, not one of its rooms (${allowed.join(", ")})`
-            : `${label(i)} is in ${rooms[r].room}, which is kept for other courses`
+          reservedFor[r] && !reservedFor[r].has(units[i].course_id)
+            ? `${label(i)} is in ${rooms[r].room}, which is reserved for ${[...reservedFor[r]].join(", ")}`
+            : allowed && allowed.length
+              ? `${label(i)} is in ${rooms[r].room}, not one of its rooms (${allowed.join(", ")})`
+              : `${label(i)} is in ${rooms[r].room}, which is kept for other courses`
         );
-      } else if (r >= 0 && roomStatic[i][r] >= W.labType) {
-        labTypeMismatches++;
-        warnings.push(
-          `${label(i)} (${units[i].lab_type === "HW" ? "hardware" : "software"} lab) is in ${rooms[r].room}`
-        );
+      } else if (r >= 0) {
+        const away = awayCost(i, r);
+        if (roomStatic[i][r] - away >= W.labType) {
+          labTypeMismatches++;
+          warnings.push(
+            `${label(i)} (${units[i].lab_type === "HW" ? "hardware" : "software"} lab) is in ${rooms[r].room}`
+          );
+        }
+        if (away) {
+          warnings.push(
+            `${label(i)} is in ${rooms[r].room}, not its reserved lab (${ownLabs[i].map((x) => rooms[x].room).join(", ")})`
+          );
+        }
       }
       if (r < 0 && R > 0) conflicts.push(`${label(i)} has no room`);
     }
@@ -967,15 +997,16 @@ export function solve(problem, options = {}) {
       );
     }
 
+    // Use of the general labs; a reserved lab is never free for other courses
     const roomUsage = slots.map((slot, s) => {
       const used = new Set();
-      for (let i = 0; i < U; i++) if (slotOf[i] === s && roomOf[i] >= 0) used.add(roomOf[i]);
+      for (let i = 0; i < U; i++) if (slotOf[i] === s && roomOf[i] >= 0 && general[roomOf[i]]) used.add(roomOf[i]);
       return {
         day: slot.day,
         time: slot.time,
         classes: slotCount[s],
         roomsUsed: used.size,
-        freeRooms: rooms.filter((r, idx) => !r.restricted && !used.has(idx)).map((r) => r.room),
+        freeRooms: rooms.filter((r, idx) => general[idx] && !used.has(idx)).map((r) => r.room),
       };
     });
 
@@ -993,7 +1024,7 @@ export function solve(problem, options = {}) {
         apartBroken,
         lopsidedSections,
         roomCourses,
-        classesPerRoom: Object.fromEntries(rooms.map((r, i) => [r.room, roomWeek[i]]).filter((_, i) => balanced[i])),
+        classesPerRoom: Object.fromEntries(rooms.map((r, i) => [r.room, roomWeek[i]]).filter((_, i) => general[i])),
         roomCoursesFewest,
         averageDaySpread: spreadCourses ? Math.round((spreadTotal / spreadCourses) * 10) / 10 : 0,
         fullSlots: slots.filter((_, s) => roomsUsed[s] > roomTarget).length,
@@ -1001,7 +1032,7 @@ export function solve(problem, options = {}) {
         subsectionGroupsOk,
         labTypeMismatches,
         morningCount,
-        labRooms: rooms.filter((r) => !r.restricted).length,
+        labRooms: general.filter(Boolean).length,
       },
       roomUsage,
     };

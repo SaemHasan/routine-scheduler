@@ -18,7 +18,7 @@ router.get("/constraints", getConstraints);
 router.post(
   "/constraints",
   validate([
-    body("kind").isIn(["blocked_slot", "course_rooms", "course_together", "course_days", "courses_apart"]),
+    body("kind").isIn(["blocked_slot", "course_rooms", "lab_reserved", "course_together", "course_days", "courses_apart"]),
   ]),
   addConstraint
 );

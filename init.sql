@@ -213,7 +213,7 @@ CREATE TABLE public.sessional_constraints (
 	other_course_id varchar NULL,
 	note varchar NULL,
 	CONSTRAINT sessional_constraints_pkey PRIMARY KEY (id),
-	CONSTRAINT sessional_constraints_kind_check CHECK (kind IN ('blocked_slot', 'course_rooms', 'course_together', 'course_days', 'courses_apart'))
+	CONSTRAINT sessional_constraints_kind_check CHECK (kind IN ('blocked_slot', 'course_rooms', 'lab_reserved', 'course_together', 'course_days', 'courses_apart'))
 );
 
 CREATE TABLE public.all_courses (

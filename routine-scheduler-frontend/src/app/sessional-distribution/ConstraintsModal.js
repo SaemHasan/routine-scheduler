@@ -30,6 +30,7 @@ export default function ConstraintsModal({ constraints, onClose, onChanged }) {
   const [courses, setCourses] = useState([]);
   const [block, setBlock] = useState(emptyBlock);
   const [courseRule, setCourseRule] = useState({ course_id: "", rooms: [] });
+  const [reserve, setReserve] = useState({ room: "", course_id: "" });
   const [together, setTogether] = useState({ course_id: "", same_slot: true, shared_room: true });
   const [prefer, setPrefer] = useState({ course_id: "", days: [], time: "" });
   const [apart, setApart] = useState({ course_id: "", other_course_id: "" });
@@ -90,7 +91,7 @@ export default function ConstraintsModal({ constraints, onClose, onChanged }) {
   }, [sections, block.department, block.level_term]);
 
   const blocked = constraints.filter((c) => c.kind === "blocked_slot");
-  const roomRules = constraints.filter((c) => c.kind === "course_rooms");
+  const roomRules = constraints.filter((c) => c.kind === "course_rooms" || c.kind === "lab_reserved");
   const courseRules = constraints.filter((c) => c.kind === "course_together");
   const preferenceRules = constraints.filter(
     (c) => c.kind === "course_days" || c.kind === "courses_apart"
@@ -535,6 +536,7 @@ export default function ConstraintsModal({ constraints, onClose, onChanged }) {
           </>
         ) : (
           <>
+            <h6 className="constraint-subhead">Course rooms</h6>
             <div className="field-hint mb-2">
               A course listed here only uses these rooms. Other courses use any lab of
               their type (software or hardware).
@@ -588,6 +590,60 @@ export default function ConstraintsModal({ constraints, onClose, onChanged }) {
               </Row>
             </div>
 
+            <h6 className="constraint-subhead">Reserved labs</h6>
+            <div className="field-hint mb-2">
+              No other course's sessional is placed in a reserved lab. The course uses its
+              lab whenever it can; to keep it in that lab only, also add the lab under
+              Course rooms.
+            </div>
+            <div className="constraint-form">
+              <Row>
+                <Col md={4} className="px-2 py-1">
+                  <Form.Label className="form-label">Lab</Form.Label>
+                  <Form.Select
+                    className="form-select"
+                    value={reserve.room}
+                    onChange={(e) => setReserve({ ...reserve, room: e.target.value })}
+                  >
+                    <option value="">Choose…</option>
+                    {rooms
+                      .filter((r) => r.type !== 0)
+                      .map((r) => (
+                        <option key={r.room} value={r.room}>{r.room}</option>
+                      ))}
+                  </Form.Select>
+                </Col>
+                <Col md={6} className="px-2 py-1">
+                  <Form.Label className="form-label">Only for</Form.Label>
+                  <Form.Select
+                    className="form-select"
+                    value={reserve.course_id}
+                    onChange={(e) => setReserve({ ...reserve, course_id: e.target.value })}
+                  >
+                    <option value="">Choose…</option>
+                    {courses.map((c) => (
+                      <option key={c.course_id} value={c.course_id}>
+                        {c.course_id} – {c.name}
+                      </option>
+                    ))}
+                  </Form.Select>
+                </Col>
+                <Col md={2} className="px-2 py-1 d-flex align-items-end">
+                  <button
+                    className="card-control-button mdi mdi-plus w-100"
+                    disabled={!reserve.room || !reserve.course_id || saving}
+                    onClick={() =>
+                      save({ kind: "lab_reserved", course_id: reserve.course_id, rooms: [reserve.room] }, () =>
+                        setReserve({ room: "", course_id: "" })
+                      )
+                    }
+                  >
+                    Add
+                  </button>
+                </Col>
+              </Row>
+            </div>
+
             <div className="constraint-list">
               {roomRules.length === 0 ? (
                 <div className="empty-state">
@@ -597,18 +653,27 @@ export default function ConstraintsModal({ constraints, onClose, onChanged }) {
               ) : (
                 roomRules.map((c) => (
                   <div key={c.id} className="constraint-row">
-                    <i className="mdi mdi-door"></i>
-                    <div className="flex-grow-1">
-                      <strong>{c.course_id}</strong>
-                      <span className="constraint-who">
-                        {courses.find((x) => x.course_id === c.course_id)?.name}
-                      </span>
-                      <div className="chip-row mt-1" style={{ gap: "6px" }}>
-                        {(c.rooms || []).map((r) => (
-                          <span key={r} className="pill purple">{r}</span>
-                        ))}
+                    <i className={`mdi ${c.kind === "lab_reserved" ? "mdi-door-closed-lock" : "mdi-door"}`}></i>
+                    {c.kind === "lab_reserved" ? (
+                      <div className="flex-grow-1">
+                        <strong>{(c.rooms || []).join(", ")}</strong>
+                        <span className="constraint-who">
+                          reserved for {c.course_id}; no other course uses it
+                        </span>
                       </div>
-                    </div>
+                    ) : (
+                      <div className="flex-grow-1">
+                        <strong>{c.course_id}</strong>
+                        <span className="constraint-who">
+                          {courses.find((x) => x.course_id === c.course_id)?.name}
+                        </span>
+                        <div className="chip-row mt-1" style={{ gap: "6px" }}>
+                          {(c.rooms || []).map((r) => (
+                            <span key={r} className="pill purple">{r}</span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                     <button
                       className="chip-remove mdi mdi-delete-outline"
                       title="Remove"

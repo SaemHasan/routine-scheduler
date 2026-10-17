@@ -48,6 +48,17 @@ export async function addConstraintDB(c) {
   }
 }
 
+// Room -> the courses it is reserved for, from the "lab_reserved" constraints
+function reservedLabs(constraints) {
+  const reservedFor = new Map();
+  for (const c of constraints.filter((c) => c.kind === "lab_reserved")) {
+    for (const room of c.rooms || []) {
+      reservedFor.set(room, [...new Set([...(reservedFor.get(room) || []), c.course_id])].sort());
+    }
+  }
+  return reservedFor;
+}
+
 export async function deleteConstraintDB(id) {
   const client = await connect();
   try {
@@ -176,10 +187,16 @@ export async function loadProblemDB() {
     const rooms = roomRows
       .filter((r) => (r.type === 1 || r.type === 2) && !/\(.*\)/.test(r.room))
       .map((r) => ({ room: r.room, lab_type: r.lab_type, restricted: false }));
-    const named = new Set(constraints.filter((c) => c.kind === "course_rooms").flatMap((c) => c.rooms || []));
+    // A reserved lab is used only by the courses it is reserved for
+    const reservedFor = reservedLabs(constraints);
+    const named = new Set([
+      ...constraints.filter((c) => c.kind === "course_rooms").flatMap((c) => c.rooms || []),
+      ...reservedFor.keys(),
+    ]);
     for (const room of named) {
       if (!rooms.some((r) => r.room === room)) rooms.push({ room, lab_type: null, restricted: true });
     }
+    for (const r of rooms) r.reservedFor = reservedFor.get(r.room) || null;
     const roomIndex = new Map(rooms.map((r, i) => [r.room, i]));
 
     // Subsections of every section, so a whole-section class covers them all
@@ -777,6 +794,15 @@ export async function unlockAllDB() {
 export async function setRoomDB({ course_id, batch, section, department, room, day = null, time = null }) {
   const client = await connect();
   try {
+    if (room) {
+      const constraints = (
+        await client.query("SELECT kind, course_id, rooms FROM sessional_constraints WHERE kind = 'lab_reserved'")
+      ).rows;
+      const owners = reservedLabs(constraints).get(room);
+      if (owners && !owners.includes(course_id)) {
+        throw new HttpError(409, `${room} is reserved for ${owners.join(", ")}`);
+      }
+    }
     const result = await client.query(
       `UPDATE schedule_assignment SET room_no = $5, locked = true
        WHERE course_id = $1 AND batch = $2 AND section = $3 AND department = $4
