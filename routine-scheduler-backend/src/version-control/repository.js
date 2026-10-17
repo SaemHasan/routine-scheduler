@@ -1,4 +1,4 @@
-import { exec } from 'child_process';
+import { execFile } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 
@@ -8,10 +8,24 @@ if (!fs.existsSync(backupDir)) {
     fs.mkdirSync(backupDir, { recursive: true });
 }
 
-const runCommand = (command) => {
+// Connection string for pg_dump and pg_restore, built from CONNECTION_URL
+const dumpConnectionUrl = () => {
+    const url = new URL(process.env.CONNECTION_URL);
+    // Neon's pooler runs PgBouncer in transaction mode, which loses the session
+    // settings pg_dump and pg_restore rely on, so connect to the compute directly
+    url.hostname = url.hostname.replace('-pooler.', '.');
+    // verify-full needs a CA bundle; use the operating system's trusted roots
+    if (url.searchParams.get('sslmode') === 'verify-full' && !url.searchParams.has('sslrootcert')) {
+        url.searchParams.set('sslrootcert', 'system');
+    }
+    return url.toString();
+};
+
+// execFile passes arguments without a shell, so names and the connection
+// string cannot be interpreted as shell syntax
+const runCommand = (command, args) => {
     return new Promise((resolve, reject) => {
-        const fullCommand = `PGPASSWORD=${process.env.POSTGRES_PASSWORD} ${command}`;
-        exec(fullCommand, (error, stdout, stderr) => {
+        execFile(command, args, (error, stdout, stderr) => {
             if (error) {
                 console.error(`Command Error: ${stderr}`);
                 return reject(new Error(`Execution failed: ${stderr}`));
@@ -31,7 +45,9 @@ export const listVersions = () => {
                 .map(file => {
                     try {
                         const stats = fs.statSync(path.join(backupDir, file));
-                        return { filename: file, createdAt: stats.birthtime, size: stats.size };
+                        // Bind mounts from macOS report no birth time (the epoch)
+                        const createdAt = stats.birthtimeMs > 0 ? stats.birthtime : stats.mtime;
+                        return { filename: file, createdAt, size: stats.size };
                     } catch { return null; }
                 })
                 .filter(Boolean)
@@ -52,10 +68,14 @@ export const createBackup = (versionName) => {
         throw error;
     }
 
-    const { POSTGRES_USER, POSTGRES_DB } = process.env;
     // Use -F c for custom-format archive file
-    const dumpCommand = `pg_dump -h db -U ${POSTGRES_USER} -d ${POSTGRES_DB} -F c -f "${backupPath}"`;
-    return runCommand(dumpCommand);
+    return runCommand('pg_dump', ['-d', dumpConnectionUrl(), '-F', 'c', '-f', backupPath])
+        .catch((error) => {
+            // pg_dump creates the file before connecting; remove it so a failed
+            // backup does not show up as a version or block retrying the name
+            fs.rmSync(backupPath, { force: true });
+            throw error;
+        });
 };
 
 export const restoreBackup = (filename) => {
@@ -66,10 +86,14 @@ export const restoreBackup = (filename) => {
         throw error;
     }
 
-    const { POSTGRES_USER, POSTGRES_DB } = process.env;
-    // Use pg_restore with --clean to drop existing objects before creating them
-    const restoreCommand = `pg_restore -h db -U ${POSTGRES_USER} -d ${POSTGRES_DB} --clean "${backupPath}"`;
-    return runCommand(restoreCommand);
+    // Use pg_restore with --clean to drop existing objects before creating them.
+    // --no-owner and --no-privileges let dumps taken under another role (such as
+    // the old local Postgres user) restore as the Neon role in CONNECTION_URL
+    return runCommand('pg_restore', [
+        '-d', dumpConnectionUrl(),
+        '--clean', '--if-exists', '--no-owner', '--no-privileges',
+        backupPath,
+    ]);
 };
 
 export const deleteBackup = (filename) => {

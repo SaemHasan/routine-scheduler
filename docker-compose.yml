@@ -23,6 +23,8 @@ services:
     volumes:
       - ./routine-scheduler-backend:/app
       - /app/node_modules
+      # Database backups made from the Backup page, kept across rebuilds
+      - ./db-backups:/backups
     # networks:
     #   - app-network
 
