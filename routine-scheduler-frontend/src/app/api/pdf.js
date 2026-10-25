@@ -33,6 +33,10 @@ export const getAllRooms = () =>
 export const getAllLevelTerms = () =>
   axios.get(api_url(`/pdf/allLevelTerm`)).then((res) => res.data);
 
+// The courses with classes in the routine, for the course routine
+export const getAllCourses = () =>
+  axios.get(api_url(`/pdf/allCourses`)).then((res) => res.data);
+
 export const regeneratePdfLevelTerm = (lvlTerm) =>
   axios.get(api_url(`/pdf/generate/${lvlTerm}`)).then((res) => res.data);
 

@@ -4,6 +4,7 @@ import {
   getAllInitial,
   getAllRooms,
   getAllLevelTerms,
+  getAllCourses,
   regeneratePdfLevelTerm,
   regenerateRoom,
   regenerateTeacher,
@@ -23,11 +24,13 @@ export default function ShowPdf() {
   const [forStudent, setForStudent] = useState(true);
   const [forTeacher, setForTeacher] = useState(false);
   const [forRoom, setForRoom] = useState(false);
+  const [forCourse, setForCourse] = useState(false);
   const [forDepartment, setForDepartment] = useState(false);
 
   const [initials, setInitials] = useState([]);
   const [rooms, setRooms] = useState([]);
   const [allLevels, setAllLevels] = useState([]);
+  const [courses, setCourses] = useState([]);
   const [departments, setDepartments] = useState([]);
 
   useEffect(() => {
@@ -40,6 +43,9 @@ export default function ShowPdf() {
     getAllLevelTerms().then((res) => {
       setAllLevels(res);
     });
+    getAllCourses().then((res) => {
+      setCourses(res.courses);
+    });
     getAllDepartments().then((res) => {
       setDepartments(res.departments);
     });
@@ -48,6 +54,7 @@ export default function ShowPdf() {
   const [selectedInitial, setSelectedInitial] = useState("All Teacher");
   const [selectedRoom, setSelectedRoom] = useState("All rooms");
   const [lvlTerm, setLvlTerm] = useState("All Level-Term");
+  const [selectedCourse, setSelectedCourse] = useState("All Courses");
   const [selectedDepartment, setSelectedDepartment] =
     useState("All Departments");
   const [pdfData, setpdfData] = useState(null);
@@ -69,6 +76,7 @@ export default function ShowPdf() {
     setForStudent(false);
     setForTeacher(false);
     setForRoom(false);
+    setForCourse(false);
     setForDepartment(false);
 
     switch (selectedOption) {
@@ -80,6 +88,9 @@ export default function ShowPdf() {
         break;
       case "For Room":
         setForRoom(true);
+        break;
+      case "For Course":
+        setForCourse(true);
         break;
       case "For Department":
         setForDepartment(true);
@@ -98,6 +109,8 @@ export default function ShowPdf() {
       setSelectedInitial(value);
     } else if (type === "room") {
       setSelectedRoom(value);
+    } else if (type === "course") {
+      setSelectedCourse(value);
     } else if (type === "department") {
       setSelectedDepartment(value);
     }
@@ -155,6 +168,16 @@ export default function ShowPdf() {
           pdfPromise = getRoutineBook("room", selectedRoom);
           selectedType = "room";
           selectedValue = selectedRoom;
+        }
+      } else if (forCourse) {
+        if (selectedCourse === "All Courses") {
+          pdfPromise = getRoutineBook("course");
+          selectedType = "course";
+          selectedValue = "All Courses";
+        } else {
+          pdfPromise = getRoutineBook("course", selectedCourse);
+          selectedType = "course";
+          selectedValue = selectedCourse;
         }
       } else if (forDepartment) {
         if (!selectedDepartment) {
@@ -269,6 +292,10 @@ export default function ShowPdf() {
           selectedType = "room";
           selectedValue = selectedRoom;
         }
+      } else if (forCourse) {
+        // The course routine is built fresh each time it is shown
+        displayPdf();
+        return;
       } else if (forDepartment) {
         if (!selectedDepartment) {
           toast.error("Please select a department");
@@ -550,6 +577,7 @@ export default function ShowPdf() {
                     <option value="For Student">For Student</option>
                     <option value="For Teacher">For Teacher</option>
                     <option value="For Room">For Room</option>
+                    <option value="For Course">For Course</option>
                     <option value="For Department">For Department</option>
                   </Form.Select>
                 </div>
@@ -741,6 +769,69 @@ export default function ShowPdf() {
                           value={room.room || room.name || room}
                         >
                           {room.room || room.name || room}
+                        </option>
+                      ))}
+                    </Form.Select>
+                  </div>
+                )}
+
+                {forCourse && (
+                  <div className="col-md-4">
+                    <label
+                      className="form-label"
+                      style={{
+                        fontWeight: "600",
+                        marginBottom: "12px",
+                        color: "rgb(174, 117, 228)",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px",
+                        fontSize: "0.95rem",
+                      }}
+                    >
+                      <svg
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          d="M2 3H8C9.06087 3 10.0783 3.42143 10.8284 4.17157C11.5786 4.92172 12 5.93913 12 7V21C12 20.2044 11.6839 19.4413 11.1213 18.8787C10.5587 18.3161 9.79565 18 9 18H2V3Z"
+                          stroke="rgb(174, 117, 228)"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                        <path
+                          d="M22 3H16C14.9391 3 13.9217 3.42143 13.1716 4.17157C12.4214 4.92172 12 5.93913 12 7V21C12 20.2044 12.3161 19.4413 12.8787 18.8787C13.4413 18.3161 14.2044 18 15 18H22V3Z"
+                          stroke="rgb(174, 117, 228)"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                      Course
+                    </label>
+                    <Form.Select
+                      value={selectedCourse}
+                      onChange={(e) => handleDropdownChange(e, "course")}
+                      style={{
+                        height: "48px",
+                        borderRadius: "8px",
+                        border: "1px solid rgba(174, 117, 228, 0.3)",
+                        boxShadow: "0 2px 8px rgba(174, 117, 228, 0.1)",
+                        fontWeight: "500",
+                        color: "#333",
+                        padding: "0 14px",
+                        transition: "all 0.25s ease",
+                        background: "white",
+                      }}
+                    >
+                      <option value="All Courses">All Courses</option>
+                      {courses.map((course) => (
+                        <option key={course.course_id} value={course.course_id}>
+                          {course.course_id} - {course.name}
                         </option>
                       ))}
                     </Form.Select>

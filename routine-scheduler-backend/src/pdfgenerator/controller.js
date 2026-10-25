@@ -1,8 +1,8 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import { getInitials, getRooms, getLevelTerms, getAllDepartmentsDB, getCurrentSession } from "./repository.js";
-import { levelTermBook, teacherBook, roomBook, departmentBook } from "./routineBook.js";
+import { getInitials, getRooms, getLevelTerms, getCourses, getAllDepartmentsDB, getCurrentSession } from "./repository.js";
+import { levelTermBook, teacherBook, roomBook, courseBook, departmentBook } from "./routineBook.js";
 import { courseTeacherBook, courseLoadBook } from "./reportBook.js";
 import { sessionalDistributionBook, termTitle } from "./sessionalDistribution.js";
 import { courseLoadPlan, courseLoadWorkbook } from "./courseLoadPlan.js";
@@ -31,6 +31,10 @@ const BOOKS = {
   room: {
     name: "Room_Routine", file: "All_Rooms",
     build: () => roomBook(), buildSelected: (value) => roomBook({ room: value }),
+  },
+  course: {
+    name: "Course_Routine", file: "All_Courses",
+    build: () => courseBook(), buildSelected: (value) => courseBook({ course: value }),
   },
   department: {
     name: "Departmental_Routine", file: "All_Departments",
@@ -221,6 +225,14 @@ export async function getAllLevelTerm(req, res, next) {
   try {
     const result = await getLevelTerms();
     res.status(200).json(result.map((row) => row.level_term).sort());
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function getAllCourses(req, res, next) {
+  try {
+    res.status(200).json({ courses: await getCourses() });
   } catch (err) {
     next(err);
   }

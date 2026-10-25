@@ -47,6 +47,17 @@ export async function getLevelTerms() {
     ORDER BY level_term`);
 }
 
+// The courses with classes in the current routine, for the course routine
+export async function getCourses() {
+  const courses = await rows(`
+    SELECT DISTINCT c.course_id, c.name
+    FROM schedule_assignment sa
+    JOIN courses c ON c.course_id = sa.course_id AND c.session = sa.session
+    WHERE sa.session = (SELECT value FROM configs WHERE key = 'CURRENT_SESSION')
+      AND c.type <> 2 AND c.course_id <> 'CT'`);
+  return courses.sort((a, b) => a.course_id.localeCompare(b.course_id, undefined, { numeric: true }));
+}
+
 export async function getCurrentSession() {
   const result = await rows(`SELECT value FROM configs WHERE key = 'CURRENT_SESSION'`);
   return result.length > 0 ? result[0].value : "January 2025";

@@ -3,6 +3,7 @@ import {
   getAllLevelTerm,
   getAllInitial,
   getAllIRooms,
+  getAllCourses,
   getAllDepartments,
   generatePDF,
   teacherPDF,
@@ -38,7 +39,7 @@ const router = express.Router();
 // The sessional distribution, laid out like the printed routines
 router.get("/sessionalDistribution", sessionalDistributionPDF);
 
-// Any routine book at once: levelTerm, teacher, partTimeTeacher, room,
+// Any routine book at once: levelTerm, teacher, partTimeTeacher, room, course,
 // department, courseTeacher, courseLoad, sessionalDistribution
 router.get("/book/:kind", downloadBook);
 router.get("/book/:kind/:value", downloadBook);
@@ -50,6 +51,7 @@ router.get("/courseLoadPlan/summary", courseLoadPlanSummary);
 router.get("/allInitial", getAllInitial);
 router.get("/allRooms", getAllIRooms);
 router.get("/allLevelTerm", getAllLevelTerm);
+router.get("/allCourses", getAllCourses);
 router.get("/allDepartments", getAllDepartments);
 
 router.get("/generate/:lvlTerm", generatePDF);

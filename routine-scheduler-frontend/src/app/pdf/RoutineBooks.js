@@ -8,6 +8,7 @@ const BOOKS = [
   { kind: "teacher", icon: "mdi-account-tie", name: "Teacher Routine", about: "Every teacher's week, thesis included" },
   { kind: "partTimeTeacher", icon: "mdi-account-clock", name: "PT Teacher Routine", about: "Part-time (adjunct) teachers only" },
   { kind: "room", icon: "mdi-door", name: "Room Routine", about: "Every room in use, in room order" },
+  { kind: "course", icon: "mdi-book-open-variant", name: "Course Routine", about: "Every course's week, one table per course" },
   { kind: "department", icon: "mdi-domain", name: "Departmental Routine", about: "Courses taken from and given to other departments" },
   { kind: "sessionalDistribution", icon: "mdi-flask-outline", name: "Sessional Distribution", about: "All CSE labs of the week" },
   { kind: "courseTeacher", icon: "mdi-format-list-bulleted", name: "Course Teacher", about: "Theory and sessional courses with their teachers" },

@@ -5,7 +5,7 @@ import { effectiveRoomSQL } from "../theory_room_assignment/roomUse.js";
 
 /*
  * The department's routine books (level-term, teacher, part-time teacher,
- * room and department routines), drawn like the printed ones: US Letter,
+ * room, course and department routines), drawn like the printed ones: US Letter,
  * a day-by-period grid per routine, labs three periods wide, and classes that
  * overlap on a day stacked in rows. Geometry is in points, measured from the
  * printed routines.
@@ -68,7 +68,7 @@ async function loadRoutineData() {
       await client.query(
         `SELECT sa.course_id, sa.batch, sa.section, sa.department, sa.day, sa."time",
                 ${effectiveRoomSQL()} AS room_no,
-                sa.teachers, c.type, c.class_per_week, c.optional, c.optional_section_count,
+                sa.teachers, c.name AS course_name, c.type, c.class_per_week, c.optional, c.optional_section_count,
                 c."from", c."to", s.level_term
          FROM schedule_assignment sa
          JOIN courses c ON c.course_id = sa.course_id AND c.session = sa.session
@@ -184,6 +184,7 @@ function buildClasses(rows, labTeachers, sections, times) {
 
     classes.push({
       course_id: r.course_id,
+      courseName: r.course_name,
       department: r.department,
       batch: r.batch,
       section: r.section,
@@ -210,6 +211,7 @@ function buildClasses(rows, labTeachers, sections, times) {
       if (i === hours.length || hours[i] !== hours[i - 1] + 1) {
         classes.push({
           course_id: row.course_id,
+          courseName: row.course_name,
           department: row.department,
           batch: row.batch,
           section: row.section,
@@ -323,6 +325,33 @@ function roomTables(data, { room } = {}) {
     tables.push({ group: "", title: `Room No: ${r}`, items });
   }
   return tables;
+}
+
+// One routine per course, each of its sections' classes in it: CSE's own
+// level-terms first, then the courses CSE gives to other departments.
+// Thesis and class tests are not courses with rooms and teachers of their own.
+function courseTables(data, { course } = {}) {
+  const byCourse = new Map();
+  for (const c of data.classes) {
+    if (c.type === 2 || c.course_id === "CT" || (course && c.course_id !== course)) continue;
+    if (!byCourse.has(c.course_id)) {
+      byCourse.set(c.course_id, { course: c.course_id, name: c.courseName, dept: c.department, levelTerm: c.levelTerm || "", classes: [] });
+    }
+    byCourse.get(c.course_id).classes.push(c);
+  }
+  const deptRank = (dept) => (dept === "CSE" ? "" : dept);
+  return [...byCourse.values()]
+    .sort(
+      (a, b) =>
+        deptRank(a.dept).localeCompare(deptRank(b.dept)) ||
+        a.levelTerm.localeCompare(b.levelTerm) ||
+        a.course.localeCompare(b.course, undefined, { numeric: true })
+    )
+    .map((g) => ({
+      group: `${g.dept}|${g.levelTerm}`,
+      title: `${g.course}: ${g.name} (${g.dept === "CSE" ? "" : `${g.dept} `}${romanLevelTerm(g.levelTerm)})`,
+      items: uniqueClasses(g.classes).map((c) => item(c, compact([`Sec ${c.label}`, c.room, c.teachers]))),
+    }));
 }
 
 // Courses CSE takes from, or gives to, another department
@@ -669,10 +698,19 @@ export async function sessionalDistributionBook() {
   return done;
 }
 
+export async function courseBook(options = {}) {
+  const data = await loadRoutineData();
+  return renderBook(courseTables(data, options), data, {
+    title: "Course Routine",
+    header: ["COURSE ROUTINE", "Dept of CSE, BUET"],
+    breakOnGroup: true,
+  });
+}
+
 export async function departmentBook(options = {}) {
   const data = await loadRoutineData();
   return renderBook(departmentTables(data, options), data, { title: "Departmental Routine" });
 }
 
 // Exposed for tests
-export { layoutDay, buildClasses, romanLevelTerm };
+export { layoutDay, buildClasses, romanLevelTerm, courseTables };
