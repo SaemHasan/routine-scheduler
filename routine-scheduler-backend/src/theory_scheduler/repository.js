@@ -197,14 +197,9 @@ export async function loadTheoryProblemDB(department, levelTerm, existingClient 
           r.course_id === courseId && r.department === department &&
           Number(r.batch) === Number(batch) &&
           (singleOptional || group.some((g) => g.section === r.section)));
+        // Fixed classes stay as they are, even two on one day or more than
+        // the weekly meetings; only the meetings still missing are generated.
         const fixedMeetings = unique(previous.map((r) => `${r.day}|${r.time}`));
-        const fixedDays = fixedMeetings.map((x) => x.split("|")[0]);
-        if (fixedDays.length !== new Set(fixedDays).size) {
-          preflight.push(`${courseId} (${group.map((r) => r.section).join("/")}): already fixed twice on one day`);
-        }
-        if (fixedMeetings.length > meetings) {
-          preflight.push(`${courseId} (${group.map((r) => r.section).join("/")}): ${fixedMeetings.length} fixed classes exceed ${meetings} weekly meetings`);
-        }
         const perSectionTeachers = Object.fromEntries(group.map((r) => [
           r.section, unique(r.teachers || []),
         ]));
