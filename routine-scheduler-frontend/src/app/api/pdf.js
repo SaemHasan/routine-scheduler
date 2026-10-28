@@ -9,10 +9,14 @@ export const getPdfForStudent = (lvlTerm, section) =>
     .then((res) => res.data);
 
 // The sessional distribution laid out like the printed routines
+// The name the server gives a download, e.g. Level_Term_July_2026_29_October_2026.pdf
+const nameOf = (res, fallback) =>
+  /filename="([^"]+)"/.exec(res.headers["content-disposition"] || "")?.[1] || fallback;
+
 export const getSessionalDistributionPdf = () =>
   axios
     .get(api_url("/pdf/sessionalDistribution"), { responseType: "blob" })
-    .then((res) => res.data);
+    .then((res) => ({ blob: res.data, filename: nameOf(res, "Sessional_Distribution.pdf") }));
 
 export const getAllInitial = () =>
   axios.get(api_url(`/pdf/allInitial`)).then((res) => res.data);
@@ -97,17 +101,13 @@ export const getPdfForAllDepartments = () =>
 
 // A whole routine book (see RoutineBooks.js), with the file name to save it as
 export const getRoutineBook = (kind, value) =>
-  axios.get(api_url(`/pdf/book/${kind}${value ? `/${encodeURIComponent(value)}` : ""}`), { responseType: "blob" }).then((res) => {
-    const match = /filename="([^"]+)"/.exec(res.headers["content-disposition"] || "");
-    return { blob: res.data, filename: match ? match[1] : `${kind}.pdf` };
-  });
+  axios.get(api_url(`/pdf/book/${kind}${value ? `/${encodeURIComponent(value)}` : ""}`), { responseType: "blob" })
+    .then((res) => ({ blob: res.data, filename: nameOf(res, `${kind}.pdf`) }));
 
 // The course load plan's numbers, and its workbook
 export const getCourseLoadPlan = () =>
   axios.get(api_url("/pdf/courseLoadPlan/summary")).then((res) => res.data);
 
 export const getCourseLoadWorkbook = () =>
-  axios.get(api_url("/pdf/courseLoadPlan"), { responseType: "blob" }).then((res) => {
-    const match = /filename="([^"]+)"/.exec(res.headers["content-disposition"] || "");
-    return { blob: res.data, filename: match ? match[1] : "Course_Load.xlsx" };
-  });
+  axios.get(api_url("/pdf/courseLoadPlan"), { responseType: "blob" })
+    .then((res) => ({ blob: res.data, filename: nameOf(res, "Course_Load.xlsx") }));

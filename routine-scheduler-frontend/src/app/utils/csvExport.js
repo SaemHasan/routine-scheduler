@@ -1,4 +1,5 @@
 // Utility functions for CSV export
+import { downloadName } from './fileName';
 
 /**
  * Helper function to format section display for 0.75 credit courses
@@ -80,7 +81,7 @@ export const downloadCsv = (csvContent, filename) => {
 };
 
 // Export theory distribution to CSV
-export const exportTheoryDistributionToCsv = (courses) => {
+export const exportTheoryDistributionToCsv = (courses, session) => {
   const data = courses.map(course => ({
     'Course ID': course.course_id,
     'Course Name': course.course_name || course.course_id,
@@ -92,12 +93,11 @@ export const exportTheoryDistributionToCsv = (courses) => {
   }));
   
   const csvContent = arrayToCsv(data);
-  const timestamp = new Date().toISOString().split('T')[0];
-  downloadCsv(csvContent, `theory_distribution_${timestamp}.csv`);
+  downloadCsv(csvContent, downloadName('Theory_Distribution', session, 'csv'));
 };
 
 // Export sessional distribution to CSV
-export const exportSessionalDistributionToCsv = (courses) => {
+export const exportSessionalDistributionToCsv = (courses, session) => {
   const data = courses.map(course => ({
     'Course ID': course.course_id,
     'Course Name': course.course_name || course.course_id,
@@ -111,12 +111,11 @@ export const exportSessionalDistributionToCsv = (courses) => {
   }));
   
   const csvContent = arrayToCsv(data);
-  const timestamp = new Date().toISOString().split('T')[0];
-  downloadCsv(csvContent, `sessional_distribution_${timestamp}.csv`);
+  downloadCsv(csvContent, downloadName('Sessional_Distribution', session, 'csv'));
 };
 
 // Export credit distribution to CSV
-export const exportCreditDistributionToCsv = (teacherAssignments) => {
+export const exportCreditDistributionToCsv = (teacherAssignments, session) => {
   const data = teacherAssignments.map(assignment => {
     // Format theory assignments with line breaks for better readability
     const theoryAssignments = assignment.theoryAssignments.map(ta => 
@@ -143,6 +142,5 @@ export const exportCreditDistributionToCsv = (teacherAssignments) => {
   });
   
   const csvContent = arrayToCsv(data);
-  const timestamp = new Date().toISOString().split('T')[0];
-  downloadCsv(csvContent, `credit_distribution_${timestamp}.csv`);
+  downloadCsv(csvContent, downloadName('Credit_Distribution', session, 'csv'));
 };

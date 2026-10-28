@@ -268,8 +268,10 @@ function levelTermTables(data, { levelTerm } = {}) {
     // classes need no label in its routine
     const named = (name, label) => (label && !isMainSection(label) ? `${name} (${label})` : name);
     for (const main of mains) {
-      const items = data.classes
-        .filter((c) => c.department === "CSE" && c.batch === lt.batch && c.mainSection === main)
+      // An elective every section takes is in each section's routine, though
+      // a lab of it is stored once (under A) and a theory class per section
+      const items = uniqueClasses(data.classes
+        .filter((c) => c.department === "CSE" && c.batch === lt.batch && (c.mainSection === main || c.elective)))
         .map((c) => {
           if (c.type === 2) return item(c, [named(`THESIS (${romanLevelTerm(lt.level_term)})`, c.label)], { last: true });
           if (c.course_id === "CT") return item(c, [named("CT", c.label)]);
@@ -718,4 +720,4 @@ export async function departmentBook(options = {}) {
 }
 
 // Exposed for tests
-export { layoutDay, buildClasses, romanLevelTerm, courseTables, departmentTables, layoutTable, paginate };
+export { layoutDay, buildClasses, loadRoutineData, romanLevelTerm, courseTables, departmentTables, levelTermTables, layoutTable, paginate };

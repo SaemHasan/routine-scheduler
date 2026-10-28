@@ -4,7 +4,8 @@ import { fileURLToPath } from "url";
 import { getInitials, getRooms, getLevelTerms, getCourses, getAllDepartmentsDB, getCurrentSession } from "./repository.js";
 import { levelTermBook, teacherBook, roomBook, courseBook, departmentBook } from "./routineBook.js";
 import { courseTeacherBook, courseLoadBook } from "./reportBook.js";
-import { sessionalDistributionBook, termTitle } from "./sessionalDistribution.js";
+import { sessionalDistributionBook } from "./sessionalDistribution.js";
+import { downloadName } from "./format.js";
 import { courseLoadPlan, courseLoadWorkbook } from "./courseLoadPlan.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -12,38 +13,38 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 /*
  * The routine books. Each can be generated to a file (then served by the
  * show* endpoints, as the PDF page does) or downloaded at once from
- * /pdf/book/:kind.
+ * /pdf/book/:kind. `type` begins the downloaded file's name.
  */
 const BOOKS = {
   levelTerm: {
-    name: "Level_Term_Routine", file: "All_Level_Terms",
+    type: "Level_Term", file: "All_Level_Terms",
     build: () => levelTermBook(), buildSelected: (value) => levelTermBook({ levelTerm: value }),
   },
   teacher: {
-    name: "Teacher_Routine", file: "All_Teachers",
+    type: "Teacher", file: "All_Teachers",
     build: () => teacherBook(), buildSelected: (value) => teacherBook({ initial: value }),
   },
   partTimeTeacher: {
-    name: "PT_Teacher_Routine",
+    type: "Part_Time_Teacher",
     file: "All_PT_Teachers",
     build: () => teacherBook({ partTimeOnly: true }),
   },
   room: {
-    name: "Room_Routine", file: "All_Rooms",
+    type: "Room", file: "All_Rooms",
     build: () => roomBook(), buildSelected: (value) => roomBook({ room: value }),
   },
   course: {
-    name: "Course_Routine", file: "All_Courses",
+    type: "Course", file: "All_Courses",
     build: () => courseBook(), buildSelected: (value) => courseBook({ course: value }),
   },
   department: {
-    name: "Departmental_Routine", file: "All_Departments",
+    type: "Departmental", file: "All_Departments",
     build: () => departmentBook(), buildSelected: (value) => departmentBook({ department: value }),
   },
-  courseTeacher: { name: "Course_Teacher", file: "Course_Teacher", build: () => courseTeacherBook() },
-  courseLoad: { name: "Load_Calculation", file: "Load_Calculation", build: () => courseLoadBook() },
+  courseTeacher: { type: "Course_Teacher", file: "Course_Teacher", build: () => courseTeacherBook() },
+  courseLoad: { type: "Load_Calculation", file: "Load_Calculation", build: () => courseLoadBook() },
   sessionalDistribution: {
-    name: "Sessional_Distribution_Routine",
+    type: "Sessional_Distribution",
     file: "Sessional_Distribution",
     build: () => sessionalDistributionBook(),
   },
@@ -58,15 +59,20 @@ async function writeBook(file, build) {
   return path.basename(fileFor(file));
 }
 
-function sendFile(res, next, file, downloadName) {
-  const filePath = fileFor(file);
-  if (!fs.existsSync(filePath)) {
-    res.status(404).json({ message: "PDF not found. Please generate it first." });
-    return;
+// A generated file, named for download as `type`, e.g. "Teacher KRV"
+async function sendFile(res, next, file, type) {
+  try {
+    const filePath = fileFor(file);
+    if (!fs.existsSync(filePath)) {
+      res.status(404).json({ message: "PDF not found. Please generate it first." });
+      return;
+    }
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `inline; filename="${downloadName(type, await getCurrentSession())}"`);
+    fs.createReadStream(filePath).on("error", next).pipe(res);
+  } catch (err) {
+    next(err);
   }
-  res.setHeader("Content-Type", "application/pdf");
-  res.setHeader("Content-Disposition", `inline; filename="${downloadName || path.basename(filePath)}"`);
-  fs.createReadStream(filePath).on("error", next).pipe(res);
 }
 
 /* ------------------------------------------------------------- one book */
@@ -86,12 +92,12 @@ export async function downloadBook(req, res, next) {
       return;
     }
     const buffer = await (selected ? book.buildSelected(selected) : book.build());
-    const term = termTitle(await getCurrentSession()).replace(/\s+/g, "_");
-    const suffix = selected ? `_${String(selected).replace(/[\\/:*?"<>|\s]+/g, "_")}` : "";
+    // One routine names its selection too: Teacher_KRV_July_2026_29_October_2026.pdf
+    const name = downloadName(selected ? `${book.type} ${selected}` : book.type, await getCurrentSession());
     res
       .status(200)
       .set("Content-Type", "application/pdf")
-      .set("Content-Disposition", `${selected ? "inline" : "attachment"}; filename="${book.name}${suffix}_${term}.pdf"`)
+      .set("Content-Disposition", `${selected ? "inline" : "attachment"}; filename="${name}"`)
       .send(buffer);
   } catch (err) {
     next(err);
@@ -105,7 +111,7 @@ export async function downloadCourseLoadPlan(req, res, next) {
     res
       .status(200)
       .set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-      .set("Content-Disposition", `attachment; filename="Course_Load_${plan.term.replace(/\s+/g, "_")}.xlsx"`)
+      .set("Content-Disposition", `attachment; filename="${downloadName("Course_Load", plan.term, "xlsx")}"`)
       .send(buffer);
   } catch (err) {
     next(err);
@@ -138,7 +144,7 @@ const generateAll = (kind) => async (req, res, next) => {
     next(err);
   }
 };
-const serveAll = (kind) => (req, res, next) => sendFile(res, next, BOOKS[kind].file);
+const serveAll = (kind) => (req, res, next) => sendFile(res, next, BOOKS[kind].file, BOOKS[kind].type);
 
 export const generateAllLevelTermPDFs = generateAll("levelTerm");
 export const generateAllTeacherPDFs = generateAll("teacher");
@@ -198,10 +204,14 @@ export async function DepartmentPDF(req, res, next) {
   }
 }
 
-export const serveLvlTermPDF = (req, res, next) => sendFile(res, next, req.params.lvlTerm);
-export const serveTeacherPDF = (req, res, next) => sendFile(res, next, req.params.initial);
-export const serveRoomPDF = (req, res, next) => sendFile(res, next, `room_${req.params.room}`);
-export const serveDepartmentPDF = (req, res, next) => sendFile(res, next, `department_${req.params.department}`);
+export const serveLvlTermPDF = (req, res, next) =>
+  sendFile(res, next, req.params.lvlTerm, `${BOOKS.levelTerm.type} ${req.params.lvlTerm}`);
+export const serveTeacherPDF = (req, res, next) =>
+  sendFile(res, next, req.params.initial, `${BOOKS.teacher.type} ${req.params.initial}`);
+export const serveRoomPDF = (req, res, next) =>
+  sendFile(res, next, `room_${req.params.room}`, `${BOOKS.room.type} ${req.params.room}`);
+export const serveDepartmentPDF = (req, res, next) =>
+  sendFile(res, next, `department_${req.params.department}`, `${BOOKS.department.type} ${req.params.department}`);
 
 /* ------------------------------------------------------------ the lists */
 

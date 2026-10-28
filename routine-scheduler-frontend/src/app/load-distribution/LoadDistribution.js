@@ -11,6 +11,7 @@ import {
   exportSessionalDistributionToCsv,
   exportCreditDistributionToCsv,
 } from "../utils/csvExport";
+import { useConfig } from "../shared/ConfigContext";
 import {
   getTheoryDistribution,
   getSessionalDistribution,
@@ -25,6 +26,7 @@ import {
 export default function LoadDistribution() {
   const [activeTab, setActiveTab] = useState("theory");
   const [downloading, setDownloading] = useState(false);
+  const { currentSession } = useConfig();
 
   const handleCsvDownload = async (type) => {
     setDownloading(true);
@@ -32,13 +34,13 @@ export default function LoadDistribution() {
       switch (type) {
         case "theory":
           const theoryData = await getTheoryDistribution();
-          exportTheoryDistributionToCsv(theoryData || []);
+          exportTheoryDistributionToCsv(theoryData || [], currentSession);
           toast.success("Theory distribution CSV downloaded successfully!");
           break;
 
         case "sessional":
           const sessionalData = await getSessionalDistribution();
-          exportSessionalDistributionToCsv(sessionalData || []);
+          exportSessionalDistributionToCsv(sessionalData || [], currentSession);
           toast.success("Sessional distribution CSV downloaded successfully!");
           break;
 
@@ -104,7 +106,7 @@ export default function LoadDistribution() {
             })
           );
 
-          exportCreditDistributionToCsv(teacherAssignments);
+          exportCreditDistributionToCsv(teacherAssignments, currentSession);
           toast.success("Credit distribution CSV downloaded successfully!");
           break;
 

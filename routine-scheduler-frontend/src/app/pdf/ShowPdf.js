@@ -59,6 +59,7 @@ export default function ShowPdf() {
     useState("All Departments");
   const [pdfData, setpdfData] = useState(null);
   const [pdfUrl, setPdfUrl] = useState("");
+  const [pdfName, setPdfName] = useState("");
 
   useEffect(() => {
     if (!pdfData) {
@@ -201,13 +202,14 @@ export default function ShowPdf() {
       }
 
       pdfPromise
-        .then(({ blob }) => {
+        .then(({ blob, filename }) => {
           if (!blob || blob.size === 0) {
             toast.dismiss(toastId);
             toast.error(`No ${selectedType} PDF found for ${selectedValue}`);
             return;
           }
           setpdfData(blob);
+          setPdfName(filename);
           toast.dismiss(toastId);
           toast.success("PDF loaded successfully");
         })
@@ -1082,6 +1084,15 @@ export default function ShowPdf() {
                       </svg>
                     </span>
                     PDF Preview
+                    {/* The viewer's own download button names the file at random */}
+                    <a
+                      className="btn btn-sm btn-outline-primary ms-auto d-flex align-items-center"
+                      style={{ gap: 6, fontSize: "0.9rem" }}
+                      href={pdfUrl}
+                      download={pdfName || "Routine.pdf"}
+                    >
+                      <i className="mdi mdi-download"></i> Download
+                    </a>
                   </h4>
                 </div>
                 <div

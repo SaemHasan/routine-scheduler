@@ -1,5 +1,5 @@
 import { sessionalDistributionBook } from "./routineBook.js";
-import { termTitle, teacherLine } from "./format.js";
+import { downloadName, termTitle, teacherLine } from "./format.js";
 import { getCurrentSession } from "./repository.js";
 
 /*
@@ -10,7 +10,7 @@ import { getCurrentSession } from "./repository.js";
 export async function sessionalDistributionPDF(req, res, next) {
   try {
     const buffer = await sessionalDistributionBook();
-    const name = `Sessional_Distribution_${termTitle(await getCurrentSession()).replace(/\s+/g, "_")}.pdf`;
+    const name = downloadName("Sessional_Distribution", await getCurrentSession());
     res
       .status(200)
       .set("Content-Type", "application/pdf")

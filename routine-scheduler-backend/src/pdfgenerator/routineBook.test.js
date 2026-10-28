@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildClasses, courseTables, departmentTables, layoutTable, paginate } from "./routineBook.js";
+import { buildClasses, courseTables, departmentTables, layoutTable, levelTermTables, paginate } from "./routineBook.js";
 
 const cls = (course_id, label, day, start, extra = {}) => ({
   course_id, code: course_id, courseName: `${course_id} name`, department: "CSE", batch: 23, label,
@@ -70,4 +70,34 @@ test("each department's routines start on a page of their own", () => {
   // Short enough to share a page, they do not
   assert.ok(groupsPerPage(paginate(tables, {})).some((groups) => groups.length > 1));
   assert.deepEqual(groupsPerPage(paginate(tables, { breakOnGroup: true })), [["HUM"], ["MATH"], ["ME"]]);
+});
+
+test("an elective every section takes is in every section's level-term routine, once", () => {
+  const sections = ["A", "B", "C", "A1", "A2", "B1", "B2", "C1", "C2"].map((section) => ({
+    department: "CSE", batch: 21, section, type: section.length === 1 ? 0 : 1, level_term: "L-4 T-2",
+  }));
+  const row = (course_id, type, section, day, time, extra = {}) => ({
+    course_id, course_name: course_id, type, optional: 0, optional_section_count: 0,
+    department: "CSE", batch: 21, section, day, time, level_term: "L-4 T-2",
+    teachers: [], room_no: "", from: "CSE", to: "CSE", ...extra,
+  });
+  const elective = { optional: 1, optional_section_count: 1 };
+  const rows = [
+    // A lab every section takes, stored once under A
+    row("CSE410", 1, "A", "Sunday", 2, elective),
+    // A theory elective, stored in each section
+    ...["A", "B", "C"].map((s) => row("CSE409", 0, s, "Monday", 9, elective)),
+    // B's own lab stays in B's routine
+    row("CSE408", 1, "B1", "Tuesday", 2),
+  ];
+  const classes = buildClasses(rows, [], sections, [8, 9, 10, 11, 12, 1, 2, 3, 4]);
+  const data = { classes, sections, levelTerms: [{ department: "CSE", level_term: "L-4 T-2", batch: 21 }] };
+  const linesOf = (table) => table.items.map((it) => it.lines[0]).sort();
+  const tables = levelTermTables(data);
+  assert.deepEqual(tables.map((t) => t.title), [
+    "Level 4, Term 2 (Sec A)", "Level 4, Term 2 (Sec B)", "Level 4, Term 2 (Sec C)",
+  ]);
+  assert.deepEqual(linesOf(tables[0]), ["CSE409 (A/B/C)", "CSE410 (A/B/C)"]);
+  assert.deepEqual(linesOf(tables[1]), ["CSE408 (B1)", "CSE409 (A/B/C)", "CSE410 (A/B/C)"]);
+  assert.deepEqual(linesOf(tables[2]), ["CSE409 (A/B/C)", "CSE410 (A/B/C)"]);
 });
