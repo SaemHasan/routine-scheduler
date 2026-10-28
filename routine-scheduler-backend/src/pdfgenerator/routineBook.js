@@ -713,8 +713,9 @@ export async function courseBook(options = {}) {
 
 export async function departmentBook(options = {}) {
   const data = await loadRoutineData();
-  return renderBook(departmentTables(data, options), data, { title: "Departmental Routine" });
+  // Each department's routines start on a page of their own
+  return renderBook(departmentTables(data, options), data, { title: "Departmental Routine", breakOnGroup: true });
 }
 
 // Exposed for tests
-export { layoutDay, buildClasses, romanLevelTerm, courseTables };
+export { layoutDay, buildClasses, romanLevelTerm, courseTables, departmentTables, layoutTable, paginate };

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildClasses, courseTables } from "./routineBook.js";
+import { buildClasses, courseTables, departmentTables, layoutTable, paginate } from "./routineBook.js";
 
 const cls = (course_id, label, day, start, extra = {}) => ({
   course_id, code: course_id, courseName: `${course_id} name`, department: "CSE", batch: 23, label,
@@ -52,4 +52,22 @@ test("an elective not activated yet is named by its slot, without its course nam
   // Activated, the course is itself again
   const shown = buildClasses(rows, [], sections, times, {});
   assert.deepEqual(courseTables({ classes: shown }).map((t) => t.title), ["CSE461: Machine Learning (L-IV T-I)"]);
+});
+
+test("each department's routines start on a page of their own", () => {
+  const data = {
+    days: ["Saturday", "Sunday", "Monday", "Tuesday", "Wednesday"],
+    times: [8, 9, 10, 11, 12, 1, 2, 3, 4],
+    classes: [
+      cls("MATH241", "A", "Sunday", 1, { from: "MATH", to: "CSE" }),
+      cls("MATH243", "A", "Monday", 1, { from: "MATH", to: "CSE" }),
+      cls("HUM429", "A", "Monday", 2, { from: "HUM", to: "CSE" }),
+      cls("CSE281", "A", "Tuesday", 1, { from: "CSE", to: "ME", department: "ME" }),
+    ],
+  };
+  const tables = departmentTables(data).map((t) => layoutTable(t, data));
+  const groupsPerPage = (pages) => pages.map((page) => [...new Set(page.map((t) => t.group))]);
+  // Short enough to share a page, they do not
+  assert.ok(groupsPerPage(paginate(tables, {})).some((groups) => groups.length > 1));
+  assert.deepEqual(groupsPerPage(paginate(tables, { breakOnGroup: true })), [["HUM"], ["MATH"], ["ME"]]);
 });
