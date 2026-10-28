@@ -2,6 +2,7 @@ import { connect } from "../../config/database.js";
 import { getCurrentSession } from "../../pdfgenerator/repository.js";
 import { HttpError } from "../../config/error-handle.js";
 import { optionalSectionLabelSQL, runsAsGroupSQL } from "../../sessional_scheduler/sectionLabel.js";
+import { allElectiveSlotsDB, syncElectiveSlotsDB } from "./electiveSlots.js";
 
 export async function getAll() {
   const client = await connect();
@@ -487,12 +488,18 @@ export async function setCourseActive(course_id, level_term, active) {
 
 /**
  * The optional courses of the running level-terms, with whether each is
- * offered this session and the option it belongs to.
+ * offered this session, the option it belongs to and its slot there (1X),
+ * and whether the routine shows the level-term's electives by course yet.
  */
 export async function getOptionalOfferingsDB() {
   const client = await connect();
   try {
-    return (
+    const slots = new Map();
+    for (const lt of await allElectiveSlotsDB(client)) {
+      for (const c of lt.courses) slots.set(`${lt.department}|${lt.level_term}|${c.course_id}`, c.slot);
+      slots.set(`${lt.department}|${lt.level_term}`, lt.shown);
+    }
+    const rows = (
       await client.query(
         `SELECT ac.course_id, ac.name, ac.type, ac.class_per_week, ac.level_term,
                 ac."to" AS department, ac."from", ac.option_group,
@@ -509,6 +516,11 @@ export async function getOptionalOfferingsDB() {
          ORDER BY ac."to", ac.level_term, ac.type, ac.course_id`
       )
     ).rows;
+    return rows.map((r) => ({
+      ...r,
+      slot: (r.offered && slots.get(`${r.department}|${r.level_term}|${r.course_id}`)) || null,
+      shown: slots.get(`${r.department}|${r.level_term}`) === true,
+    }));
   } finally {
     client.release();
   }
@@ -581,6 +593,8 @@ export async function saveOptionalOfferingsDB({ level_term, department, courses 
   for (const c of all) {
     if (c.offered || requested.has(c.course_id)) await setCourseActive(c.course_id, level_term, Boolean(c.offered));
   }
+  // A course joining an option takes a free slot; one leaving frees its own
+  await syncElectiveSlotsDB(department, level_term);
   return getOptionalOfferingsDB();
 }
 

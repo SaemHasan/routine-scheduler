@@ -3,7 +3,7 @@ import express from 'express'
 
 const router = express.Router();
 
-import {  getAllCourse , getOptionalOfferingsAPI, saveOptionalOfferingsAPI, getActiveCourseIdsAPI, addCourse , editCourse, deleteCourse, setCourseActiveAPI, getLabCourses, getNonDeptLabCourses, getSessionalCoursesByDeptLevelTermAPI,getTheoryCoursesByDeptLevelTermAPI,getNonDeptTheoryCourses } from './controller.js';
+import {  getAllCourse , getOptionalOfferingsAPI, saveOptionalOfferingsAPI, getElectiveLabelsAPI, setElectivesShownAPI, setElectiveSlotsAPI, getActiveCourseIdsAPI, addCourse , editCourse, deleteCourse, setCourseActiveAPI, getLabCourses, getNonDeptLabCourses, getSessionalCoursesByDeptLevelTermAPI,getTheoryCoursesByDeptLevelTermAPI,getNonDeptTheoryCourses } from './controller.js';
 import validate from "../../config/validation.js";
 import {body} from 'express-validator'
 
@@ -12,6 +12,10 @@ router.get("/active", getActiveCourseIdsAPI)
 // Electives offered this session and their options
 router.get("/optional", getOptionalOfferingsAPI)
 router.put("/optional", saveOptionalOfferingsAPI)
+// The slots (Option 1X, 1Y, …) the routine shows until activated
+router.get("/optional/labels", getElectiveLabelsAPI)
+router.put("/optional/activate", setElectivesShownAPI)
+router.put("/optional/slots", setElectiveSlotsAPI)
 // router.get("/:initial", getCourse)
 
 // Debug test endpoint

@@ -19,6 +19,7 @@ import { mdiContentSave, mdiAccountGroupOutline } from "@mdi/js";
 import Icon from "@mdi/react";
 import { useHistory } from "react-router-dom";
 import { labSessionsPerWeek } from "../shared/sessionalTeachers";
+import { courseCode, useElectiveLabels } from "../shared/electiveLabels";
 
 /**
  * Helper function to format section display for 0.75 credit courses
@@ -38,6 +39,9 @@ function formatSectionDisplay(section, classPerWeek) {
 export default function SessionalSchedule() {
   // Memoized values for configuration settings
   const { days, times, possibleLabTimes } = useConfig();
+  // Electives not activated yet go by their slot, e.g. "Option 1X"
+  const courseLabels = useElectiveLabels();
+  const hidden = (courseId) => Boolean(courseLabels[courseId]);
 
   // Theory schedules
   const [theorySchedules, setTheorySchedules] = useState({});
@@ -1460,9 +1464,9 @@ export default function SessionalSchedule() {
                                               border: Number(slot.type) === 2 ? '1px solid #8db8ed' : '1px solid #d4d4df',
                                               color: '#39445a',
                                             }}
-                                            title={`${slot.name || slot.course_id} (${[...new Set(slot.periods)].map((period) => `${period}:00`).join(', ')})`}
+                                            title={`${(!hidden(slot.course_id) && slot.name) || courseCode(courseLabels, slot.course_id)} (${[...new Set(slot.periods)].map((period) => `${period}:00`).join(', ')})`}
                                           >
-                                            <div style={scheduleTableStyle.courseTitle}>{slot.course_id}</div>
+                                            <div style={scheduleTableStyle.courseTitle}>{courseCode(courseLabels, slot.course_id)}</div>
                                             <div style={scheduleTableStyle.sectionBadge}>
                                               {Number(slot.type) === 2 ? 'Thesis' : slot.optional ? 'Optional theory' : 'Theory'}
                                             </div>
@@ -1482,7 +1486,7 @@ export default function SessionalSchedule() {
                                               >
                                                 <div style={scheduleTableStyle.courseTitle}>
                                                   {course && (course.course_id || course.course_code)
-                                                    ? (course.course_id || course.course_code)
+                                                    ? courseCode(courseLabels, course.course_id || course.course_code)
                                                     : `Course ${courseId || 'Unknown'}`
                                                   }
                                                 </div>
@@ -1788,10 +1792,10 @@ export default function SessionalSchedule() {
                         }}
                       >
                         <div style={{ fontWeight: '700', fontSize: '1rem', color: '#2d3748', marginBottom: '8px', lineHeight: '1.2' }}>
-                          {card.course.course_id || card.course.course_code}
+                          {courseCode(courseLabels, card.course.course_id || card.course.course_code)}
                         </div>
                         <div style={{ fontSize: '0.85rem', color: '#718096', marginBottom: '8px', fontWeight: '500' }}>
-                          {card.course.name}
+                          {hidden(card.course.course_id) ? '' : card.course.name}
                         </div>
                         <div style={{ fontSize: '0.8rem', color: '#a0aec0', fontWeight: '600', marginBottom: '8px' }}>
                           {card.course.class_per_week} credits

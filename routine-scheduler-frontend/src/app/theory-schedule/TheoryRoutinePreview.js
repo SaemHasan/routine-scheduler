@@ -2,10 +2,11 @@ import { useMemo } from "react";
 import TheoryScheduleTable from "./TheoryScheduleTable";
 import { useConfig } from "../shared/ConfigContext";
 import { getTheoryRoutineBlock } from "./theoryRoutineBlocks";
+import { courseCode } from "../shared/electiveLabels";
 
 const mainSection = (section) => String(section).replace(/[0-9]+$/, "");
 
-export default function TheoryRoutinePreview({ suggestion, allTheoryCourses }) {
+export default function TheoryRoutinePreview({ suggestion, allTheoryCourses, courseLabels = {} }) {
   const { times } = useConfig();
   const previews = useMemo(() => (suggestion.sectionNames || []).map((section) => {
     const fixedRows = (suggestion.fixedRows || []).filter((row) =>
@@ -31,7 +32,7 @@ export default function TheoryRoutinePreview({ suggestion, allTheoryCourses }) {
     fixedRows.forEach((row) => add(
       row.day, row.time, row.course_id, false, row.type,
       row.type === 1 && row.optional && row.optional_section_count <= 1
-        ? `${row.course_id} (all sections)` : null
+        ? `${courseCode(courseLabels, row.course_id)} (all sections)` : null
     ));
     (suggestion.assignments || []).forEach((assignment) => {
       if (assignment.sections.includes(section)) {
@@ -41,7 +42,7 @@ export default function TheoryRoutinePreview({ suggestion, allTheoryCourses }) {
     const isDisabledTimeSlot = (day, time) =>
       getTheoryRoutineBlock(cells, times, day, time);
     return { section, cells, suggestedSlots, isDisabledTimeSlot };
-  }), [suggestion, times]);
+  }), [suggestion, times, courseLabels]);
 
   const ctAvailableDays = (suggestion.ctSlots || [])
     .filter((slot) => slot.available).map((slot) => slot.day);
@@ -70,6 +71,7 @@ export default function TheoryRoutinePreview({ suggestion, allTheoryCourses }) {
         <TheoryScheduleTable
           sectionName={`Section ${section}`}
           allTheoryCourses={allTheoryCourses}
+          courseLabels={courseLabels}
           theorySchedules={cells}
           suggestedSlots={suggestedSlots}
           ctAvailableDays={ctAvailableDays}

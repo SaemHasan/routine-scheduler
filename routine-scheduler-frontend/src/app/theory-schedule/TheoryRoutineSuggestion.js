@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "react-hot-toast";
 import Icon from "@mdi/react";
 import { mdiAutoFix, mdiClose, mdiDeleteSweepOutline, mdiPin, mdiPlus, mdiSwapHorizontal } from "@mdi/js";
@@ -13,6 +13,7 @@ import FixTheoryClassesModal from "./FixTheoryClassesModal";
 import SwapTheoryCoursesModal from "./SwapTheoryCoursesModal";
 import RemoveTheoryClassesModal from "./RemoveTheoryClassesModal";
 import { openMeetings, shortDay, slotLabel } from "./theoryRoutineFixing";
+import { courseCode } from "../shared/electiveLabels";
 
 const messageOf = (error) =>
   error?.response?.data?.error?.message || error?.message || "Request failed";
@@ -43,7 +44,7 @@ const chip = {
 };
 
 export default function TheoryRoutineSuggestion({
-  department, levelTerm, batch, allTheoryCourses, hasUnsavedChanges, overview, onChanged,
+  department, levelTerm, batch, allTheoryCourses, courseLabels = {}, hasUnsavedChanges, overview, onChanged,
 }) {
   const [suggestion, setSuggestion] = useState(null);
   const [working, setWorking] = useState(false);
@@ -51,6 +52,10 @@ export default function TheoryRoutineSuggestion({
   const [swapping, setSwapping] = useState(false);
   const [removing, setRemoving] = useState(false);
   useEffect(() => setSuggestion(null), [department, levelTerm, batch]);
+  // An elective not activated yet goes by its slot ("Option 1X"), without its name
+  const courses = useMemo(() => (overview?.courses || []).map((c) => courseLabels[c.course_id]
+    ? { ...c, code: courseLabels[c.course_id], name: "" } : { ...c, code: c.course_id }), [overview, courseLabels]);
+  const code = (courseId) => courseCode(courseLabels, courseId);
 
   const stale = suggestion && overview?.fingerprint && suggestion.fingerprint !== overview.fingerprint;
   const blocked = overview?.preflight?.length > 0;
@@ -100,13 +105,13 @@ export default function TheoryRoutineSuggestion({
   };
   const unpin = (courseId, section, meeting) => run(
     () => unfixTheoryClass({ department, level_term: levelTerm, course_id: courseId, section, ...meeting }),
-    `${courseId} ${slotLabel(meeting)} can now be moved by the generator`);
+    `${code(courseId)} ${slotLabel(meeting)} can now be moved by the generator`);
   const pin = (courseId, section, meeting) => run(
     () => fixTheoryClasses({
       department, level_term: levelTerm, course_id: courseId,
       placements: [{ section, ...meeting }],
     }),
-    `${courseId} ${slotLabel(meeting)} is now fixed`);
+    `${code(courseId)} ${slotLabel(meeting)} is now fixed`);
 
   const ctFree = (overview?.ctSlots || []).filter((slot) => slot.available);
   const ctShort = overview?.ctRequired > 0 && ctFree.length < overview.ctRequired;
@@ -163,7 +168,7 @@ export default function TheoryRoutineSuggestion({
                   </tr>
                 </thead>
                 <tbody>
-                  {overview.courses.map((course) => {
+                  {courses.map((course) => {
                     const open = openMeetings(course);
                     return (
                       <tr key={course.course_id}>
@@ -171,7 +176,7 @@ export default function TheoryRoutineSuggestion({
                           <button type="button" className="btn btn-link p-0" style={{ fontWeight: 600 }}
                             disabled={busy} title="Fix classes of this course"
                             onClick={() => setFixing(course.course_id)}>
-                            {course.course_id}
+                            {course.code}
                           </button>
                           {course.shared && <div className="small text-muted">all sections together</div>}
                         </td>
@@ -185,7 +190,7 @@ export default function TheoryRoutineSuggestion({
                                 <span key={`f${m.day}${m.time}`} style={{ ...chip, background: "#e9d8fd", color: "#5b2a9e", fontWeight: 600 }}
                                   title="Fixed: the generator keeps it">
                                   <Icon path={mdiPin} size={0.5} />{slotLabel(m)}
-                                  <button type="button" aria-label={`Unpin ${course.course_id} ${slotLabel(m)}`}
+                                  <button type="button" aria-label={`Unpin ${course.code} ${slotLabel(m)}`}
                                     title="Unpin: let the generator move it" disabled={busy}
                                     onClick={() => unpin(course.course_id, name, m)}
                                     style={{ border: "none", background: "transparent", padding: 0, lineHeight: 0, color: "#5b2a9e", cursor: "pointer" }}>
@@ -298,7 +303,7 @@ export default function TheoryRoutineSuggestion({
                     {suggestion.warnings.map((warning) => <div key={warning}>{warning}</div>)}
                   </div>
                 )}
-                <TheoryRoutinePreview suggestion={suggestion} allTheoryCourses={allTheoryCourses} />
+                <TheoryRoutinePreview suggestion={suggestion} allTheoryCourses={allTheoryCourses} courseLabels={courseLabels} />
                 <small className="text-muted">
                   Preview only. Applying rechecks the current routine; fixed classes are never changed.
                 </small>
@@ -313,7 +318,7 @@ export default function TheoryRoutineSuggestion({
           onHide={() => setFixing(null)}
           department={department}
           levelTerm={levelTerm}
-          courses={overview.courses}
+          courses={courses}
           initialCourse={fixing || ""}
           onFixed={onChanged}
         />
@@ -324,7 +329,7 @@ export default function TheoryRoutineSuggestion({
           onHide={() => setSwapping(false)}
           department={department}
           levelTerm={levelTerm}
-          courses={overview.courses}
+          courses={courses}
           onSwapped={onChanged}
         />
       )}
@@ -334,7 +339,7 @@ export default function TheoryRoutineSuggestion({
           onHide={() => setRemoving(false)}
           department={department}
           levelTerm={levelTerm}
-          courses={overview.courses}
+          courses={courses}
           sectionNames={overview.sectionNames || []}
           ctPeriods={overview.ctPeriods || []}
           onRemoved={onChanged}

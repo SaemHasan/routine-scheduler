@@ -62,7 +62,7 @@ export default function FixTheoryClassesModal({
         department, level_term: levelTerm, course_id: courseId,
         placements: complete.map((row) => ({ ...row, time: Number(row.time) })),
       });
-      toast.success(`Fixed ${result.fixed} ${courseId} class${result.fixed === 1 ? "" : "es"}`);
+      toast.success(`Fixed ${result.fixed} ${course.code || courseId} class${result.fixed === 1 ? "" : "es"}`);
       if (result.released?.length) {
         toast(`Released for the next generation: ${result.released.join(", ")}`,
           { icon: "↻", duration: 6000 });
@@ -96,7 +96,7 @@ export default function FixTheoryClassesModal({
             <option value="">Select a course</option>
             {courses.map((c) => (
               <option key={c.course_id} value={c.course_id}>
-                {c.course_id}{c.name ? ` — ${c.name}` : ""} ({c.class_per_week}/week{c.shared ? ", all sections together" : ""})
+                {c.code || c.course_id}{c.name ? ` — ${c.name}` : ""} ({c.class_per_week}/week{c.shared ? ", all sections together" : ""})
               </option>
             ))}
           </Form.Select>

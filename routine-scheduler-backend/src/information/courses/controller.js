@@ -14,6 +14,7 @@ import {
   getSessionalCoursesByDeptLevelTerm,
   getTheoryCoursesByDeptLevelTerm
 } from "./repository.js";
+import { electiveLabelsDB, setElectiveSlotsDB, setElectivesShownDB } from "./electiveSlots.js";
 
 export async function getAllCourse(req, res, next) {
   try {
@@ -155,6 +156,46 @@ export async function saveOptionalOfferingsAPI(req, res, next) {
       throw new HttpError(400, "level_term, department and courses are required");
     }
     res.status(200).json(await saveOptionalOfferingsDB({ level_term, department, courses }));
+  } catch (err) {
+    next(err);
+  }
+}
+
+// GET /course/optional/labels — what the routine shows for electives not
+// activated yet, e.g. { CSE461: "Option 1X" }
+export async function getElectiveLabelsAPI(req, res, next) {
+  try {
+    res.status(200).json(await electiveLabelsDB());
+  } catch (err) {
+    next(err);
+  }
+}
+
+// PUT /course/optional/activate — { department, level_term, shown }
+export async function setElectivesShownAPI(req, res, next) {
+  try {
+    const { department, level_term, shown } = req.body || {};
+    if (!department || !level_term || typeof shown !== "boolean") {
+      throw new HttpError(400, "department, level_term and shown (true or false) are required");
+    }
+    res.status(200).json(await setElectivesShownDB({ department, levelTerm: level_term, shown }));
+  } catch (err) {
+    next(err);
+  }
+}
+
+// PUT /course/optional/slots — { department, level_term, type, option_group,
+// slots: { CSE461: "Y", CSE463: "X" } }; each slot's classes go with it
+export async function setElectiveSlotsAPI(req, res, next) {
+  try {
+    const { department, level_term, slots } = req.body || {};
+    const type = Number(req.body?.type);
+    const optionGroup = Number(req.body?.option_group);
+    if (!department || !level_term || ![0, 1].includes(type) || !Number.isInteger(optionGroup) ||
+        !slots || typeof slots !== "object" || Array.isArray(slots)) {
+      throw new HttpError(400, "department, level_term, type, option_group and slots are required");
+    }
+    res.status(200).json(await setElectiveSlotsDB({ department, levelTerm: level_term, type, optionGroup, slots }));
   } catch (err) {
     next(err);
   }

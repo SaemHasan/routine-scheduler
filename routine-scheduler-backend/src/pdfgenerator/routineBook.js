@@ -2,6 +2,7 @@ import PDFDocument from "pdfkit";
 import { connect } from "../config/database.js";
 import { termTitle, teacherLine, compareRooms } from "./format.js";
 import { effectiveRoomSQL } from "../theory_room_assignment/roomUse.js";
+import { electiveLabelsDB } from "../information/courses/electiveSlots.js";
 
 /*
  * The department's routine books (level-term, teacher, part-time teacher,
@@ -104,12 +105,13 @@ async function loadRoutineData() {
       )
     ).rows;
     const thesisSlots = (await client.query("SELECT * FROM thesis_slots")).rows;
+    const labels = await electiveLabelsDB(client);
 
     return {
       days,
       times,
       term: termTitle(cfg.CURRENT_SESSION),
-      classes: buildClasses(rows, labTeachers, sections, times),
+      classes: buildClasses(rows, labTeachers, sections, times, labels),
       sections,
       teachers,
       rooms,
@@ -125,9 +127,10 @@ async function loadRoutineData() {
  * One entry per class in the routine: its span of periods, the label of the
  * students it is for (A, A1, A1/A2 for a 0.75-credit lab, A/B/C for an
  * elective every section takes), its room and teachers. Thesis hours of a
- * section are merged into one block.
+ * section are merged into one block. An elective not activated yet is named
+ * by its slot (`labels`, e.g. CSE461 "Option 1X") and has no course name.
  */
-function buildClasses(rows, labTeachers, sections, times) {
+function buildClasses(rows, labTeachers, sections, times, labels = {}) {
   const mainsOf = new Map();
   const subsOf = new Map();
   for (const s of sections) {
@@ -184,7 +187,8 @@ function buildClasses(rows, labTeachers, sections, times) {
 
     classes.push({
       course_id: r.course_id,
-      courseName: r.course_name,
+      code: labels[r.course_id] || r.course_id,
+      courseName: labels[r.course_id] ? "" : r.course_name,
       department: r.department,
       batch: r.batch,
       section: r.section,
@@ -269,7 +273,7 @@ function levelTermTables(data, { levelTerm } = {}) {
         .map((c) => {
           if (c.type === 2) return item(c, [named(`THESIS (${romanLevelTerm(lt.level_term)})`, c.label)], { last: true });
           if (c.course_id === "CT") return item(c, [named("CT", c.label)]);
-          return item(c, compact([named(c.course_id, c.label), c.room, c.teachers]));
+          return item(c, compact([named(c.code, c.label), c.room, c.teachers]));
         });
       tables.push({
         group: lt.level_term,
@@ -289,7 +293,7 @@ function teacherTables(data, { initial, partTimeOnly = false } = {}) {
     if (partTimeOnly && t.full_time_status) continue;
     const items = uniqueClasses(
       data.classes.filter((c) => c.type !== 2 && c.course_id !== "CT" && c.initials.includes(t.initial))
-    ).map((c) => item(c, compact([`${c.course_id}(${c.label})`, c.teachers, c.room])));
+    ).map((c) => item(c, compact([`${c.code}(${c.label})`, c.teachers, c.room])));
     for (const n of [1, 2]) {
       if (!(n === 1 ? t.offers_thesis_1 : t.offers_thesis_2)) continue;
       const slot = data.thesisSlots.find((s) => Number(s.thesis) === n);
@@ -320,7 +324,7 @@ function roomTables(data, { room } = {}) {
   for (const r of order) {
     if (room && r !== room) continue;
     const items = uniqueClasses(data.classes.filter((c) => c.room === r && c.type !== 2)).map((c) =>
-      item(c, compact([c.course_id, c.label, c.teachers]))
+      item(c, compact([c.code, c.label, c.teachers]))
     );
     tables.push({ group: "", title: `Room No: ${r}`, items });
   }
@@ -335,7 +339,7 @@ function courseTables(data, { course } = {}) {
   for (const c of data.classes) {
     if (c.type === 2 || c.course_id === "CT" || (course && c.course_id !== course)) continue;
     if (!byCourse.has(c.course_id)) {
-      byCourse.set(c.course_id, { course: c.course_id, name: c.courseName, dept: c.department, levelTerm: c.levelTerm || "", classes: [] });
+      byCourse.set(c.course_id, { course: c.code, name: c.courseName, dept: c.department, levelTerm: c.levelTerm || "", classes: [] });
     }
     byCourse.get(c.course_id).classes.push(c);
   }
@@ -349,7 +353,7 @@ function courseTables(data, { course } = {}) {
     )
     .map((g) => ({
       group: `${g.dept}|${g.levelTerm}`,
-      title: `${g.course}: ${g.name} (${g.dept === "CSE" ? "" : `${g.dept} `}${romanLevelTerm(g.levelTerm)})`,
+      title: `${g.name ? `${g.course}: ${g.name}` : g.course} (${g.dept === "CSE" ? "" : `${g.dept} `}${romanLevelTerm(g.levelTerm)})`,
       items: uniqueClasses(g.classes).map((c) => item(c, compact([`Sec ${c.label}`, c.room, c.teachers]))),
     }));
 }
@@ -362,7 +366,7 @@ function departmentTables(data, { department } = {}) {
     const dept = c.from !== "CSE" && c.to === "CSE" ? c.from : c.from === "CSE" && c.to !== "CSE" ? c.to : null;
     if (!dept || (department && dept !== department)) continue;
     const k = `${dept}|${c.levelTerm}|${c.course_id}`;
-    if (!byCourse.has(k)) byCourse.set(k, { dept, levelTerm: c.levelTerm, course: c.course_id, theirs: c.from === dept, classes: [] });
+    if (!byCourse.has(k)) byCourse.set(k, { dept, levelTerm: c.levelTerm, course: c.code, theirs: c.from === dept, classes: [] });
     byCourse.get(k).classes.push(c);
   }
   return [...byCourse.values()]
@@ -376,7 +380,7 @@ function departmentTables(data, { department } = {}) {
     .map((g) => ({
       group: g.dept,
       title: `Class Routine For : Department of ${g.dept} (${romanLevelTerm(g.levelTerm)}) ${g.course}`,
-      items: uniqueClasses(g.classes).map((c) => item(c, compact([c.course_id, `(${c.label})`, c.room]))),
+      items: uniqueClasses(g.classes).map((c) => item(c, compact([c.code, `(${c.label})`, c.room]))),
     }));
 }
 
@@ -658,7 +662,7 @@ export async function sessionalDistributionBook() {
   const geo = DISTRIBUTION_GRID;
   const items = data.classes
     .filter((c) => c.type === 1 && c.from === "CSE")
-    .map((c) => item(c, compact([`${c.course_id}(${c.label})${c.room ? `, ${c.room}` : ""}`, c.teachers])));
+    .map((c) => item(c, compact([`${c.code}(${c.label})${c.room ? `, ${c.room}` : ""}`, c.teachers])));
   const table = layoutTable({ title: "", items }, data, geo);
   const { doc, done } = newDocument("Sessional Distribution");
   const TITLE_TOP = 62;

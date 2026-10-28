@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { Form } from "react-bootstrap";
 import { toast } from "react-hot-toast";
-import { getOptionalOfferings, saveOptionalOfferings } from "../api/db-crud";
+import { getOptionalOfferings, saveOptionalOfferings, setElectiveSlots, setElectivesShown } from "../api/db-crud";
 
 const THEORY = 0;
 const OPTIONS = [1, 2, 3, 4];
+const LETTERS = ["X", "Y", "Z", "W", "V", "U", "T", "S", "R", "Q"];
+const messageOf = (error, fallback) => error?.response?.data?.error?.message || fallback;
 
 /**
  * How the electives of a level-term run, given what is offered:
@@ -30,8 +32,57 @@ function describeOptions(courses) {
     }));
 }
 
-function ElectiveTable({ title, icon, courses, sectionCount, onChange }) {
+/**
+ * The slots of each option as saved, e.g. 1X CSE461, 1Y CSE463. The routine
+ * is bound to the slots: giving 1X to another course of the option moves
+ * 1X's classes to it, and the course that had it takes the other's slot.
+ */
+function SlotMapping({ saved, dirty, busy, onMap }) {
+  const byOption = new Map();
+  for (const c of saved) {
+    if (!byOption.has(c.option_group)) byOption.set(c.option_group, []);
+    byOption.get(c.option_group).push(c);
+  }
+  if (!byOption.size) return null;
+  const options = [...byOption.entries()].sort(([a], [b]) => a - b);
+  return (
+    <div className="mt-3">
+      <div className="field-hint mb-2">
+        Slots: the routine is bound to them. Giving a slot to another course of its option moves the slot&apos;s
+        classes, with their rooms, to that course; the two courses trade slots.
+      </div>
+      {options.map(([option, list]) => (
+        <div key={option} className="d-flex align-items-center flex-wrap mb-2" style={{ gap: "8px 16px" }}>
+          <span className="pill purple">Option {option}</span>
+          {[...list].sort((a, b) => LETTERS.indexOf(a.slot) - LETTERS.indexOf(b.slot)).map((holder) => (
+            <label key={holder.slot} className="d-flex align-items-center mb-0" style={{ gap: 6 }}>
+              <strong>{option}{holder.slot}</strong>
+              <Form.Select
+                size="sm"
+                style={{ width: "auto", minWidth: 120 }}
+                value={holder.course_id}
+                disabled={dirty || busy || list.length < 2}
+                onChange={(e) => onMap(option, holder.slot, e.target.value, list)}
+              >
+                {list.map((c) => (
+                  <option key={c.course_id} value={c.course_id}>
+                    {c.course_id} — {c.name}
+                  </option>
+                ))}
+              </Form.Select>
+            </label>
+          ))}
+        </div>
+      ))}
+      {dirty && <div className="field-hint">Save the changes above before changing the slots.</div>}
+    </div>
+  );
+}
+
+function ElectiveTable({ title, icon, courses, sectionCount, onChange, saved, dirty, busy, onMap }) {
   const plans = describeOptions(courses);
+  // The slot a course has in the option it is shown in, once saved there
+  const slotOf = (c) => saved.find((s) => s.course_id === c.course_id && s.option_group === c.option_group)?.slot;
   return (
     <div className="mb-4">
       <h6 className="constraint-subhead">
@@ -50,6 +101,7 @@ function ElectiveTable({ title, icon, courses, sectionCount, onChange }) {
                 <th><i className="mdi mdi-book-open-page-variant"></i>Name</th>
                 <th><i className="mdi mdi-counter"></i>Credit</th>
                 <th><i className="mdi mdi-format-list-numbered"></i>Option</th>
+                <th><i className="mdi mdi-label-outline"></i>Slot</th>
               </tr>
             </thead>
             <tbody className="card-table-body">
@@ -81,6 +133,9 @@ function ElectiveTable({ title, icon, courses, sectionCount, onChange }) {
                       ))}
                     </Form.Select>
                   </td>
+                  <td style={{ textAlign: "center", fontWeight: 600 }}>
+                    {!c.offered || !c.option_group ? "—" : slotOf(c) ? `${c.option_group}${slotOf(c)}` : <span className="field-hint">on save</span>}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -100,6 +155,7 @@ function ElectiveTable({ title, icon, courses, sectionCount, onChange }) {
           ))}
         </div>
       )}
+      <SlotMapping saved={saved} dirty={dirty} busy={busy} onMap={onMap} />
     </div>
   );
 }
@@ -129,11 +185,14 @@ export default function OptionalCourses() {
     load();
   }, []);
 
+  // The saved rows again, keeping unsaved edits of every level-term
+  const refresh = () => getOptionalOfferings().then((data) => setRows(Array.isArray(data) ? data : []));
+
   const groups = useMemo(() => {
     const map = new Map();
     for (const r of rows) {
       const k = `${r.department}|${r.level_term}`;
-      if (!map.has(k)) map.set(k, { department: r.department, level_term: r.level_term, sectionCount: r.section_count, courses: [] });
+      if (!map.has(k)) map.set(k, { department: r.department, level_term: r.level_term, sectionCount: r.section_count, shown: r.shown, courses: [] });
       map.get(k).courses.push({ ...r, ...(edited[`${k}|${r.course_id}`] || {}) });
     }
     return [...map.values()];
@@ -146,6 +205,51 @@ export default function OptionalCourses() {
       if (patch.offered === false) next.option_group = null;
       return { ...e, [k]: next };
     });
+
+  // The saved electives of a level-term that have a slot in an option
+  const slotted = (group, theory) => rows.filter((r) =>
+    r.department === group.department && r.level_term === group.level_term &&
+    r.offered && r.option_group && r.slot && (Number(r.type) === THEORY) === theory);
+
+  // Gives `letter` of an option to `courseId`; its holder takes courseId's slot
+  const map = (group, type) => async (option, letter, courseId, list) => {
+    const holder = list.find((c) => c.slot === letter);
+    const mover = list.find((c) => c.course_id === courseId);
+    if (!holder || !mover || holder === mover) return;
+    const slots = Object.fromEntries(list.map((c) => [c.course_id, c.slot]));
+    slots[mover.course_id] = letter;
+    slots[holder.course_id] = mover.slot;
+    const key = `${group.department}|${group.level_term}`;
+    setSaving(key);
+    try {
+      const { moved } = await setElectiveSlots({
+        department: group.department, level_term: group.level_term, type, option_group: option, slots,
+      });
+      await refresh();
+      toast.success(`${option}${letter} is now ${mover.course_id} and ${option}${mover.slot} ${holder.course_id}` +
+        (moved ? `; ${moved} class${moved === 1 ? "" : "es"} moved with the slots` : ""));
+    } catch (error) {
+      toast.error(messageOf(error, "Failed to change the slots"));
+    } finally {
+      setSaving("");
+    }
+  };
+
+  const activate = async (group) => {
+    const key = `${group.department}|${group.level_term}`;
+    setSaving(key);
+    try {
+      await setElectivesShown({ department: group.department, level_term: group.level_term, shown: !group.shown });
+      await refresh();
+      toast.success(group.shown
+        ? `The routine of ${group.department} ${group.level_term} shows the slots (Option 1X, …) again`
+        : `The routine of ${group.department} ${group.level_term} now shows the elective courses`);
+    } catch (error) {
+      toast.error(messageOf(error, "Failed to change what the routine shows"));
+    } finally {
+      setSaving("");
+    }
+  };
 
   const isDirty = (group) => group.courses.some((c) => edited[`${group.department}|${group.level_term}|${c.course_id}`]);
 
@@ -162,7 +266,7 @@ export default function OptionalCourses() {
       setEdited((e) => Object.fromEntries(Object.entries(e).filter(([k]) => !k.startsWith(`${key}|`))));
       toast.success(`Saved the electives of ${group.department} ${group.level_term}`);
     } catch (error) {
-      toast.error(error?.response?.data?.error?.message || "Failed to save the electives");
+      toast.error(messageOf(error, "Failed to save the electives"));
     } finally {
       setSaving("");
     }
@@ -184,6 +288,10 @@ export default function OptionalCourses() {
             side in one slot, and that slot is kept for every section, since each student takes one of them. A course
             alone in its option runs like any other course, in every section. Theory and sessional electives form their
             options separately. Set these before the theory routine and the sessional distribution.
+            <br />
+            Each course of an option has a slot: Option 1X, 1Y, 1Z, then 2X, 2Y, … The routine shows the slots instead
+            of the courses until you activate the level-term&apos;s electives, and its classes stay with the slots when
+            you change which course has which slot.
           </div>
         </div>
       </div>
@@ -218,8 +326,21 @@ export default function OptionalCourses() {
                     <span className="pill muted ms-2" style={{ fontSize: "0.8rem" }}>
                       {group.sectionCount} section{group.sectionCount === 1 ? "" : "s"}
                     </span>
+                    <span className={`pill ${group.shown ? "purple" : "muted"} ms-2`} style={{ fontSize: "0.8rem" }}>
+                      {group.shown ? "Routine shows the courses" : "Routine shows the slots"}
+                    </span>
                   </h4>
                   <div className="card-control-button-container">
+                    <button
+                      className={`card-control-button mdi ${group.shown ? "mdi-eye-off" : "mdi-eye"}`}
+                      disabled={saving === key}
+                      title={group.shown
+                        ? "Show the slots (Option 1X, …) in the routine instead of the courses"
+                        : "Show the elective courses in the routine instead of their slots"}
+                      onClick={() => activate(group)}
+                    >
+                      {group.shown ? "Deactivate" : "Activate"}
+                    </button>
                     <button
                       className="card-control-button mdi mdi-content-save"
                       disabled={!isDirty(group) || saving === key}
@@ -235,6 +356,10 @@ export default function OptionalCourses() {
                   courses={group.courses.filter((c) => Number(c.type) === THEORY)}
                   sectionCount={group.sectionCount}
                   onChange={change(group)}
+                  saved={slotted(group, true)}
+                  dirty={isDirty(group)}
+                  busy={saving === key}
+                  onMap={map(group, 0)}
                 />
                 <ElectiveTable
                   title="Sessional electives"
@@ -242,6 +367,10 @@ export default function OptionalCourses() {
                   courses={group.courses.filter((c) => Number(c.type) !== THEORY)}
                   sectionCount={group.sectionCount}
                   onChange={change(group)}
+                  saved={slotted(group, false)}
+                  dirty={isDirty(group)}
+                  busy={saving === key}
+                  onMap={map(group, 1)}
                 />
               </div>
             </div>

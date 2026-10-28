@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { courseTables } from "./routineBook.js";
+import { buildClasses, courseTables } from "./routineBook.js";
 
 const cls = (course_id, label, day, start, extra = {}) => ({
-  course_id, courseName: `${course_id} name`, department: "CSE", batch: 23, label,
+  course_id, code: course_id, courseName: `${course_id} name`, department: "CSE", batch: 23, label,
   levelTerm: "L-2 T-2", day, start, span: 1, type: 0, room: "203", teachers: "[ KRV ]", ...extra,
 });
 
@@ -34,4 +34,22 @@ test("a course routine has one table per course, CSE's own level-terms before ot
 test("an elective every section takes is one class in its course routine", () => {
   const data = { classes: ["A", "B", "C"].map(() => cls("CSE405", "A/B/C", "Sunday", 1)) };
   assert.deepEqual(courseTables(data)[0].items.map((it) => it.lines[0]), ["Sec A/B/C"]);
+});
+
+test("an elective not activated yet is named by its slot, without its course name", () => {
+  const sections = ["A", "B", "C"].map((section) => ({ department: "CSE", batch: 21, section, type: 0 }));
+  const rows = ["A", "B", "C"].map((section) => ({
+    course_id: "CSE461", course_name: "Machine Learning", type: 0, optional: 1, optional_section_count: 1,
+    department: "CSE", batch: 21, section, day: "Sunday", time: 9, level_term: "L-4 T-1",
+    teachers: ["KRV"], room_no: "R1", from: "CSE", to: "CSE",
+  }));
+  const times = [8, 9, 10, 11, 12, 1, 2, 3, 4];
+  const hidden = buildClasses(rows, [], sections, times, { CSE461: "Option 1X" });
+  assert.deepEqual([...new Set(hidden.map((c) => `${c.code}|${c.courseName}|${c.label}`))], ["Option 1X||A/B/C"]);
+  const tables = courseTables({ classes: hidden });
+  assert.deepEqual(tables.map((t) => t.title), ["Option 1X (L-IV T-I)"]);
+  assert.deepEqual(tables[0].items.map((it) => it.lines), [["Sec A/B/C", "R1", "[ KRV ]"]]);
+  // Activated, the course is itself again
+  const shown = buildClasses(rows, [], sections, times, {});
+  assert.deepEqual(courseTables({ classes: shown }).map((t) => t.title), ["CSE461: Machine Learning (L-IV T-I)"]);
 });

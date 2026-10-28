@@ -25,6 +25,7 @@ import {
 import Icon from "@mdi/react";
 import { useHistory } from "react-router-dom";
 import { useConfig } from "../shared/ConfigContext";
+import { useElectiveLabels } from "../shared/electiveLabels";
 
 export default function TheorySchedule(props) {
   const [selectedDepartment, setSelectedDepartment] = useState("");
@@ -44,6 +45,7 @@ export default function TheorySchedule(props) {
   );
   // Fixed and generated meetings per course and section, from the generator
   const [overview, setOverview] = useState(null);
+  const courseLabels = useElectiveLabels();
   const [rooms, setRooms] = useState([]);
   const history = useHistory();
   const { times } = useConfig();
@@ -876,6 +878,7 @@ export default function TheorySchedule(props) {
           levelTerm={selectedLevelTermBatch.level_term || selectedLevelTermBatch}
           batch={selectedLevelTermBatch.batch || allTheorySections[0].batch}
           allTheoryCourses={allTheoryCourses}
+          courseLabels={courseLabels}
           hasUnsavedChanges={isChanged}
           overview={overview}
           onChanged={() => setReloadKey((key) => key + 1)}
@@ -1024,6 +1027,7 @@ export default function TheorySchedule(props) {
                           <TheoryScheduleTable
                             {...props}
                             allTheoryCourses={allTheoryCourses}
+                            courseLabels={courseLabels}
                             theorySchedules={sectionData}
                             generatedSlots={generatedSlotsBySection[section.section]}
                             rooms={rooms}

@@ -50,7 +50,7 @@ export default function RemoveTheoryClassesModal({
         : { department, level_term: levelTerm, course_ids: chosen });
       toast.success(all
         ? `Removed ${plural(removed, "class")} of ${levelTerm}; it starts fresh`
-        : `Removed ${plural(removed, "class")} of ${chosen.join(", ")}`);
+        : `Removed ${plural(removed, "class")} of ${courses.filter((c) => chosen.includes(c.course_id)).map((c) => c.code || c.course_id).join(", ")}`);
       onRemoved();
       onHide();
     } catch (e) {
@@ -104,7 +104,7 @@ export default function RemoveTheoryClassesModal({
                         type="checkbox"
                         id={`remove-${course.course_id}`}
                         label={<>
-                          <span style={{ fontWeight: 600 }}>{course.course_id}</span>
+                          <span style={{ fontWeight: 600 }}>{course.code || course.course_id}</span>
                           {course.name && <span className="small text-muted"> {course.name}</span>}
                         </>}
                         checked={chosen.includes(course.course_id)}

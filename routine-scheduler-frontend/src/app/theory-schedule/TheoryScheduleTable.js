@@ -3,17 +3,19 @@ import Select, { components } from "react-select";
 import Icon from "@mdi/react";
 import { mdiDoor } from "@mdi/js";
 import { useConfig } from "../shared/ConfigContext";
+import { courseCode, courseTitle } from "../shared/electiveLabels";
 import { MultiSet } from "mnemonist";
 
 // A class in a cell shows its course code; the name is in the tooltip
 const CodeLabel = (props) => (
-  <div title={props.data.name ? `${props.data.value} — ${props.data.name}` : props.data.value}>
+  <div title={props.data.label}>
     <components.MultiValueLabel {...props} />
   </div>
 );
 const SELECT_COMPONENTS = { MultiValueLabel: CodeLabel };
-// Codes in the cell, "code — name" in the menu
-const formatCourse = (option, { context }) => (context === "value" ? option.value : option.label);
+// Codes in the cell, "code — name" in the menu. An elective not activated
+// yet is its slot in both, e.g. "Option 1X".
+const formatCourse = (option, { context }) => (context === "value" ? option.code : option.label);
 
 /**
  * Custom component for displaying a theory schedule table with single dropdown per cell
@@ -36,6 +38,7 @@ const TheoryScheduleTable = React.memo(function TheoryScheduleTable(props) {
     // Rooms: the room list, the section's usual room, and a handler that
     // moves one saved class to another room for its day and time
     rooms = [],
+    courseLabels = {},
     sectionRoom = null,
     onRoomChange = null,
   } = props;
@@ -81,8 +84,8 @@ const TheoryScheduleTable = React.memo(function TheoryScheduleTable(props) {
               const courseObj = filteredCourses.find((c) => c.course_id === id);
               const result = {
                 value: id,
-                label: courseObj?.name ? `${id} — ${courseObj.name}` : id,
-                name: courseObj?.name,
+                code: courseCode(courseLabels, id),
+                label: courseTitle(courseLabels, id, courseObj?.name),
                 generated: (generatedSlots[slotKey] || []).includes(id),
               };
               return result;
@@ -100,7 +103,8 @@ const TheoryScheduleTable = React.memo(function TheoryScheduleTable(props) {
           );
           courses.push({
             value: filledObj.course_id,
-            label: `${filledObj.course_id} - ${courseObj?.name || "Unknown"}`,
+            code: courseCode(courseLabels, filledObj.course_id),
+            label: courseTitle(courseLabels, filledObj.course_id, courseObj?.name),
           });
         }
 
@@ -113,14 +117,15 @@ const TheoryScheduleTable = React.memo(function TheoryScheduleTable(props) {
           );
           courses.push({
             value: selectedObj.course_id,
-            label: `${selectedObj.course_id} - ${courseObj?.name || "Unknown"}`,
+            code: courseCode(courseLabels, selectedObj.course_id),
+            label: courseTitle(courseLabels, selectedObj.course_id, courseObj?.name),
           });
         }
       }
 
       return courses;
     },
-    [theorySchedules, filled, selected, filteredCourses, generatedSlots]
+    [theorySchedules, filled, selected, filteredCourses, generatedSlots, courseLabels]
   );
 
   // Saved theory classes in a cell with their rooms (unsaved ones have none yet)
@@ -542,7 +547,7 @@ const TheoryScheduleTable = React.memo(function TheoryScheduleTable(props) {
                         <div className="sessional-assignment">
                           {[...new Set(isDisabled.sessionalAssignment || [])].map((label) => (
                             <div key={label} style={{ fontWeight: "bold", marginBottom: 2 }}>
-                              {label}
+                              {courseCode(courseLabels, label)}
                             </div>
                           ))}
                           <div style={{ fontSize: "0.7rem", opacity: 0.8 }}>
@@ -555,7 +560,7 @@ const TheoryScheduleTable = React.memo(function TheoryScheduleTable(props) {
                             const proposed = (suggestedSlots[slotKey] || []).includes(course.value);
                             return <span key={course.value} title={course.label}
                               style={{ background: proposed ? "#e9d8fd" : "#eceff2", color: proposed ? "#6535a4" : "#495057", borderRadius: 6, padding: "3px 5px", fontSize: "0.8rem", fontWeight: proposed ? 700 : 500 }}>
-                              {course.value}
+                              {course.code}
                             </span>;
                           })}
                           {time === 8 && !getCourses(slotKey).length && ctAvailableDays.includes(day) && (
@@ -577,8 +582,8 @@ const TheoryScheduleTable = React.memo(function TheoryScheduleTable(props) {
                           }
                           options={filteredCourses.map((course) => ({
                             value: course.course_id,
-                            label: course.name ? `${course.course_id} — ${course.name}` : course.course_id,
-                            name: course.name,
+                            code: courseCode(courseLabels, course.course_id),
+                            label: courseTitle(courseLabels, course.course_id, course.name),
                           }))}
                           formatOptionLabel={formatCourse}
                           components={SELECT_COMPONENTS}
@@ -681,10 +686,10 @@ const TheoryScheduleTable = React.memo(function TheoryScheduleTable(props) {
                       {onRoomChange && roomsAt(slotKey).length > 0 && (
                         <div className="cell-rooms">
                           {roomsAt(slotKey).map(({ courseId, room }, _, all) => (
-                            <label key={courseId} title={`Room of ${courseId} on ${day} at ${time}:00` +
+                            <label key={courseId} title={`Room of ${courseCode(courseLabels, courseId)} on ${day} at ${time}:00` +
                               (sectionRoom ? ` (section room ${sectionRoom})` : "") + ". Click to change."}>
                               <Icon path={mdiDoor} size={0.5} />
-                              {all.length > 1 && <span className="room-course">{courseId}</span>}
+                              {all.length > 1 && <span className="room-course">{courseCode(courseLabels, courseId)}</span>}
                               <select
                                 className={`room-chip ${!room ? "none" : sectionRoom && room !== sectionRoom ? "moved" : ""}`}
                                 value={room || ""}

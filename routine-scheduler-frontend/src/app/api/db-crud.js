@@ -111,3 +111,15 @@ export const getOptionalOfferings = () =>
 
 export const saveOptionalOfferings = (offerings) =>
   axios.put(api_url("/course/optional"), offerings).then((res) => res.data);
+
+// What the routine shows for electives not activated yet: { CSE461: "Option 1X" }
+export const getElectiveLabels = () =>
+  axios.get(api_url("/course/optional/labels")).then((res) => res.data);
+
+// { department, level_term, shown }: the routine shows the courses, or the slots
+export const setElectivesShown = (data) =>
+  axios.put(api_url("/course/optional/activate"), data).then((res) => res.data);
+
+// { department, level_term, type, option_group, slots: { CSE461: "Y", CSE463: "X" } }
+export const setElectiveSlots = (data) =>
+  axios.put(api_url("/course/optional/slots"), data).then((res) => res.data);
