@@ -421,3 +421,69 @@ test("a teacher of both courses, and two fixed classes on one day, still swap", 
   assert.deepEqual(issues, []);
   assert.equal(moves.length, 4);
 });
+
+test("a course meets one section at a time, even with no teacher to clash", () => {
+  // HUM429 has no teacher here; each section is free only on Saturday at 9,
+  // and B and C also at 10 and 11
+  const hum = sections.map((section, index) => ({
+    key: `hum-${index}`, course_id: "HUM429", sections: [section], teachers: [],
+    optional: false, option_group: null,
+  }));
+  const open = { "CSE|25|A": [9], "CSE|25|B": [9, 10], "CSE|25|C": [9, 11] };
+  const busy = sections.flatMap((section) => slots
+    .filter((slot) => !(slot.day === "Saturday" && open[section].includes(slot.time)))
+    .map((slot) => ({
+      course_id: "BUSY", sections: [section], teachers: [], day: slot.day, time: slot.time,
+      hours: [slot.time], optional: false, option_group: null,
+    })));
+  const p = problem(hum, busy);
+  for (const seed of [1, 2, 3]) {
+    const result = solveTheory(p, { seed, timeLimitMs: 600 });
+    assert.deepEqual(result.issues, []);
+    assert.deepEqual(result.assignments.map((a) => `${a.key} ${a.day} ${a.time}`).sort(),
+      ["hum-0 Saturday 9", "hum-1 Saturday 10", "hum-2 Saturday 11"]);
+  }
+  // Two sections at one period are refused, whoever teaches them
+  const taught = problem([unit("a", "CSE205", sections[0], "T1"), unit("b", "CSE205", sections[1], "T2")]);
+  assert.ok(validateTheoryAssignments(taught, [
+    { key: "a", day: "Sunday", time: 9 }, { key: "b", day: "Sunday", time: 9 },
+  ]).some((issue) => issue.includes("conflicts with CSE205")));
+  // Another batch taking the same course is a different class
+  const other = { course_id: "HUM429", sections: ["CSE|24|A"], teachers: [], day: "Sunday", time: 9,
+    hours: [9], optional: false, option_group: null, type: 0 };
+  assert.deepEqual(validateTheoryAssignments(problem([hum[0]], [other]),
+    [{ key: "hum-0", day: "Sunday", time: 9 }]), []);
+});
+
+test("by hand a course may meet two sections at once; the generator works around it", () => {
+  const fixedA = {
+    course_id: "HUM429", sections: [sections[0]], teachers: [], day: "Monday", time: 10,
+    hours: [10], optional: false, option_group: null, type: 0,
+  };
+  const p = problem([unit("b", "HUM429", sections[1], "T1"), unit("c", "HUM429", sections[2], "T1")], [fixedA]);
+  // Fixing B beside A is allowed
+  assert.deepEqual(validatePinnedClasses(p, [{ ...p.units[0], day: "Monday", time: 10 }]), []);
+  // … and releases a generated C class there
+  const generatedC = { ...p.units[1], day: "Monday", time: 10, hours: [10] };
+  assert.deepEqual(displacedByPins([{ ...p.units[0], day: "Monday", time: 10 }], [generatedC]), [generatedC]);
+  // The generator keeps B and C off Monday at 10
+  const result = solveTheory(p, { seed: 5, timeLimitMs: 600 });
+  assert.ok(result.assignments.every((a) => !(a.day === "Monday" && a.time === 10)));
+  assert.ok(validateTheoryAssignments(p, [
+    { key: "b", day: "Monday", time: 10 }, { key: "c", day: "Tuesday", time: 9 },
+  ]).some((issue) => issue.includes("conflicts with HUM429")));
+  // A hand move there is allowed too
+  assert.deepEqual(validateTheoryMove(p, [fixedA, generatedC], generatedC, "Monday", 10), []);
+
+  // Swapping CSE205 and CSE207 in A only puts CSE205 A at 10 beside CSE205 B
+  const event = (course, section, time, teacher) => ({
+    course_id: course, type: 0, sections: [section], teachers: [teacher], day: "Sunday", time,
+    hours: [time], optional: false, option_group: null,
+  });
+  const { issues, moves } = planTheorySwap([
+    event("CSE205", sections[0], 9, "P"), event("CSE207", sections[0], 10, "Q"),
+    event("CSE205", sections[1], 10, "R"), event("CSE207", sections[1], 9, "S"),
+  ], ["CSE205", "CSE207"], [sections[0]], (course) => [course === "CSE205" ? "P" : "Q"]);
+  assert.deepEqual(issues, []);
+  assert.equal(moves.length, 2);
+});

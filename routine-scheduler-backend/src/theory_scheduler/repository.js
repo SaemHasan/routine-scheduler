@@ -242,6 +242,17 @@ export async function loadTheoryProblemDB(department, levelTerm, existingClient 
         };
       }),
     }));
+    // A course in two sections at one period, e.g. HUM429 for B and C on
+    // Monday at 11: only done by hand, as the generator never does it
+    const together = new Map();
+    for (const r of ownRows) {
+      if (courseStatus.some((c) => c.course_id === r.course_id && c.shared)) continue;
+      const k = `${r.course_id}|${r.day}|${r.time}`;
+      if (!together.has(k)) together.set(k, { course_id: r.course_id, day: r.day, time: Number(r.time), sections: [] });
+      if (!together.get(k).sections.includes(r.section)) together.get(k).sections.push(r.section);
+    }
+    const parallel = [...together.values()].filter((p) => p.sections.length > 1)
+      .map((p) => ({ ...p, sections: p.sections.sort() }));
     // The level-term's CT periods, e.g. Saturday and Wednesday at 8
     const ctPeriods = unique(scheduleRows.filter((r) => r.department === department &&
       Number(r.batch) === Number(batch) && r.course_id === "CT")
@@ -266,7 +277,7 @@ export async function loadTheoryProblemDB(department, levelTerm, existingClient 
       department, levelTerm, session, batch, marker, initialized, fingerprint,
       days, times, slots, sections: sectionKeys,
       sectionNames: sectionRows.map((s) => s.section), previewRows, sectionsForCourse,
-      courseIds: [...byCourse.keys()], units, fixed, generated, courseStatus, ctPeriods,
+      courseIds: [...byCourse.keys()], units, fixed, generated, courseStatus, ctPeriods, parallel,
       batchSectionNames: (mainSections.get(`${department}|${batch}`) || []).map((k) => k.split("|")[2]),
       preflight, warnings,
     };
@@ -345,9 +356,12 @@ export async function fixTheoryClassesDB({ department, levelTerm, courseId, plac
         );
       }
     }
+    const after = await loadTheoryProblemDB(department, levelTerm, client);
     await client.query("COMMIT");
     return {
       fixed: pins.length,
+      // Allowed by hand, but worth a warning
+      together: after.parallel.filter((p) => p.course_id === courseId),
       released: released.map((e) =>
         `${e.course_id} (${namesOf(e.sections).join("/")}) ${e.day} ${e.time}:00`),
     };
@@ -405,8 +419,12 @@ export async function swapTheoryCoursesDB({ department, levelTerm, courseIds, se
          AND sa.course_id IN ($4::varchar, $5::varchar) AND sa.section = ANY($6::varchar[])`,
       [problem.session, department, problem.batch, ...courseIds, sections]
     );
+    const after = await loadTheoryProblemDB(department, levelTerm, client);
     await client.query("COMMIT");
-    return { swapped: moves.length, sections };
+    return {
+      swapped: moves.length, sections,
+      together: after.parallel.filter((p) => courseIds.includes(p.course_id)),
+    };
   } catch (error) {
     await client.query("ROLLBACK");
     throw error;

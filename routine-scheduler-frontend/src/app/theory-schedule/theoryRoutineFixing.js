@@ -1,6 +1,14 @@
 export const shortDay = (day) => String(day).slice(0, 3);
 export const slotLabel = ({ day, time }) => `${shortDay(day)} ${time}`;
 
+const listOf = (items) =>
+  items.length > 1 ? `${items.slice(0, -1).join(", ")} and ${items.at(-1)}` : items.join("");
+
+// A course entered in two sections at one period, which the generator never
+// does: "HUM429: sections B and C together on Mon 11"
+export const togetherLabel = (entry, code = entry.course_id) =>
+  `${code}: sections ${listOf(entry.sections)} together on ${slotLabel(entry)}`;
+
 // Theory never meets at 1 PM.
 export const theoryTimes = (times) => times.filter((time) => Number(time) !== 1);
 

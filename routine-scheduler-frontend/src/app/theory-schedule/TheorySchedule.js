@@ -25,7 +25,7 @@ import {
 import Icon from "@mdi/react";
 import { useHistory } from "react-router-dom";
 import { useConfig } from "../shared/ConfigContext";
-import { useElectiveLabels } from "../shared/electiveLabels";
+import { courseCode, useElectiveLabels } from "../shared/electiveLabels";
 
 export default function TheorySchedule(props) {
   const [selectedDepartment, setSelectedDepartment] = useState("");
@@ -280,8 +280,12 @@ export default function TheorySchedule(props) {
         );
       }
 
-      // Check all other sections for same course in same cell
-      for (const otherSection of allTheorySections) {
+      // The same course in another section at this period: allowed by hand,
+      // though the generator never does it. CT and an elective every section
+      // takes together are in every section at once.
+      const together = courseId === "CT" ||
+        (Number(courseObj?.optional) === 1 && Number(courseObj?.optional_section_count) <= 1);
+      for (const otherSection of together ? [] : allTheorySections) {
         const otherSectionKey = `${selectedDepartment} ${otherSection.batch} ${otherSection.section}`;
         if (otherSectionKey !== sectionKey) {
           const otherSchedule = theorySchedulesBySection[otherSectionKey] || {};
@@ -293,8 +297,9 @@ export default function TheorySchedule(props) {
 
           if (otherSlotCourseIds.includes(courseId)) {
             toast(
-              `You have selected course ${courseId} in another section at the same time.`,
-              { icon: "⚠️", duration: 4000 }
+              `${courseCode(courseLabels, courseId)} is also in section ${otherSection.section} on ${day} at ${time}:00. ` +
+                "The generator never puts a course in two sections at once; this stays as you entered it.",
+              { icon: "⚠️", duration: 6000 }
             );
             break;
           }

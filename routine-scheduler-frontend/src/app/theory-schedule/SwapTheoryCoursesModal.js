@@ -3,7 +3,7 @@ import { Alert, Button, Form, Modal } from "react-bootstrap";
 import { toast } from "react-hot-toast";
 import { swapTheoryCourses } from "../api/theory-schedule";
 import { useConfig } from "../shared/ConfigContext";
-import { slotLabel } from "./theoryRoutineFixing";
+import { slotLabel, togetherLabel } from "./theoryRoutineFixing";
 
 const messageOf = (error) =>
   error?.response?.data?.error?.message || error?.message || "Request failed";
@@ -65,10 +65,13 @@ export default function SwapTheoryCoursesModal({ show, onHide, department, level
     setSaving(true);
     setError("");
     try {
-      await swapTheoryCourses({
+      const result = await swapTheoryCourses({
         department, level_term: levelTerm, course_ids: [firstId, secondId], sections: chosen,
       });
       toast.success(`Swapped ${firstId} and ${secondId} in section ${chosen.join(", ")}`);
+      for (const entry of result.together || []) {
+        toast(`${togetherLabel(entry)}. The generator never does this.`, { icon: "⚠️", duration: 6000 });
+      }
       onSwapped();
       onHide();
     } catch (e) {

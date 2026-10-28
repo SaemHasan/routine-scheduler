@@ -40,6 +40,17 @@ const sameOption = (a, b) =>
   a.option_group != null && a.option_group === b.option_group &&
   a.course_id !== b.course_id;
 
+// "CSE|21|A" → "CSE|21"
+const batchOf = (sectionKey) => String(sectionKey).split("|").slice(0, 2).join("|");
+
+// The same theory course in another section of the level-term, e.g. HUM429
+// for B and for C
+const sameCourseElsewhere = (a, b) =>
+  a.course_id === b.course_id && a.course_id !== "CT" &&
+  Number(a.type ?? 0) === 0 && Number(b.type ?? 0) === 0 &&
+  !intersects(a.sections, b.sections) &&
+  a.sections.some((s) => b.sections.some((t) => batchOf(s) === batchOf(t)));
+
 export function clashes(a, b) {
   if (a.day !== b.day) return false;
   if (a.course_id === b.course_id && intersects(a.sections, b.sections)) return true;
@@ -47,6 +58,13 @@ export function clashes(a, b) {
   if (intersects(a.teachers, b.teachers)) return true;
   return intersects(a.sections, b.sections) && !sameOption(a, b);
 }
+
+// The generator also gives a course one section at a time, e.g. never HUM429
+// for B and C at 9 together: one teacher often takes every section, and a
+// course from another department has no teacher here to clash. A user may
+// still do it by hand; the routine then warns about it.
+export const generatorClashes = (a, b) => clashes(a, b) ||
+  (a.day === b.day && intersects(a.hours, b.hours) && sameCourseElsewhere(a, b));
 
 function courseCode(courseId) {
   const match = /^([A-Z]+)\s*(\d+)$/.exec(String(courseId).trim().toUpperCase());
@@ -171,7 +189,7 @@ export function validateTheoryAssignments(problem, assignments) {
     }
     const event = { ...unit, day: a.day, time: Number(a.time), hours: [Number(a.time)] };
     for (const other of [...problem.fixed, ...placed]) {
-      if (clashes(event, other)) {
+      if (generatorClashes(event, other)) {
         issues.push(`${unit.course_id} (${unit.sections.join("/")}) conflicts with ${other.course_id} on ${a.day} at ${a.time}:00`);
         break;
       }
@@ -327,7 +345,7 @@ export function planTheorySwap(events, [a, b], sections, teachersOf) {
 export function displacedByPins(pins, generated) {
   const events = pins.map((pin) =>
     ({ ...pin, time: Number(pin.time), hours: [Number(pin.time)] }));
-  const displaced = new Set(generated.filter((g) => events.some((e) => clashes(e, g))));
+  const displaced = new Set(generated.filter((g) => events.some((e) => generatorClashes(e, g))));
   const groupOf = (e) => `${e.course_id}|${e.sections.join(",")}`;
   const pinCount = new Map();
   for (const e of events) pinCount.set(groupOf(e), (pinCount.get(groupOf(e)) || 0) + 1);
@@ -421,8 +439,7 @@ function score(problem, assignments) {
           if (intersects(onDay[i].sections, onDay[j].sections)) continue;
           const ti = problem.times.indexOf(onDay[i].time);
           const tj = problem.times.indexOf(onDay[j].time);
-          if (ti === tj) cost += 75;
-          else if (Math.abs(ti - tj) > 3) cost += 12 * (Math.abs(ti - tj) - 3);
+          if (Math.abs(ti - tj) > 3) cost += 12 * (Math.abs(ti - tj) - 3);
         }
       }
     }
@@ -521,7 +538,7 @@ export function solveTheory(problem, options = {}) {
     ({ ...unit, day: slot.day, time: slot.time, hours: [slot.time] });
   const baseAllowed = new Map(problem.units.map((unit) => [unit.key,
     problem.slots.filter((slot) =>
-      !problem.fixed.some((other) => clashes(eventFor(unit, slot), other)))]));
+      !problem.fixed.some((other) => generatorClashes(eventFor(unit, slot), other)))]));
 
   let best = null;
   let bestScore = Infinity;
@@ -540,7 +557,7 @@ export function solveTheory(problem, options = {}) {
         unit: u,
         slots: baseAllowed.get(u.key).filter((slot) =>
           (slot.time !== 8 || !reservedDays.has(slot.day)) &&
-          !placed.some((other) => clashes(eventFor(u, slot), other))),
+          !placed.some((other) => generatorClashes(eventFor(u, slot), other))),
       })).sort((a, b) => a.slots.length - b.slots.length || random() - 0.5);
       const choice = choices[0];
       if (!choice.slots.length) { failed = true; break; }
@@ -562,9 +579,9 @@ export function solveTheory(problem, options = {}) {
       const index = Math.floor(random() * current.length);
       const target = randomFrom(candidateSlots, random);
       const moved = eventFor(unitOf.get(current[index].key), target);
-      if (problem.fixed.some((other) => clashes(moved, other))) continue;
+      if (problem.fixed.some((other) => generatorClashes(moved, other))) continue;
       if (current.some((a, j) => j !== index &&
-        clashes(moved, eventFor(unitOf.get(a.key), a)))) continue;
+        generatorClashes(moved, eventFor(unitOf.get(a.key), a)))) continue;
       const next = current.slice();
       next[index] = { ...next[index], day: target.day, time: target.time };
       const nextScore = score(problem, next);

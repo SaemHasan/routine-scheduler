@@ -1,4 +1,4 @@
-import { commonCTChange, openMeetings, staggeredTimes } from "./theoryRoutineFixing";
+import { commonCTChange, openMeetings, staggeredTimes, togetherLabel } from "./theoryRoutineFixing";
 
 const times = [8, 9, 10, 11, 12, 1, 2, 3, 4];
 const keys = ["CSE 21 A", "CSE 21 B", "CSE 21 C"];
@@ -48,4 +48,11 @@ test("open meetings count a shared elective once", () => {
   const sections = ["A", "B", "C"].map((section) => ({ section, fixed: [{}], generated: [] }));
   expect(openMeetings({ class_per_week: 3, shared: false, sections })).toBe(6);
   expect(openMeetings({ class_per_week: 3, shared: true, sections })).toBe(2);
+});
+
+test("a course in two sections at once reads as one warning", () => {
+  const entry = { course_id: "HUM429", day: "Monday", time: 11, sections: ["B", "C"] };
+  expect(togetherLabel(entry)).toBe("HUM429: sections B and C together on Mon 11");
+  expect(togetherLabel({ ...entry, sections: ["A", "B", "C"] }, "Option 1X"))
+    .toBe("Option 1X: sections A, B and C together on Mon 11");
 });

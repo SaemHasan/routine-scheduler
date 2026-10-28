@@ -3,7 +3,7 @@ import { Alert, Button, Form, Modal } from "react-bootstrap";
 import { toast } from "react-hot-toast";
 import { fixTheoryClasses } from "../api/theory-schedule";
 import { useConfig } from "../shared/ConfigContext";
-import { slotLabel, staggeredTimes, theoryTimes } from "./theoryRoutineFixing";
+import { slotLabel, staggeredTimes, theoryTimes, togetherLabel } from "./theoryRoutineFixing";
 
 const messageOf = (error) =>
   error?.response?.data?.error?.message || error?.message || "Request failed";
@@ -63,6 +63,9 @@ export default function FixTheoryClassesModal({
         placements: complete.map((row) => ({ ...row, time: Number(row.time) })),
       });
       toast.success(`Fixed ${result.fixed} ${course.code || courseId} class${result.fixed === 1 ? "" : "es"}`);
+      for (const entry of result.together || []) {
+        toast(`${togetherLabel(entry, course.code || courseId)}. The generator never does this.`, { icon: "⚠️", duration: 6000 });
+      }
       if (result.released?.length) {
         toast(`Released for the next generation: ${result.released.join(", ")}`,
           { icon: "↻", duration: 6000 });

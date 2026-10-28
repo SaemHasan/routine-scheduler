@@ -28,6 +28,7 @@ export async function theoryOverview(req, res, next) {
       sectionNames: problem.sectionNames,
       courses: problem.courseStatus,
       ctPeriods: problem.ctPeriods,
+      parallel: problem.parallel,
       totals: { required, toGenerate: problem.units.length, fixed: required - problem.units.length },
       ctRequired: theoryCTSlotRequirement(levelTerm),
       ctSlots: theoryCTSlots(problem, []),

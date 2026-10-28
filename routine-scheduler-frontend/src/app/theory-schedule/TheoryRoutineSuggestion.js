@@ -12,7 +12,7 @@ import TheoryRoutinePreview from "./TheoryRoutinePreview";
 import FixTheoryClassesModal from "./FixTheoryClassesModal";
 import SwapTheoryCoursesModal from "./SwapTheoryCoursesModal";
 import RemoveTheoryClassesModal from "./RemoveTheoryClassesModal";
-import { openMeetings, shortDay, slotLabel } from "./theoryRoutineFixing";
+import { openMeetings, shortDay, slotLabel, togetherLabel } from "./theoryRoutineFixing";
 import { courseCode } from "../shared/electiveLabels";
 
 const messageOf = (error) =>
@@ -157,6 +157,17 @@ export default function TheoryRoutineSuggestion({
                 ? "Fixed classes (entered by hand or here) are kept. Classes from the last applied suggestion are shown dashed and are replaced when you generate again. Unpin a fixed class to let the generator move it."
                 : "Before the first generation, every class already in the routine is kept. Fix the classes that need a particular period here or in the grids below; the generator places the remaining meetings."}
             </p>
+            {overview.parallel?.length > 0 && (
+              <div className="alert alert-warning py-2 small">
+                <strong>A course in two sections at one period:</strong> entered by hand and kept as it is,
+                though the generator never does this.
+                <ul className="mb-0 ps-3">
+                  {overview.parallel.map((p) => (
+                    <li key={`${p.course_id}${p.day}${p.time}`}>{togetherLabel(p, code(p.course_id))}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
             <div className="table-responsive">
               <table className="table table-sm align-middle mb-0" style={{ fontSize: "0.88rem" }}>
                 <thead>
@@ -260,7 +271,8 @@ export default function TheoryRoutineSuggestion({
               <summary className="text-muted">What the generator guarantees and prefers</summary>
               <div className="mt-2 text-muted">
                 <strong>Always:</strong> fixed classes, sessionals, CT and thesis stay where they are; no
-                section or teacher clashes; no theory at 1 PM; a course meets a section at most once a day;
+                section or teacher clashes; no theory at 1 PM; a course meets a section at most once a day,
+                and one section at a time;
                 the level-term keeps its common 8 AM CT slots (Sat and Wed for two CTs; Sat, Mon and Wed
                 for three; other days as fallback).
                 <br />
