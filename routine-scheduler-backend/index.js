@@ -26,6 +26,9 @@ const port = process.env.PORT || 8000;
 app.use(cors({
   origin: 'http://localhost:3000', // Allow only the frontend's origin
   credentials: true, // Allow cookies if needed
+  // Downloads take their file name from this header, which a page on
+  // another origin cannot read unless it is exposed
+  exposedHeaders: ["Content-Disposition"],
 }));
 
 app.use(express.json());
