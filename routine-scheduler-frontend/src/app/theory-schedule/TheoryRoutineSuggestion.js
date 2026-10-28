@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
 import Icon from "@mdi/react";
-import { mdiAutoFix, mdiClose, mdiPin, mdiPlus } from "@mdi/js";
+import { mdiAutoFix, mdiClose, mdiPin, mdiPlus, mdiSwapHorizontal } from "@mdi/js";
 import {
   applyTheoryRoutineSuggestion,
   fixTheoryClasses,
@@ -10,6 +10,7 @@ import {
 } from "../api/theory-schedule";
 import TheoryRoutinePreview from "./TheoryRoutinePreview";
 import FixTheoryClassesModal from "./FixTheoryClassesModal";
+import SwapTheoryCoursesModal from "./SwapTheoryCoursesModal";
 import { openMeetings, shortDay, slotLabel } from "./theoryRoutineFixing";
 
 const messageOf = (error) =>
@@ -46,6 +47,7 @@ export default function TheoryRoutineSuggestion({
   const [suggestion, setSuggestion] = useState(null);
   const [working, setWorking] = useState(false);
   const [fixing, setFixing] = useState(null); // course id for the modal, "" for none chosen
+  const [swapping, setSwapping] = useState(false);
   useEffect(() => setSuggestion(null), [department, levelTerm, batch]);
 
   const stale = suggestion && overview?.fingerprint && suggestion.fingerprint !== overview.fingerprint;
@@ -127,10 +129,17 @@ export default function TheoryRoutineSuggestion({
         {!overview ? <p className="text-muted">Loading routine status…</p>
           : overview.error ? <div className="alert alert-danger py-2">{overview.error}</div> : <>
           <Step number={1} title="Fixed classes" aside={
-            <button type="button" className="btn btn-sm btn-outline-primary d-flex align-items-center"
-              style={{ gap: 4 }} disabled={busy} onClick={() => setFixing("")}>
-              <Icon path={mdiPlus} size={0.7} /> Fix classes
-            </button>}>
+            <div className="d-flex" style={{ gap: 8 }}>
+              <button type="button" className="btn btn-sm btn-outline-primary d-flex align-items-center"
+                style={{ gap: 4 }} disabled={busy} onClick={() => setSwapping(true)}
+                title="Trade the periods of two courses">
+                <Icon path={mdiSwapHorizontal} size={0.7} /> Swap courses
+              </button>
+              <button type="button" className="btn btn-sm btn-outline-primary d-flex align-items-center"
+                style={{ gap: 4 }} disabled={busy} onClick={() => setFixing("")}>
+                <Icon path={mdiPlus} size={0.7} /> Fix classes
+              </button>
+            </div>}>
             <p className="small text-muted mb-2">
               {overview.initialized
                 ? "Fixed classes (entered by hand or here) are kept. Classes from the last applied suggestion are shown dashed and are replaced when you generate again. Unpin a fixed class to let the generator move it."
@@ -300,6 +309,16 @@ export default function TheoryRoutineSuggestion({
           courses={overview.courses}
           initialCourse={fixing || ""}
           onFixed={onChanged}
+        />
+      )}
+      {overview?.courses && (
+        <SwapTheoryCoursesModal
+          show={swapping}
+          onHide={() => setSwapping(false)}
+          department={department}
+          levelTerm={levelTerm}
+          courses={overview.courses}
+          onSwapped={onChanged}
         />
       )}
     </div>

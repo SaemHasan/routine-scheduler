@@ -1,7 +1,9 @@
 import { createHash } from "node:crypto";
 import { connect } from "../config/database.js";
 import { HttpError } from "../config/error-handle.js";
-import { displacedByPins, validatePinnedClasses, validateTheoryAssignments } from "./algorithm.js";
+import {
+  displacedByPins, planTheorySwap, validatePinnedClasses, validateTheoryAssignments,
+} from "./algorithm.js";
 
 const keyOf = (department, batch, section) =>
   `${department}|${batch}|${String(section).replace(/[0-9]+$/, "")}`;
@@ -227,12 +229,14 @@ export async function loadTheoryProblemDB(department, levelTerm, existingClient 
       course_id: courseId,
       name: rows[0].name,
       class_per_week: Number(rows[0].class_per_week),
+      optional: Number(rows[0].optional) === 1,
       shared: Number(rows[0].optional) === 1 && Number(rows[0].optional_section_count) <= 1,
       sections: rows.map((row) => {
         const meetings = ownRows.filter((r) => r.course_id === courseId && r.section === row.section);
         const slot = (r) => ({ day: r.day, time: Number(r.time) });
         return {
           section: row.section,
+          teachers: unique(row.teachers || []),
           fixed: meetings.filter((r) => !generatedRow(r)).map(slot),
           generated: meetings.filter(generatedRow).map(slot),
         };
@@ -342,6 +346,62 @@ export async function fixTheoryClassesDB({ department, levelTerm, courseId, plac
       released: released.map((e) =>
         `${e.course_id} (${namesOf(e.sections).join("/")}) ${e.day} ${e.time}:00`),
     };
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+/**
+ * Swaps the periods of two theory courses in the given sections: in each,
+ * one course takes the other's classes, e.g. CSE401 on Sat/Mon 9 and CSE403
+ * on Sun/Tue 10 the other way round. A class keeps its period's room and
+ * takes its new course's teachers. Swapped classes are fixed, being placed
+ * by hand. Electives share periods across sections, so they do not swap.
+ */
+export async function swapTheoryCoursesDB({ department, levelTerm, courseIds, sections }) {
+  const client = await connect();
+  try {
+    await client.query("BEGIN");
+    const problem = await loadTheoryProblemDB(department, levelTerm, client);
+    const [a, b] = courseIds.map((courseId) => {
+      const status = problem.courseStatus.find((c) => c.course_id === courseId);
+      if (!status) throw new HttpError(404, `${courseId} is not a theory course of ${levelTerm}`);
+      if (status.optional) throw new HttpError(400, `${courseId} is an elective; only regular courses can be swapped`);
+      return status;
+    });
+    for (const section of sections) {
+      const missing = [a, b].find((c) => !c.sections.some((s) => s.section === section));
+      if (missing) throw new HttpError(400, `${missing.course_id} is not offered to section ${section}`);
+    }
+    const teachersOf = (courseId, sectionKey) => [a, b]
+      .find((c) => c.course_id === courseId).sections
+      .find((s) => keyOf(department, problem.batch, s.section) === sectionKey).teachers;
+    const { moves, issues } = planTheorySwap(
+      [...problem.fixed, ...problem.generated],
+      courseIds,
+      sections.map((section) => keyOf(department, problem.batch, section)),
+      teachersOf
+    );
+    if (issues.length) throw new HttpError(409, issues.slice(0, 3).join("; "));
+
+    await client.query(
+      `UPDATE schedule_assignment sa
+       SET course_id = CASE WHEN sa.course_id = $4::varchar THEN $5::varchar ELSE $4::varchar END,
+           teachers = COALESCE((
+             SELECT cs.teachers FROM courses_sections cs
+             WHERE cs.course_id = CASE WHEN sa.course_id = $4::varchar THEN $5::varchar ELSE $4::varchar END
+               AND cs.session = sa.session AND cs.department = sa.department
+               AND cs.batch = sa.batch AND cs.section = sa.section), '{}'),
+           locked = true
+       WHERE sa.session = $1 AND sa.department = $2 AND sa.batch = $3
+         AND sa.course_id IN ($4::varchar, $5::varchar) AND sa.section = ANY($6::varchar[])`,
+      [problem.session, department, problem.batch, ...courseIds, sections]
+    );
+    await client.query("COMMIT");
+    return { swapped: moves.length, sections };
   } catch (error) {
     await client.query("ROLLBACK");
     throw error;

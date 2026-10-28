@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  displacedByPins, solveTheory, theoryCTSlotRequirement, theoryCTSlots,
+  displacedByPins, planTheorySwap, solveTheory, theoryCTSlotRequirement, theoryCTSlots,
   theoryPreferenceWarnings, validatePinnedClasses, validateTheoryAssignments, validateTheoryMove,
 } from "./algorithm.js";
 
@@ -354,4 +354,70 @@ test("moving a class to 8 AM cannot take the last common CT slots", () => {
   p.levelTerm = "L-2 T-1";
   assert.ok(validateTheoryMove(p, [...blocked, moving], moving, "Monday", 8)[0]
     .includes("needs 3 common"));
+});
+
+const theory = (course, section, teacher, day, time) => ({
+  course_id: course, type: 0, sections: [section], teachers: [teacher],
+  day, time, hours: [time], optional: false, option_group: null,
+});
+const teachersIn = { CSE401: "P", CSE403: "Q" };
+const teachersOf = (course) => [teachersIn[course]];
+const slotsOf = (moves, course) => moves.filter((m) => m.to.course_id === course)
+  .map((m) => `${m.to.sections[0]} ${m.to.day} ${m.to.time} ${m.to.teachers}`).sort();
+
+test("swapping two courses trades their periods and teachers in the chosen sections", () => {
+  const events = [
+    theory("CSE401", sections[0], "P", "Saturday", 9), theory("CSE401", sections[0], "P", "Monday", 9),
+    theory("CSE403", sections[0], "Q", "Sunday", 10), theory("CSE403", sections[0], "Q", "Tuesday", 10),
+    // Section B keeps its own routine
+    theory("CSE401", sections[1], "P", "Sunday", 9), theory("CSE403", sections[1], "Q", "Saturday", 10),
+  ];
+  const { moves, issues } = planTheorySwap(events, ["CSE401", "CSE403"], [sections[0]], teachersOf);
+  assert.deepEqual(issues, []);
+  assert.deepEqual(slotsOf(moves, "CSE401"), [`${sections[0]} Sunday 10 P`, `${sections[0]} Tuesday 10 P`]);
+  assert.deepEqual(slotsOf(moves, "CSE403"), [`${sections[0]} Monday 9 Q`, `${sections[0]} Saturday 9 Q`]);
+});
+
+test("courses with different numbers of classes in a section do not swap", () => {
+  const events = [
+    theory("CSE401", sections[0], "P", "Saturday", 9), theory("CSE401", sections[0], "P", "Monday", 9),
+    theory("CSE403", sections[0], "Q", "Sunday", 10),
+  ];
+  const { moves, issues } = planTheorySwap(events, ["CSE401", "CSE403"], [sections[0]], teachersOf);
+  assert.deepEqual(moves, []);
+  assert.match(issues[0], /Section A: CSE401 has 2 class\(es\) and CSE403 has 1/);
+  assert.match(planTheorySwap([], ["CSE401", "CSE403"], [sections[0]], teachersOf).issues[0],
+    /neither CSE401 nor CSE403 is in the routine/);
+});
+
+test("a swap is refused when a teacher would be in two classes at once", () => {
+  const events = [
+    theory("CSE401", sections[0], "P", "Saturday", 9), theory("CSE403", sections[0], "Q", "Sunday", 10),
+    // P already teaches another level-term on Sunday at 10
+    theory("CSE201", "CSE|24|A", "P", "Sunday", 10),
+  ];
+  const { moves, issues } = planTheorySwap(events, ["CSE401", "CSE403"], [sections[0]], teachersOf);
+  assert.deepEqual(moves, []);
+  assert.deepEqual(issues, ["CSE401 (A) on Sunday at 10:00 clashes with P's CSE201 (A) at 10:00"]);
+});
+
+test("a swap across sections cannot put one teacher in two of them at once", () => {
+  // P teaches CSE401 in A and B; both sections have CSE403 on Sunday at 10
+  const events = [
+    theory("CSE401", sections[0], "P", "Saturday", 9), theory("CSE403", sections[0], "Q", "Sunday", 10),
+    theory("CSE401", sections[1], "P", "Saturday", 10), theory("CSE403", sections[1], "R", "Sunday", 10),
+  ];
+  const { issues } = planTheorySwap(events, ["CSE401", "CSE403"], sections.slice(0, 2), teachersOf);
+  assert.equal(issues.length, 1);
+  assert.match(issues[0], /CSE401 \(B\) on Sunday at 10:00 clashes with P's CSE401 \(A\)/);
+});
+
+test("a teacher of both courses, and two fixed classes on one day, still swap", () => {
+  const events = [
+    theory("CSE401", sections[0], "P", "Saturday", 9), theory("CSE401", sections[0], "P", "Monday", 9),
+    theory("CSE403", sections[0], "P", "Wednesday", 9), theory("CSE403", sections[0], "P", "Wednesday", 10),
+  ];
+  const { moves, issues } = planTheorySwap(events, ["CSE401", "CSE403"], [sections[0]], () => ["P"]);
+  assert.deepEqual(issues, []);
+  assert.equal(moves.length, 4);
 });

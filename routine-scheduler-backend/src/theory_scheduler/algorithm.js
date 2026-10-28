@@ -275,6 +275,51 @@ export function validateTheoryMove(problem, events, moving, day, time) {
   return [];
 }
 
+/**
+ * Two courses trading periods by hand in some sections, e.g. CSE401 on
+ * Sat/Mon 9 and CSE403 on Sun/Tue 10 the other way round. A section keeps
+ * the same periods busy, so only a teacher can newly clash, now teaching at
+ * the other course's periods. `events` are every class (fixed and generated)
+ * and what else their teachers have; `teachersOf(course, section)` gives a
+ * course's teachers in a section. Returns each class that moves (`from`, one
+ * of `events`) with what it becomes (`to`), or why the swap cannot be made.
+ */
+export function planTheorySwap(events, [a, b], sections, teachersOf) {
+  const issues = [];
+  const moves = [];
+  for (const section of sections) {
+    const classesOf = (course) => events.filter((e) => e.type === 0 &&
+      e.course_id === course && e.sections.length === 1 && e.sections[0] === section);
+    const fromA = classesOf(a);
+    const fromB = classesOf(b);
+    if (fromA.length !== fromB.length) {
+      issues.push(`Section ${sectionName(section)}: ${a} has ${fromA.length} class(es) and ${b} has ${fromB.length}; only courses with as many classes can swap`);
+      continue;
+    }
+    if (!fromA.length) {
+      issues.push(`Section ${sectionName(section)}: neither ${a} nor ${b} is in the routine`);
+      continue;
+    }
+    for (const [from, course] of [...fromA.map((e) => [e, b]), ...fromB.map((e) => [e, a])]) {
+      moves.push({ from, to: { ...from, course_id: course, teachers: teachersOf(course, section) } });
+    }
+  }
+  if (issues.length) return { moves: [], issues };
+
+  const moving = new Set(moves.map((m) => m.from));
+  const others = events.filter((e) => !moving.has(e));
+  const placed = [];
+  for (const { to } of moves) {
+    const other = [...others, ...placed].find((o) => o.day === to.day &&
+      intersects(o.hours, to.hours) && intersects(o.teachers, to.teachers));
+    if (other) {
+      issues.push(`${to.course_id} (${sectionName(to.sections[0])}) on ${to.day} at ${to.time}:00 clashes with ${describeClash(to, other)}`);
+    }
+    placed.push(to);
+  }
+  return { moves: issues.length ? [] : moves, issues };
+}
+
 // Generated (unlocked) classes a pin displaces: those clashing with it (the
 // same course that day, the same section and period, or its teacher), and
 // then enough of the course's other generated meetings that the section

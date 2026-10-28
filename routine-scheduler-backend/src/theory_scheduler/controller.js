@@ -1,7 +1,7 @@
 import { HttpError } from "../config/error-handle.js";
 import { solveTheory, theoryCTSlotRequirement, theoryCTSlots, theoryPreferenceWarnings } from "./algorithm.js";
 import {
-  applyTheorySuggestionDB, fixTheoryClassesDB, loadTheoryProblemDB, unfixTheoryClassDB,
+  applyTheorySuggestionDB, fixTheoryClassesDB, loadTheoryProblemDB, swapTheoryCoursesDB, unfixTheoryClassDB,
 } from "./repository.js";
 
 function selection(body) {
@@ -48,6 +48,24 @@ export async function fixTheoryClasses(req, res, next) {
       throw new HttpError(400, "Choose a course and at least one section's day and time");
     }
     res.status(200).json(await fixTheoryClassesDB({ department, levelTerm, courseId, placements }));
+  } catch (error) {
+    next(error);
+  }
+}
+
+// Two courses trade their periods in the chosen sections
+export async function swapTheoryCourses(req, res, next) {
+  try {
+    const { department, levelTerm } = selection(req.body);
+    const courseIds = (Array.isArray(req.body?.course_ids) ? req.body.course_ids : [])
+      .map((id) => String(id || "").trim());
+    const sections = [...new Set((Array.isArray(req.body?.sections) ? req.body.sections : [])
+      .map((section) => String(section || "").trim()).filter(Boolean))];
+    if (courseIds.length !== 2 || courseIds.some((id) => !id) || courseIds[0] === courseIds[1]) {
+      throw new HttpError(400, "Choose two different courses");
+    }
+    if (!sections.length) throw new HttpError(400, "Choose at least one section");
+    res.status(200).json(await swapTheoryCoursesDB({ department, levelTerm, courseIds, sections }));
   } catch (error) {
     next(error);
   }

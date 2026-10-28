@@ -37,6 +37,11 @@ export const fixTheoryClasses = (request) =>
 export const unfixTheoryClass = (request) =>
     axios.post(api_url("/schedule/theory/unfix"), request).then((res) => res.data);
 
+// { department, level_term, course_ids: [a, b], sections } → in each
+// section the two courses trade their periods
+export const swapTheoryCourses = (request) =>
+    axios.post(api_url("/schedule/theory/swap"), request).then((res) => res.data);
+
 export const initiateTheorySchedule = () =>
     axios.get(api_url("/schedule/theory/initiate")).then((res) => res.data);
 
