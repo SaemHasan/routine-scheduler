@@ -6,6 +6,7 @@ import {
     addLevelTermDB,
     deleteLevelTermDB,
     initiateDB,
+    activateLevelTermDB,
     getAllActiveDepartments,
     getDepartmentalLevelTermBatches
 } from "./repository.js"
@@ -22,6 +23,22 @@ export async function setLevelTerms(req, res, next) {
         await updateLevelTerms(levelTerms);
         await initiateDB(levelTerms);
         res.json({ message: "Initiated successfully" });
+    } catch (error) {
+        next(error);
+    }
+}
+
+export async function activateLevelTermAPI(req, res, next) {
+    const { level_term, department, batch } = req.body;
+    try {
+        if (!level_term || !department) {
+            throw new HttpError(400, "Level term and department are required");
+        }
+        const levelTerm = await activateLevelTermDB({ level_term, department, batch });
+        res.json({
+            message: `Activated ${level_term} (${department}) with batch ${levelTerm.batch}`,
+            data: levelTerm,
+        });
     } catch (error) {
         next(error);
     }

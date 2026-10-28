@@ -3,6 +3,7 @@ import { toast } from "react-hot-toast";
 import {
   getLevelTerms,
   setLevelTermsDB,
+  activateLevelTerm,
   addLevelTerm,
   deleteLevelTerm,
 } from "../api/db-crud";
@@ -24,6 +25,9 @@ export default function Initialize() {
   const [showActivateModal, setShowActivateModal] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedLevelTerms, setSelectedLevelTerms] = useState([]);
+  // The one level-term being activated for its department, and its batch
+  const [activatingLevelTerm, setActivatingLevelTerm] = useState(null);
+  const [activateBatch, setActivateBatch] = useState("");
   const [batchInputs, setBatchInputs] = useState({});
   const [allBatches, setAllBatches] = useState([]);
   const [newLevelTerm, setNewLevelTerm] = useState({
@@ -179,17 +183,21 @@ export default function Initialize() {
 
   // The batch normally in a level-term: the newest batch is in Level 1, the
   // one before it in Level 2, and so on.
-  // When both terms of a level are selected, Term 2 is the older batch.
-  const autoBatch = (levelTerm) => {
+  // When both terms of a level are running, Term 2 is the older batch.
+  const autoBatch = (levelTerm, isRunning) => {
     const level = parseInt((levelTerm.match(/L-(\d+)/) || [])[1], 10);
     if (!level || !allBatches || allBatches.length === 0) return null;
-    const term1AlsoSelected =
-      /T-2/.test(levelTerm) &&
-      selectedLevelTerms.includes(levelTerm.replace("T-2", "T-1"));
+    const term1AlsoRunning =
+      /T-2/.test(levelTerm) && isRunning(levelTerm.replace("T-2", "T-1"));
     return (
-      Math.max(...allBatches.map(Number)) - (level - 1) - (term1AlsoSelected ? 1 : 0)
+      Math.max(...allBatches.map(Number)) - (level - 1) - (term1AlsoRunning ? 1 : 0)
     );
   };
+  const isSelected = (levelTerm) => selectedLevelTerms.includes(levelTerm);
+  const isActiveIn = (department) => (levelTerm) =>
+    levelTerms.some(
+      (lt) => lt.active && lt.department === department && lt.level_term === levelTerm
+    );
 
   // Handler for activating selected level-terms for all departments
   const handleActivateLevelTerms = () => {
@@ -204,7 +212,10 @@ export default function Initialize() {
         ? {
             ...lt,
             active: true,
-            batch: batchInputs[lt.level_term] || autoBatch(lt.level_term) || "",
+            batch:
+              batchInputs[lt.level_term] ||
+              autoBatch(lt.level_term, isSelected) ||
+              "",
           }
         : { ...lt, active: false, batch: 0 }
     );
@@ -231,6 +242,48 @@ export default function Initialize() {
     setSelectedLevelTerms([]);
     setBatchInputs({});
   };
+
+  const closeActivateOneModal = () => {
+    setActivatingLevelTerm(null);
+    setActivateBatch("");
+  };
+
+  // Starts one department's level-term without resetting the others
+  const handleActivateOne = () => {
+    const { level_term, department } = activatingLevelTerm;
+    const activatingToast = toast.loading(
+      `Activating ${level_term} (${department})...`
+    );
+    activateLevelTerm({ level_term, department, batch: activateBatch })
+      .then((res) => {
+        toast.dismiss(activatingToast);
+        toast.success(res.message);
+        setLevelTerms((prev) =>
+          prev.map((lt) =>
+            lt.level_term === level_term && lt.department === department
+              ? { ...lt, active: true, batch: res.data.batch }
+              : lt
+          )
+        );
+        setThesisReload((k) => k + 1);
+      })
+      .catch((error) => {
+        toast.dismiss(activatingToast);
+        console.error("Error activating level term:", error);
+        toast.error(
+          error?.response?.data?.error?.message ||
+            `Failed to activate ${level_term} (${department})`
+        );
+      });
+    closeActivateOneModal();
+  };
+
+  const activatingAutoBatch =
+    activatingLevelTerm &&
+    autoBatch(
+      activatingLevelTerm.level_term,
+      isActiveIn(activatingLevelTerm.department)
+    );
 
   return (
     <div>
@@ -355,17 +408,33 @@ export default function Initialize() {
                                 )}
                               </td>
                               <td>
-                                <button
-                                  className="delete mdi mdi-delete-outline"
-                                  onClick={() =>
-                                    handleDelete(
-                                      levelTerm.level_term,
-                                      levelTerm.department
-                                    )
-                                  }
-                                >
-                                  Delete
-                                </button>
+                                <div className="d-flex">
+                                  {!levelTerm.active && (
+                                    <button
+                                      className="edit mdi mdi-check-circle-outline"
+                                      title={`Activate ${levelTerm.level_term} for ${levelTerm.department} only`}
+                                      onClick={() =>
+                                        setActivatingLevelTerm({
+                                          level_term: levelTerm.level_term,
+                                          department: levelTerm.department,
+                                        })
+                                      }
+                                    >
+                                      Activate
+                                    </button>
+                                  )}
+                                  <button
+                                    className="delete mdi mdi-delete-outline"
+                                    onClick={() =>
+                                      handleDelete(
+                                        levelTerm.level_term,
+                                        levelTerm.department
+                                      )
+                                    }
+                                  >
+                                    Delete
+                                  </button>
+                                </div>
                               </td>
                             </tr>
                           ))
@@ -550,8 +619,8 @@ export default function Initialize() {
                                   disabled={!selectedLevelTerms.includes(lt)}
                                 >
                                   <option value="">
-                                    {autoBatch(lt)
-                                      ? `Auto (batch ${autoBatch(lt)})`
+                                    {autoBatch(lt, isSelected)
+                                      ? `Auto (batch ${autoBatch(lt, isSelected)})`
                                       : "Auto"}
                                   </option>
                                   {allBatches && allBatches.length > 0 ? (
@@ -587,6 +656,76 @@ export default function Initialize() {
                       <button
                         className="card-control-button mdi mdi-arrow-right-circle-outline"
                         onClick={handleActivateLevelTerms}
+                      >
+                        Activate
+                      </button>
+                    </Modal.Footer>
+                  </Modal>
+                  <Modal
+                    show={!!activatingLevelTerm}
+                    centered
+                    size="md"
+                    contentClassName="shadow modal-content"
+                    backdrop="static"
+                  >
+                    <Modal.Header className="modal-header">
+                      <Modal.Title className="modal-header-content">
+                        <div className="modal-header-icon mdi mdi-check-circle-outline"></div>
+                        <h4 className="modal-title">
+                          Activate {activatingLevelTerm?.level_term} (
+                          {activatingLevelTerm?.department})
+                        </h4>
+                      </Modal.Title>
+                      <button
+                        className="modal-header-close-button mdi mdi-close"
+                        onClick={closeActivateOneModal}
+                      ></button>
+                    </Modal.Header>
+                    <Modal.Body className="modal-body">
+                      <div className="modal-body-content-container">
+                        <p className="text-muted">
+                          Adds this level-term's sections and courses. The
+                          other level-terms, and the work already done for
+                          them, stay as they are.
+                        </p>
+                        <Form>
+                          <FormGroup>
+                            <Form.Label className="form-label">Batch</Form.Label>
+                            <Form.Select
+                              className="form-select"
+                              value={activateBatch}
+                              onChange={(e) => setActivateBatch(e.target.value)}
+                            >
+                              <option value="">
+                                {activatingAutoBatch
+                                  ? `Auto (batch ${activatingAutoBatch})`
+                                  : "Auto"}
+                              </option>
+                              {allBatches && allBatches.length > 0 ? (
+                                allBatches.map((batch, i) => (
+                                  <option key={i} value={batch}>
+                                    {batch}
+                                  </option>
+                                ))
+                              ) : (
+                                <option disabled>No batches available</option>
+                              )}
+                            </Form.Select>
+                          </FormGroup>
+                        </Form>
+                      </div>
+                      <div className="modal-divider"></div>
+                    </Modal.Body>
+                    <Modal.Footer className="modal-footer">
+                      <button
+                        className="card-control-button mdi mdi-close"
+                        onClick={closeActivateOneModal}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        className="card-control-button mdi mdi-arrow-right-circle-outline"
+                        onClick={handleActivateOne}
                       >
                         Activate
                       </button>

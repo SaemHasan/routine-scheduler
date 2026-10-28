@@ -93,6 +93,8 @@ export const getLevelTerms = () =>
   axios.get(api_url("/level_terms")).then((res) => res.data);
 export const setLevelTermsDB = (levelTerms) =>
   axios.put(api_url("/level_terms/set"), levelTerms).then((res) => res.data);
+export const activateLevelTerm = (data) =>
+  axios.put(api_url("/level_terms/activate"), data).then((res) => res.data);
 export const addLevelTerm = (data) =>
   axios.post(api_url("/level_terms/add"), data).then((res) => res.data);
 export const deleteLevelTerm = (data) =>

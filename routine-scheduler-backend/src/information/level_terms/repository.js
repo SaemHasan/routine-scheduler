@@ -257,15 +257,16 @@ async function getAllActiveCourses(levelTerms, session) {
     return activeCourses;
 }
 
-async function initializeCoursesTable(activeCourses) {
+async function initializeCoursesTable(activeCourses, session) {
     const query = `
         INSERT INTO courses (course_id, session, "name", "type", class_per_week, "from", "to", teacher_credit, level_term, sessional_type) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
         ON CONFLICT (course_id, session) DO NOTHING;
     `;
     const query2 = `
-        INSERT INTO courses (course_id, session, "name", "type", class_per_week, "from", "to") VALUES ($1, $2, $3, $4, $5, $6, $7);
+        INSERT INTO courses (course_id, session, "name", "type", class_per_week, "from", "to") VALUES ($1, $2, $3, $4, $5, $6, $7)
+        ON CONFLICT (course_id, session) DO NOTHING;
     `;
-    const values2 = ['CT', activeCourses[0].session, 'Class Test', 0, 3, 'CSE', 'CSE'];
+    const values2 = ['CT', session, 'Class Test', 0, 3, 'CSE', 'CSE'];
     const client = await connect();
     try {
         await client.query("BEGIN");
@@ -284,24 +285,29 @@ async function initializeCoursesTable(activeCourses) {
     }
 }
 
-async function initializeCoursesSectionsTable() {
+// Without a level-term, fills in the course sections of every level-term
+async function initializeCoursesSectionsTable(levelTerm = null) {
     const query = `
         INSERT INTO courses_sections (course_id, session, batch, section, department)
         SELECT c.course_id, c.session, s.batch, s.section, s.department
         FROM courses c
         JOIN sections s 
-        ON c.level_term = s.level_term AND c.type = s.type AND c."to" = s.department;
+        ON c.level_term = s.level_term AND c.type = s.type AND c."to" = s.department
+        WHERE $1::varchar IS NULL OR (s.department = $1 AND s.level_term = $2::varchar)
+        ON CONFLICT DO NOTHING;
     `;
     const query2 = `
         SELECT course_id 
         FROM courses
         WHERE class_per_week = 0.75
+        AND ($1::varchar IS NULL OR ("to" = $1 AND level_term = $2::varchar))
     `;
+    const scope = [levelTerm?.department ?? null, levelTerm?.level_term ?? null];
     const client = await connect();
     try {
         await client.query("BEGIN");
-        await client.query(query);
-        const result = await client.query(query2);
+        await client.query(query, scope);
+        const result = await client.query(query2, scope);
         const courses = result.rows.map(row => row.course_id);
 
         // For 0.75 credit courses, remove subsection entries and add main section entries
@@ -406,7 +412,7 @@ export async function initiateDB(levelTerms) {
     const activeCourses = await getAllActiveCourses(levelTerms, session);
     console.log("Fetched all active courses");
 
-    await initializeCoursesTable(activeCourses);
+    await initializeCoursesTable(activeCourses, session);
     console.log("Courses table initialized");
 
     await initializeCoursesSectionsTable();
@@ -415,4 +421,50 @@ export async function initiateDB(levelTerms) {
     // Thesis goes into the routine for the Level 4 level-terms
     await applyDefaultThesisDB();
 
+}
+
+/**
+ * Starts one more level-term running and leaves the rest as they are: its
+ * sections, courses and course sections are added, and the assignments and
+ * schedule already made for the other level-terms stay.
+ */
+export async function activateLevelTermDB({ level_term, department, batch }) {
+    const departmentLevelTerms = (await getAll()).filter((lt) => lt.department === department);
+    const current = departmentLevelTerms.find((lt) => lt.level_term === level_term);
+    if (!current) {
+        throw new HttpError(404, `${department} has no level-term ${level_term}`);
+    }
+    if (current.active) {
+        throw new HttpError(400, `${level_term} (${department}) is already active`);
+    }
+
+    const levelTerm = (
+        await fillMissingBatches(
+            departmentLevelTerms.map((lt) =>
+                lt.level_term === level_term ? { ...lt, active: true, batch } : lt
+            )
+        )
+    ).find((lt) => lt.level_term === level_term);
+    levelTerm.batch = parseInt(levelTerm.batch);
+
+    // A batch's sections belong to one level-term at a time
+    const clash = departmentLevelTerms.find(
+        (lt) => lt.active && Number(lt.batch) === levelTerm.batch
+    );
+    if (clash) {
+        throw new HttpError(400, `Batch ${levelTerm.batch} is already in ${clash.level_term} (${department})`);
+    }
+
+    const session = await getSession();
+    await initializeSectionsTable([levelTerm], session);
+    const courses = await getAllActiveCourses([levelTerm], session);
+    await initializeCoursesTable(courses, session);
+    await initializeCoursesSectionsTable(levelTerm);
+    await updateLevelTerms([levelTerm]);
+
+    // Another Level 4 level-term changes which thesis each one takes
+    if (department === "CSE" && level_term.startsWith("L-4")) {
+        await applyDefaultThesisDB();
+    }
+    return levelTerm;
 }
