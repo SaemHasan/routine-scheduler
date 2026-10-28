@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
 import Icon from "@mdi/react";
-import { mdiAutoFix, mdiClose, mdiPin, mdiPlus, mdiSwapHorizontal } from "@mdi/js";
+import { mdiAutoFix, mdiClose, mdiDeleteSweepOutline, mdiPin, mdiPlus, mdiSwapHorizontal } from "@mdi/js";
 import {
   applyTheoryRoutineSuggestion,
   fixTheoryClasses,
@@ -11,6 +11,7 @@ import {
 import TheoryRoutinePreview from "./TheoryRoutinePreview";
 import FixTheoryClassesModal from "./FixTheoryClassesModal";
 import SwapTheoryCoursesModal from "./SwapTheoryCoursesModal";
+import RemoveTheoryClassesModal from "./RemoveTheoryClassesModal";
 import { openMeetings, shortDay, slotLabel } from "./theoryRoutineFixing";
 
 const messageOf = (error) =>
@@ -48,6 +49,7 @@ export default function TheoryRoutineSuggestion({
   const [working, setWorking] = useState(false);
   const [fixing, setFixing] = useState(null); // course id for the modal, "" for none chosen
   const [swapping, setSwapping] = useState(false);
+  const [removing, setRemoving] = useState(false);
   useEffect(() => setSuggestion(null), [department, levelTerm, batch]);
 
   const stale = suggestion && overview?.fingerprint && suggestion.fingerprint !== overview.fingerprint;
@@ -130,6 +132,11 @@ export default function TheoryRoutineSuggestion({
           : overview.error ? <div className="alert alert-danger py-2">{overview.error}</div> : <>
           <Step number={1} title="Fixed classes" aside={
             <div className="d-flex" style={{ gap: 8 }}>
+              <button type="button" className="btn btn-sm btn-outline-danger d-flex align-items-center"
+                style={{ gap: 4 }} disabled={busy} onClick={() => setRemoving(true)}
+                title="Unassign the classes of some courses, or of the whole level-term">
+                <Icon path={mdiDeleteSweepOutline} size={0.7} /> Remove classes
+              </button>
               <button type="button" className="btn btn-sm btn-outline-primary d-flex align-items-center"
                 style={{ gap: 4 }} disabled={busy} onClick={() => setSwapping(true)}
                 title="Trade the periods of two courses">
@@ -319,6 +326,18 @@ export default function TheoryRoutineSuggestion({
           levelTerm={levelTerm}
           courses={overview.courses}
           onSwapped={onChanged}
+        />
+      )}
+      {overview?.courses && (
+        <RemoveTheoryClassesModal
+          show={removing}
+          onHide={() => setRemoving(false)}
+          department={department}
+          levelTerm={levelTerm}
+          courses={overview.courses}
+          sectionNames={overview.sectionNames || []}
+          ctPeriods={overview.ctPeriods || []}
+          onRemoved={onChanged}
         />
       )}
     </div>

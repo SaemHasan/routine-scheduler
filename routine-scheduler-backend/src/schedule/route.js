@@ -1,6 +1,7 @@
 import express from "express";
 import {
-  applyTheory, fixTheoryClasses, suggestTheory, swapTheoryCourses, theoryOverview, unfixTheoryClass,
+  applyTheory, fixTheoryClasses, removeTheoryClasses, suggestTheory, swapTheoryCourses, theoryOverview,
+  unfixTheoryClass,
 } from "../theory_scheduler/controller.js";
 import {
   getAllSchedule,
@@ -29,6 +30,7 @@ router.post("/theory/overview", theoryOverview);
 router.post("/theory/fix", fixTheoryClasses);
 router.post("/theory/unfix", unfixTheoryClass);
 router.post("/theory/swap", swapTheoryCourses);
+router.post("/theory/remove", removeTheoryClasses);
 
 router.get("/sessional/:batch/:section", getSessionalScheduleAPI);
 router.get("/sessional/departmental", getDepartmentalSessionalScheduleAPI);

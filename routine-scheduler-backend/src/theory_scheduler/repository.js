@@ -242,6 +242,11 @@ export async function loadTheoryProblemDB(department, levelTerm, existingClient 
         };
       }),
     }));
+    // The level-term's CT periods, e.g. Saturday and Wednesday at 8
+    const ctPeriods = unique(scheduleRows.filter((r) => r.department === department &&
+      Number(r.batch) === Number(batch) && r.course_id === "CT")
+      .sort((a, b) => slotOrder(a) - slotOrder(b)).map((r) => `${r.day}|${r.time}`))
+      .map((slot) => ({ day: slot.split("|")[0], time: Number(slot.split("|")[1]) }));
     const fingerprint = createHash("sha256").update(JSON.stringify({
       session, sectionRows, allSectionRows, configRows, courseRows, csRows, labTeacherRows, scheduleRows,
       teacherRows, thesisSlots, activeTheses: [...activeTheses], initialized,
@@ -261,7 +266,7 @@ export async function loadTheoryProblemDB(department, levelTerm, existingClient 
       department, levelTerm, session, batch, marker, initialized, fingerprint,
       days, times, slots, sections: sectionKeys,
       sectionNames: sectionRows.map((s) => s.section), previewRows, sectionsForCourse,
-      courseIds: [...byCourse.keys()], units, fixed, generated, courseStatus,
+      courseIds: [...byCourse.keys()], units, fixed, generated, courseStatus, ctPeriods,
       batchSectionNames: (mainSections.get(`${department}|${batch}`) || []).map((k) => k.split("|")[2]),
       preflight, warnings,
     };
@@ -402,6 +407,39 @@ export async function swapTheoryCoursesDB({ department, levelTerm, courseIds, se
     );
     await client.query("COMMIT");
     return { swapped: moves.length, sections };
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+/**
+ * Unassigns theory classes of a level-term, fixed or not: those of
+ * `courseIds`, or with none given every theory class (and the CT periods
+ * when `withCT`), so the level-term starts fresh. Sessionals and thesis stay.
+ */
+export async function removeTheoryClassesDB({ department, levelTerm, courseIds = null, withCT = false }) {
+  const client = await connect();
+  try {
+    await client.query("BEGIN");
+    const problem = await loadTheoryProblemDB(department, levelTerm, client);
+    const unknown = (courseIds || []).find((id) => !problem.courseIds.includes(id));
+    if (unknown) throw new HttpError(404, `${unknown} is not a theory course of ${levelTerm}`);
+    const { rowCount } = await client.query(
+      `DELETE FROM schedule_assignment sa
+       USING courses c
+       WHERE c.course_id = sa.course_id AND c.session = sa.session AND c.type = 0
+         AND sa.session = $1 AND sa.department = $2 AND sa.batch = $3
+         AND ($4::varchar[] IS NULL OR sa.course_id = ANY($4::varchar[]))
+         AND (sa.course_id <> 'CT' OR $5::boolean)`,
+      [problem.session, department, problem.batch, courseIds, withCT]
+    );
+    // Cleared, the level-term is back to before its first generation
+    if (!courseIds) await client.query("DELETE FROM configs WHERE key = $1", [problem.marker]);
+    await client.query("COMMIT");
+    return { removed: rowCount };
   } catch (error) {
     await client.query("ROLLBACK");
     throw error;

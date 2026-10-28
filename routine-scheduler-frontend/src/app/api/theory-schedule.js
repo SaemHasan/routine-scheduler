@@ -42,6 +42,11 @@ export const unfixTheoryClass = (request) =>
 export const swapTheoryCourses = (request) =>
     axios.post(api_url("/schedule/theory/swap"), request).then((res) => res.data);
 
+// { department, level_term, course_ids } unassigns those courses' classes;
+// { department, level_term, all: true, with_ct } every theory class
+export const removeTheoryClasses = (request) =>
+    axios.post(api_url("/schedule/theory/remove"), request).then((res) => res.data);
+
 export const initiateTheorySchedule = () =>
     axios.get(api_url("/schedule/theory/initiate")).then((res) => res.data);
 

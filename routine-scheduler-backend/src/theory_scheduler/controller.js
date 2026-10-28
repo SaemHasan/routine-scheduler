@@ -1,7 +1,8 @@
 import { HttpError } from "../config/error-handle.js";
 import { solveTheory, theoryCTSlotRequirement, theoryCTSlots, theoryPreferenceWarnings } from "./algorithm.js";
 import {
-  applyTheorySuggestionDB, fixTheoryClassesDB, loadTheoryProblemDB, swapTheoryCoursesDB, unfixTheoryClassDB,
+  applyTheorySuggestionDB, fixTheoryClassesDB, loadTheoryProblemDB, removeTheoryClassesDB,
+  swapTheoryCoursesDB, unfixTheoryClassDB,
 } from "./repository.js";
 
 function selection(body) {
@@ -26,6 +27,7 @@ export async function theoryOverview(req, res, next) {
       fingerprint: problem.fingerprint, initialized: problem.initialized,
       sectionNames: problem.sectionNames,
       courses: problem.courseStatus,
+      ctPeriods: problem.ctPeriods,
       totals: { required, toGenerate: problem.units.length, fixed: required - problem.units.length },
       ctRequired: theoryCTSlotRequirement(levelTerm),
       ctSlots: theoryCTSlots(problem, []),
@@ -66,6 +68,25 @@ export async function swapTheoryCourses(req, res, next) {
     }
     if (!sections.length) throw new HttpError(400, "Choose at least one section");
     res.status(200).json(await swapTheoryCoursesDB({ department, levelTerm, courseIds, sections }));
+  } catch (error) {
+    next(error);
+  }
+}
+
+// Unassigns the classes of the chosen courses, or with `all` every theory
+// class of the level-term (and its CT periods with `with_ct`)
+export async function removeTheoryClasses(req, res, next) {
+  try {
+    const { department, levelTerm } = selection(req.body);
+    const all = req.body?.all === true;
+    const courseIds = [...new Set((Array.isArray(req.body?.course_ids) ? req.body.course_ids : [])
+      .map((id) => String(id || "").trim()).filter(Boolean))];
+    if (!all && !courseIds.length) throw new HttpError(400, "Choose at least one course");
+    res.status(200).json(await removeTheoryClassesDB({
+      department, levelTerm,
+      courseIds: all ? null : courseIds,
+      withCT: all && req.body?.with_ct === true,
+    }));
   } catch (error) {
     next(error);
   }
