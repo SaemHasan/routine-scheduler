@@ -472,7 +472,7 @@ export async function getAllScheduleDB() {
 export async function getDepartmentalSessionalSchedule() {
   const query = `
     SELECT sa.course_id, sa.batch, sa."section", sa."day", sa."time", sa.department, c.class_per_week,
-      sa.room_no, sa.locked, c."name", s.level_term, st.teacher_count,
+      sa.room_no, sa.locked, c."name", s.level_term, st.teacher_count, c.optional, c.option_group,
       ${optionalSectionLabelSQL("c", "sa.department", "sa.batch")} AS section_label
     FROM schedule_assignment sa
     JOIN courses c ON sa.course_id = c.course_id AND sa.session = c.session

@@ -310,7 +310,8 @@ export async function loadProblemDB() {
         `SELECT sa.course_id, sa.batch, sa.section, sa.department, sa.day, sa."time",
                 sa.room_no, sa.locked, c.type
          FROM schedule_assignment sa
-         LEFT JOIN courses c ON c.course_id = sa.course_id AND c.session = sa.session
+         -- Only running courses: an elective no longer offered leaves its classes behind
+         JOIN courses c ON c.course_id = sa.course_id AND c.session = sa.session
          WHERE sa.session = ${CURRENT_SESSION}`
       )
     ).rows;
@@ -621,7 +622,8 @@ export async function findSectionClashes(
     await client.query(
       `SELECT sa.course_id, sa.section, sa."time", c.type, c.optional, c.option_group
        FROM schedule_assignment sa
-       LEFT JOIN courses c ON c.course_id = sa.course_id AND c.session = sa.session
+       -- Only running courses: an elective no longer offered leaves its classes behind
+       JOIN courses c ON c.course_id = sa.course_id AND c.session = sa.session
        WHERE sa.session = ${CURRENT_SESSION}
          AND sa.department = $1 AND sa.batch = $2 AND sa.day = $3`,
       [department, batch, day]

@@ -61,7 +61,8 @@ async function findThesisConflicts(client, times, slots, levelTerms) {
         `SELECT sa.course_id, sa.section, sa."time", c.type
          FROM schedule_assignment sa
          JOIN sections s ON s.department = sa.department AND s.batch = sa.batch AND s.section = sa.section
-         LEFT JOIN courses c ON c.course_id = sa.course_id AND c.session = sa.session
+         -- Only running courses: an elective no longer offered leaves its classes behind
+         JOIN courses c ON c.course_id = sa.course_id AND c.session = sa.session
          WHERE sa.session = ${CURRENT_SESSION} AND sa.department = $1
            AND s.level_term = $2 AND sa.day = $3 AND COALESCE(c.type, 0) <> 2`,
         [lt.department, lt.level_term, slot.day]

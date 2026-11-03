@@ -20,7 +20,8 @@ async function roomedRows(client) {
               ${effectiveRoomSQL()} AS room_no,
               c.type, COALESCE(c.type = 0 AND ${SHARED}, false) AS shared
        FROM schedule_assignment sa
-       LEFT JOIN courses c ON c.course_id = sa.course_id AND c.session = sa.session
+       -- Only running courses: an elective no longer offered leaves its classes behind
+       JOIN courses c ON c.course_id = sa.course_id AND c.session = sa.session
        LEFT JOIN sections s ON s.department = sa.department AND s.batch = sa.batch AND s.section = sa.section
        WHERE sa.session = ${SESSION}) held
      WHERE room_no IS NOT NULL

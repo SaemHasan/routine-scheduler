@@ -695,13 +695,18 @@ export default function ShowSessionalDistribution() {
         return;
       }
 
-      // First check if this section already has a course in this time slot
+      // First check if this section already has a course in this time slot.
+      // The labs of one option run side by side, each student taking one.
+      const sameOption = (schedule) =>
+        Number(schedule.optional) === 1 && Number(course.optional) === 1 &&
+        schedule.option_group != null && Number(schedule.option_group) === Number(course.option_group);
       const existingCourseInSlot = sessionalSchedules.find(schedule =>
         schedule.day === day &&
         schedule.time === time &&
         schedule.batch === course.batch &&
         schedule.section === course.section &&
-        schedule.department === course.department
+        schedule.department === course.department &&
+        !sameOption(schedule)
       );
 
       if (existingCourseInSlot) {

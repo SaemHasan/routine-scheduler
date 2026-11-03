@@ -80,7 +80,8 @@ export async function loadTheoryProblemDB(department, levelTerm, existingClient 
       `SELECT sa.course_id, sa.department, sa.batch, sa.section, sa.day, sa.time,
               sa.teachers, sa.locked, c.type, c.optional, c.optional_section_count, c.option_group
        FROM schedule_assignment sa
-       LEFT JOIN courses c ON c.course_id = sa.course_id AND c.session = sa.session
+       -- Only running courses: an elective no longer offered leaves its classes behind
+       JOIN courses c ON c.course_id = sa.course_id AND c.session = sa.session
        WHERE sa.session = $1
        ORDER BY sa.department, sa.batch, sa.section, sa.day, sa.time, sa.course_id`,
       [session]

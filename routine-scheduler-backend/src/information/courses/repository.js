@@ -665,7 +665,7 @@ export async function removeCourse(course_id, level_term) {
 export async function getAllLab() {
   const query =`
     SELECT cs.course_id, cs.section, cs.batch , c.name, s.level_term, s.department,c.class_per_week,
-      c.sessional_type, st.teacher_count, st.lab_type,
+      c.sessional_type, st.teacher_count, st.lab_type, c.optional, c.option_group,
       ${optionalSectionLabelSQL("c", "cs.department", "cs.batch")} AS section_label
     FROM courses_sections cs
     JOIN courses c ON cs.course_id = c.course_id AND cs.session = c.session
