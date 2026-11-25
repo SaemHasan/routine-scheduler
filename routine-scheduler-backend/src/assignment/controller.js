@@ -34,6 +34,7 @@ import {
   deleteTheoryTeacherAssignmentDB,
   getTheoryDistributionDB,
   getSessionalDistributionDB,
+  getSessionalForecastDB,
 } from "./repository.js";
 import { HttpError } from "../config/error-handle.js";
 
@@ -155,6 +156,14 @@ export async function getSessionalTeachersAPI(req, res, next) {
   try {
     const result = await getSessionalTeachers(course_id, section);
     res.status(200).json(result);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function getSessionalForecastAPI(req, res, next) {
+  try {
+    res.status(200).json(await getSessionalForecastDB(req.params.initial));
   } catch (err) {
     next(err);
   }

@@ -2,6 +2,8 @@ import { connect } from "../config/database.js";
 import { HttpError } from "../config/error-handle.js";
 import sma from "stablematch-common";
 import { findSessionalConflict, sessionalCapacityError } from "./sessionalRules.js";
+import { labCredit, theoryCredit, thesisCredit } from "./credit.js";
+import { forecastFullTimeCover } from "./sessionalForecast.js";
 
 export async function getTemplate(key) {
   const query = "SELECT * FROM configs WHERE key=$1";
@@ -607,6 +609,76 @@ export async function getAllSessionalAssignment() {
   return result.rows;
 }
 
+// Every lab needs a full-time teacher. Which labs that still lack one must this
+// teacher take, so that they and the full-time teachers after them in
+// seniority can still cover every lab? (see sessionalForecast.js)
+export async function getSessionalForecastDB(initial, getClient = connect) {
+  const session = "(SELECT value FROM configs WHERE key='CURRENT_SESSION')";
+  const client = await getClient();
+  try {
+    const config = Object.fromEntries((await client.query(
+      "SELECT key, value FROM configs WHERE key IN ('days', 'times')"
+    )).rows.map((row) => [row.key, JSON.parse(row.value)]));
+    const teachers = (await client.query(`SELECT initial, seniority_rank, full_time_status,
+        teacher_credits_offered, offers_thesis_1, offers_thesis_2, offers_msc
+      FROM teachers WHERE active = 1`)).rows;
+    if (!teachers.some((teacher) => teacher.initial === initial)) {
+      throw new HttpError(404, "Teacher not found or inactive");
+    }
+    // The labs on Sessional Assign, one row per class
+    const labs = (await client.query(`SELECT sa.course_id, sa.batch, sa."section", sa."day", sa."time",
+        st.teacher_count
+      FROM schedule_assignment sa
+      JOIN courses c ON c.course_id = sa.course_id AND c.session = sa.session
+      LEFT JOIN sessional_types st ON st.code = (
+        CASE WHEN c."to" = 'CSE' THEN COALESCE(c.sessional_type, 'DEPT_SW') ELSE 'NON_DEPT' END)
+      WHERE sa.course_id LIKE 'CSE%' AND c.type = 1 AND sa.session = ${session}
+      ORDER BY sa.course_id, sa."section", sa."day", sa."time"`)).rows;
+    const assignments = (await client.query(`SELECT tsa.initial, tsa.course_id, tsa.batch, tsa."section",
+        tsa.share::float AS share, c.class_per_week, t.full_time_status
+      FROM teacher_sessional_assignment tsa
+      JOIN courses c ON c.course_id = tsa.course_id AND c.session = tsa.session
+      JOIN teachers t ON t.initial = tsa.initial
+      WHERE tsa.session = ${session} AND c.type = 1`)).rows;
+    // Each teacher's theory classes, whether named on the class or its section
+    const theory = (await client.query(`SELECT DISTINCT who.initial, sa."day", sa."time"
+      FROM schedule_assignment sa
+      JOIN courses c ON c.course_id = sa.course_id AND c.session = sa.session
+      LEFT JOIN courses_sections cs ON cs.course_id = sa.course_id AND cs.session = sa.session
+        AND cs.batch = sa.batch AND cs.section = sa.section AND cs.department = sa.department
+      CROSS JOIN LATERAL unnest(COALESCE(sa.teachers::text[], '{}') || COALESCE(cs.teachers::text[], '{}'))
+        AS who(initial)
+      WHERE sa.session = ${session} AND c.type = 0`)).rows;
+    // Theory load per course and its teachers, counted as in calculateTeacherTotalCredit
+    const courses = (await client.query(`SELECT MAX(c.class_per_week) AS class_per_week,
+        CASE WHEN MAX(c.optional) = 1 THEN MAX(c.optional_section_count)
+             ELSE COUNT(DISTINCT cs.section) END AS section_count,
+        ARRAY(SELECT DISTINCT t FROM courses_sections cs2, unnest(cs2.teachers) AS t
+          WHERE cs2.course_id = cs.course_id AND cs2.session = cs.session) AS teachers
+      FROM courses_sections cs
+      JOIN courses c ON c.course_id = cs.course_id AND c.session = cs.session
+      WHERE cs.session = ${session} AND cs.course_id ~ '[13579]$' AND cs.course_id LIKE 'CSE%'
+        AND c.type = 0
+      GROUP BY cs.course_id, cs.session`)).rows;
+
+    const credit = new Map(teachers.map((teacher) => [teacher.initial, thesisCredit(teacher)]));
+    const add = (who, amount) => {
+      if (credit.has(who)) credit.set(who, credit.get(who) + amount);
+    };
+    assignments.forEach((row) => add(row.initial, labCredit(row)));
+    courses.forEach((course) => course.teachers.forEach((who) =>
+      add(who, theoryCredit({ ...course, teacher_count: course.teachers.length }))));
+    return forecastFullTimeCover({
+      initial, labs, assignments, theory,
+      teachers: teachers.map((teacher) => ({ ...teacher, credit: credit.get(teacher.initial) })),
+      times: (config.times ?? [8, 9, 10, 11, 12, 1, 2, 3, 4]).map(Number),
+      days: config.days ?? [],
+    });
+  } finally {
+    client.release();
+  }
+}
+
 export async function isSessionalFinalized() {
   const query = `SELECT COUNT(*) FROM teacher_sessional_assignment WHERE "session" = (SELECT value FROM configs WHERE key='CURRENT_SESSION')`;
   const client = await connect();
@@ -1094,18 +1166,8 @@ export async function calculateTeacherTotalCredit(initial) {
 
     const teacher = teacherResult.rows[0];
 
-    // Add thesis credits
-    if (teacher.offers_thesis_1) {
-      totalCredit += 6;
-    }
-    if (teacher.offers_thesis_2) {
-      totalCredit += 6;
-    }
-
-    // Add MSC credits
-    if (teacher.offers_msc) {
-      totalCredit += 3;
-    }
+    // Add thesis and MSc credits
+    totalCredit += thesisCredit(teacher);
 
     // Get all sessional assignments for the teacher
     // Each lab section taught counts (as in the department's load sheet); a
@@ -1121,14 +1183,7 @@ export async function calculateTeacherTotalCredit(initial) {
     const sessionalResult = await client.query(sessionalQuery, [initial]);
 
     // Add sessional credits
-    for (const sessional of sessionalResult.rows) {
-      const share = sessional.share || 1;
-      if (sessional.class_per_week === 0.75){
-          totalCredit += 4 * (sessional.class_per_week || 0) * share;
-      }else{
-          totalCredit += 2 * (sessional.class_per_week || 0) * share;
-      }
-    }
+    for (const sessional of sessionalResult.rows) totalCredit += labCredit(sessional);
 
     // A theory course carries credit x sections of load, shared equally by all
     // of its teachers however the sections are split between them: a 3-credit
@@ -1158,12 +1213,7 @@ export async function calculateTeacherTotalCredit(initial) {
     `;
     const theoryResult = await client.query(theoryQuery, [initial]);
 
-    for (const theory of theoryResult.rows) {
-      const courseLoad =
-        (theory.class_per_week || 0) * (parseInt(theory.section_count) || 0);
-      const teacherCount = parseInt(theory.teacher_count) || 1;
-      totalCredit += courseLoad / teacherCount;
-    }
+    for (const theory of theoryResult.rows) totalCredit += theoryCredit(theory);
 
     return {
       initial,

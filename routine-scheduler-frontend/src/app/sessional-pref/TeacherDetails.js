@@ -10,13 +10,15 @@ import {
   setTeacherSessionalAssignment,
   deleteTeacherSessionalAssignment,
   getSessionalTeachers,
-  getTeacherTotalCredit
+  getTeacherTotalCredit,
+  getSessionalForecast
 } from '../api/theory-assign';
 import { getCourseAllSchedule, getCourseSectionalSchedule } from '../api/theory-schedule';
 import { getDepartmentalSessionalSchedule } from '../api/sessional-schedule';
 import { getThesisSetup } from '../api/thesis';
 import { groupIntoSlots, hasRoomFor, isHalf, labPeriods, sessionalLoad, slotCount } from '../shared/sessionalTeachers';
 import TeacherCommitmentTable from './TeacherCommitmentTable';
+import FullTimeConstraint from './FullTimeConstraint';
 
 // UI components and utilities
 import toast from 'react-hot-toast';
@@ -281,6 +283,9 @@ export default function TeacherDetails(props) {
   const [assignmentShare, setAssignmentShare] = useState(1);
   const [editingShare, setEditingShare] = useState(1);
   const [thesisSetup, setThesisSetup] = useState({ slots: [], levelTerms: [] });
+  // Labs this teacher must take so every lab keeps a full-time teacher
+  const [forecast, setForecast] = useState(null);
+  const [forecastFailed, setForecastFailed] = useState(false);
 
   useEffect(() => {
     if (selectedAssignment) setEditingShare(Number(selectedAssignment.share) || 1);
@@ -430,6 +435,23 @@ export default function TeacherDetails(props) {
 
     fetchTotalCredits();
   }, [teacherId, assignedTheoryCourses, assignedSessionalCourses]); // Refetch when assignments change
+
+  // Checked again whenever this teacher's labs change
+  useEffect(() => {
+    if (!teacherId || loading) return undefined;
+    let cancelled = false;
+    getSessionalForecast(teacherId)
+      .then((data) => {
+        if (cancelled) return;
+        setForecast(data);
+        setForecastFailed(false);
+      })
+      .catch((error) => {
+        console.error('Error checking the full-time teacher constraint:', error);
+        if (!cancelled) setForecastFailed(true);
+      });
+    return () => { cancelled = true; };
+  }, [teacherId, loading, assignedSessionalCourses]);
 
   /**
    * Check for time conflicts with existing schedules
@@ -890,6 +912,7 @@ export default function TeacherDetails(props) {
                               const cachedTeachers = courseTeachersCache[`${courseInfo.course_id}-${courseInfo.section}`];
                               const isFull = !isAlreadyScheduled && Boolean(cachedTeachers) &&
                                 !hasRoomFor(cachedTeachers, courseInfo.teacher_count, assignmentShare);
+                              const isRequired = !isAlreadyScheduled && requiredLabs.has(labKey(courseInfo));
                               return (
                                 <div
                                   key={`${courseInfo.course_id}-${courseInfo.section}-${idx}`}
@@ -954,11 +977,12 @@ export default function TeacherDetails(props) {
                                     ...(!isAlreadyScheduled && !isSelected ? getCourseColorStyles(courseInfo.course_id, courseInfo.section) : {}),
                                     ...((conflict && conflictType !== 'selected' && !isAlreadyScheduled) ? { opacity: 0.7 } : {}),
                                     ...(isFull && !isSelected ? { opacity: 0.55, background: '#f1f3f5', border: '1px solid #ced4da' } : {}),
+                                    ...(isRequired ? { outline: '3px solid #fd7e14', outlineOffset: '1px' } : {}),
                                     cursor: isFull && !isSelected ? 'not-allowed' : 'pointer',
                                     position: 'relative'
                                   }}
                                   // Keep a simple title for non-conflict items
-                                  title={!conflict ? `${courseInfo.course_id} - Section ${formatSectionDisplay(courseInfo.section, courseInfo.class_per_week)} (Batch ${courseInfo.batch})` : ''}
+                                  title={!conflict ? `${courseInfo.course_id} - Section ${formatSectionDisplay(courseInfo.section, courseInfo.class_per_week)} (Batch ${courseInfo.batch})${isRequired ? ' · in the Constraint list above' : ''}` : ''}
                                 >
                                   <strong style={isAlreadyScheduled ? { color: '#28a745' } : {}}>{courseInfo.course_id} ({formatSectionDisplay(courseInfo.section, courseInfo.class_per_week)})</strong>
                                   <br />
@@ -1369,6 +1393,13 @@ export default function TeacherDetails(props) {
     };
   };
 
+  // Labs the Constraint panel says this teacher must choose from
+  const forecastReady = forecast?.initial === teacherId;
+  const labKey = (lab) => `${lab.course_id}|${Number(lab.batch)}|${lab.section}`;
+  const requiredLabs = new Set(forecastReady
+    ? [...forecast.slots.flatMap((slot) => slot.labs), ...forecast.others].map(labKey)
+    : []);
+
   if (loading) {
     return (
       <div className="d-flex justify-content-center align-items-center flex-column" style={{ minHeight: '300px' }}>
@@ -1475,6 +1506,8 @@ export default function TeacherDetails(props) {
           </div>
         </div>
       </div>
+      <FullTimeConstraint initial={teacherId} forecast={forecastReady ? forecast : null}
+        status={forecastFailed ? 'failed' : forecastReady ? 'ready' : 'loading'} />
       {teacher && (
         <div>
           <div className="row mb-4">

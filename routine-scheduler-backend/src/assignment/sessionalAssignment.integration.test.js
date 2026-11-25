@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { connect } from '../config/database.js';
-import { setTeacherSessionalAssignmentDB } from './repository.js';
+import { getSessionalForecastDB, setTeacherSessionalAssignmentDB } from './repository.js';
 
 // Opt-in PostgreSQL check. Every table used by the repository is shadowed by
 // a connection-local temporary table; no actual teacher or schedule is changed.
@@ -56,6 +56,58 @@ test('PostgreSQL saves half shares, permits thesis overlaps, and rejects other l
           ('T2','CSE106','TEST',25,'A1',1), ('T3','CSE106','TEST',25,'A1',1), ('T4','CSE106','TEST',25,'A1',0.5);`);
       await assert.rejects(save(1), /only half a slot left/);
       await save(0.5);
+    } finally {
+      client.release(true); // Close this connection and automatically discard its temporary tables.
+    }
+  });
+
+test('PostgreSQL forecast counts load, theory classes and labs already taken',
+  { skip: process.env.RUN_SESSIONAL_DB_TESTS !== '1' }, async () => {
+    const client = await connect();
+    try {
+      await client.query(`
+        CREATE TEMP TABLE configs (key text, value text);
+        INSERT INTO configs VALUES ('CURRENT_SESSION', 'TEST'), ('times', '[8,9,10,11,12,1,2,3,4]'),
+          ('days', '["Saturday","Sunday","Monday","Tuesday","Wednesday"]');
+        CREATE TEMP TABLE teachers (initial varchar PRIMARY KEY, seniority_rank integer, active integer,
+          full_time_status boolean, teacher_credits_offered float8, offers_thesis_1 boolean,
+          offers_thesis_2 boolean, offers_msc boolean);
+        -- X: 15 offered, Thesis 1 (6) and CSE105 alone (3) leave 6 credits, two labs
+        INSERT INTO teachers VALUES ('SENIOR', 1, 1, true, 21, false, false, false),
+          ('X', 2, 1, true, 15, true, false, false), ('P', 3, 1, true, 15, false, false, false);
+        CREATE TEMP TABLE courses (course_id varchar, session varchar, type integer, "to" varchar,
+          sessional_type varchar, class_per_week float8, optional integer DEFAULT 0,
+          optional_section_count integer DEFAULT 0);
+        INSERT INTO courses VALUES ('CSE105', 'TEST', 0, 'CSE', NULL, 3),
+          ('CSE106', 'TEST', 1, 'CSE', 'DEPT_HW', 1.5), ('CSE108', 'TEST', 1, 'CSE', NULL, 1.5);
+        CREATE TEMP TABLE sessional_types (code varchar PRIMARY KEY, teacher_count integer);
+        INSERT INTO sessional_types VALUES ('DEPT_SW', 3), ('DEPT_HW', 2), ('NON_DEPT', 2);
+        CREATE TEMP TABLE courses_sections (course_id varchar, session varchar, batch integer,
+          section varchar, department varchar, teachers text[]);
+        INSERT INTO courses_sections VALUES ('CSE105', 'TEST', 25, 'A', 'CSE', ARRAY['X']);
+        CREATE TEMP TABLE schedule_assignment (course_id varchar, session varchar, batch integer,
+          section varchar, department varchar, day varchar, time integer, teachers text[]);
+        -- X's theory class is named on its section only; it overlaps the Tuesday 11:00 labs
+        INSERT INTO schedule_assignment VALUES
+          ('CSE105', 'TEST', 25, 'A', 'CSE', 'Tuesday', 12, NULL),
+          ('CSE106', 'TEST', 25, 'A1', 'CSE', 'Tuesday', 11, NULL),
+          ('CSE106', 'TEST', 25, 'A2', 'CSE', 'Tuesday', 11, NULL),
+          ('CSE108', 'TEST', 25, 'B1', 'CSE', 'Sunday', 2, ARRAY['P']);
+        CREATE TEMP TABLE teacher_sessional_assignment (initial varchar, course_id varchar,
+          session varchar, batch integer, section varchar, share numeric(3,2));
+        INSERT INTO teacher_sessional_assignment VALUES ('P', 'CSE108', 'TEST', 25, 'B1', 1);
+      `);
+      const getClient = async () => ({ query: client.query.bind(client), release() {} });
+      const forecast = await getSessionalForecastDB('X', getClient);
+      assert.equal(forecast.labsLeft, 2);
+      assert.equal(forecast.uncovered, 2); // CSE108 B1 has P
+      assert.equal(forecast.teachersLeft, 2); // X and P, not SENIOR
+      assert.equal(forecast.needed, 1);
+      assert.deepEqual(forecast.slots.map((slot) => [slot.day, slot.time,
+        slot.labs.map((lab) => `${lab.section}${lab.half ? ' half' : ''}`)]), [['Tuesday', 11, ['A1 half', 'A2 half']]]);
+      // With SENIOR still to come, X is free to choose
+      assert.equal((await getSessionalForecastDB('SENIOR', getClient)).needed, 0);
+      await assert.rejects(getSessionalForecastDB('NOBODY', getClient), /not found/);
     } finally {
       client.release(true); // Close this connection and automatically discard its temporary tables.
     }

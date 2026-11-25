@@ -37,6 +37,11 @@ export const getSessionalTeachers = (course_id, section) =>
 export const getAllSessionalAssignment = () =>
   axios.get(api_url("/assign/sessional/all")).then((res) => res.data);
 
+// Labs without a full-time teacher that this teacher must take, so that they
+// and the full-time teachers after them can still cover every lab
+export const getSessionalForecast = (initial) =>
+  axios.get(api_url(`/assign/sessional/forecast/${initial}`)).then((res) => res.data);
+
 export const initiateSessional = () =>
   axios.get(api_url("/assign/sessional/initiate")).then((res) => res.data);
 

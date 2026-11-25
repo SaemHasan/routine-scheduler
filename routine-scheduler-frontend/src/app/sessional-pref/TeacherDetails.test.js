@@ -5,7 +5,7 @@ import TeacherCommitmentTable from './TeacherCommitmentTable';
 import { formatSessionalTeachers, slotCount, sessionalLoad } from '../shared/sessionalTeachers';
 import { getTeacher } from '../api/db-crud';
 import { getTeacherTheoryAssigments, getTeacherSessionalAssignment,
-  getSessionalTeachers, getTeacherTotalCredit, setTeacherSessionalAssignment } from '../api/theory-assign';
+  getSessionalTeachers, getTeacherTotalCredit, setTeacherSessionalAssignment, getSessionalForecast } from '../api/theory-assign';
 import { getCourseAllSchedule, getCourseSectionalSchedule } from '../api/theory-schedule';
 import { getDepartmentalSessionalSchedule } from '../api/sessional-schedule';
 import { getThesisSetup } from '../api/thesis';
@@ -14,7 +14,7 @@ jest.mock('../api/db-crud', () => ({ getTeacher: jest.fn() }));
 jest.mock('../api/theory-assign', () => ({
   getTeacherTheoryAssigments: jest.fn(), getTeacherSessionalAssignment: jest.fn(),
   setTeacherSessionalAssignment: jest.fn(), deleteTeacherSessionalAssignment: jest.fn(),
-  getSessionalTeachers: jest.fn(), getTeacherTotalCredit: jest.fn(),
+  getSessionalTeachers: jest.fn(), getTeacherTotalCredit: jest.fn(), getSessionalForecast: jest.fn(),
 }));
 jest.mock('../api/theory-schedule', () => ({ getCourseAllSchedule: jest.fn(), getCourseSectionalSchedule: jest.fn() }));
 jest.mock('../api/sessional-schedule', () => ({ getDepartmentalSessionalSchedule: jest.fn() }));
@@ -60,8 +60,12 @@ test('lab-assign saves a half slot despite an overlapping theory class', async (
   getThesisSetup.mockResolvedValue({ slots: [{ thesis: 1, day: 'Tuesday', start_time: 11, end_time: 4 }],
     levelTerms: [{ active: true, thesis: 1 }] });
   setTeacherSessionalAssignment.mockResolvedValue({ message: 'Assignment Successful' });
+  getSessionalForecast.mockResolvedValue({ initial: 'AKMAR', fullTime: true, labsLeft: 2, uncovered: 1,
+    teachersLeft: 3, shortfall: 0, needed: 0, slots: [], others: [], atRisk: [] });
   render(<TeacherDetails teacherId="AKMAR" onAssignmentChange={jest.fn()} />);
 
+  expect((await screen.findByText('No constraint.')).closest('.card').textContent)
+    .toContain('the full-time teachers after AKMAR can cover it');
   await screen.findByText('CSE105');
   await screen.findByText('CSE106 (A1)');
   expect((await screen.findAllByText('Thesis 1 · 6 hours')).length).toBeGreaterThan(0);
@@ -74,4 +78,26 @@ test('lab-assign saves a half slot despite an overlapping theory class', async (
   await waitFor(() => expect(setTeacherSessionalAssignment).toHaveBeenCalledWith({
     initial: 'AKMAR', course_id: 'CSE106', batch: 25, section: 'A1', share: 0.5,
   }));
+});
+
+test('lab-assign names the lab the teacher must take and outlines it in the choice table', async () => {
+  getTeacher.mockResolvedValue({ initial: 'AKMAR', name: 'Teacher' });
+  getTeacherTheoryAssigments.mockResolvedValue([]);
+  getTeacherSessionalAssignment.mockResolvedValue([]);
+  getSessionalTeachers.mockResolvedValue([]);
+  getTeacherTotalCredit.mockResolvedValue({ totalCredit: 12 });
+  getCourseAllSchedule.mockResolvedValue([]);
+  getCourseSectionalSchedule.mockResolvedValue([]);
+  getDepartmentalSessionalSchedule.mockResolvedValue([lab]);
+  getThesisSetup.mockResolvedValue({ slots: [], levelTerms: [] });
+  getSessionalForecast.mockResolvedValue({ initial: 'AKMAR', fullTime: true, labsLeft: 1, uncovered: 1,
+    teachersLeft: 1, shortfall: 0, needed: 1, others: [], atRisk: [],
+    slots: [{ day: 'Tuesday', time: 11, labs: [{ ...lab, half: false }] }] });
+  render(<TeacherDetails teacherId="AKMAR" onAssignmentChange={jest.fn()} />);
+
+  const panel = (await screen.findByText(/AKMAR must take one lab/)).closest('.card');
+  expect(panel.textContent).toContain('Tuesday 11:00: CSE106 (A1)');
+  await screen.findAllByText('CSE106 (A1)');
+  const inTable = screen.getAllByText('CSE106 (A1)').find((element) => element.closest('td'));
+  expect(inTable.parentElement.style.outline).toMatch(/solid/);
 });

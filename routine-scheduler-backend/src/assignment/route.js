@@ -30,7 +30,8 @@ import {
   getTeacherTotalCreditAPI,
   getAllTeachersCreditAPI,
   getTheoryDistributionAPI,
-  getSessionalDistributionAPI
+  getSessionalDistributionAPI,
+  getSessionalForecastAPI
 } from "./controller.js";
 
 router.get("/theory/initiate", sendTheoryPrefMail);
@@ -45,6 +46,8 @@ router.get("/sessional/initiate", sendSessionalPrefMail);
 router.get("/sessional/status", getSessionalCurrStatus);
 router.get("/sessional/all", getAllSessionalAssignmentAPI);
 router.get("/sessional/teachers/:course_id/:section", getSessionalTeachersAPI);
+// Labs this teacher must take so every lab keeps a full-time teacher
+router.get("/sessional/forecast/:initial", getSessionalForecastAPI);
 router.get("/sessional/resend/:initial", resendSessionalPrefMail);
 router.get("/sessional/finalize", finalizeSessionalPreference);
 router.get("/sessional/:initial", getTeacherSessionalAssignmentAPI);
