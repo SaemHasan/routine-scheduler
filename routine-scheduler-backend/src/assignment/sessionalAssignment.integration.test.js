@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { connect } from '../config/database.js';
-import { getSessionalForecastDB, setTeacherSessionalAssignmentDB } from './repository.js';
+import { getPartTimePlanDB, getSessionalForecastDB, setTeacherSessionalAssignmentDB } from './repository.js';
 
 // Opt-in PostgreSQL check. Every table used by the repository is shadowed by
 // a connection-local temporary table; no actual teacher or schedule is changed.
@@ -68,13 +68,15 @@ test('PostgreSQL forecast counts load, theory classes and labs already taken',
       await client.query(`
         CREATE TEMP TABLE configs (key text, value text);
         INSERT INTO configs VALUES ('CURRENT_SESSION', 'TEST'), ('times', '[8,9,10,11,12,1,2,3,4]'),
-          ('days', '["Saturday","Sunday","Monday","Tuesday","Wednesday"]');
+          ('days', '["Saturday","Sunday","Monday","Tuesday","Wednesday"]'), ('PART_TIME_CREDIT', '6');
         CREATE TEMP TABLE teachers (initial varchar PRIMARY KEY, seniority_rank integer, active integer,
           full_time_status boolean, teacher_credits_offered float8, offers_thesis_1 boolean,
           offers_thesis_2 boolean, offers_msc boolean);
-        -- X: 15 offered, Thesis 1 (6) and CSE105 alone (3) leave 6 credits, two labs
+        -- X: 15 offered, Thesis 1 (6) and CSE105 alone (3) leave 6 credits, two labs.
+        -- PT is part-time: the 6 credits set for part-time teachers, two labs.
         INSERT INTO teachers VALUES ('SENIOR', 1, 1, true, 21, false, false, false),
-          ('X', 2, 1, true, 15, true, false, false), ('P', 3, 1, true, 15, false, false, false);
+          ('X', 2, 1, true, 15, true, false, false), ('P', 3, 1, true, 15, false, false, false),
+          ('PT', 9, 1, false, 0, false, false, false);
         CREATE TEMP TABLE courses (course_id varchar, session varchar, type integer, "to" varchar,
           sessional_type varchar, class_per_week float8, optional integer DEFAULT 0,
           optional_section_count integer DEFAULT 0);
@@ -108,6 +110,17 @@ test('PostgreSQL forecast counts load, theory classes and labs already taken',
       // With SENIOR still to come, X is free to choose
       assert.equal((await getSessionalForecastDB('SENIOR', getClient)).needed, 0);
       await assert.rejects(getSessionalForecastDB('NOBODY', getClient), /not found/);
+
+      // Six teaching slots are empty: two in each lab. PT can fill one on
+      // Tuesday and one on Sunday, and must, being the only part-time teacher.
+      const partTime = await getSessionalForecastDB('PT', getClient);
+      assert.deepEqual([partTime.mode, partTime.labsLeft, partTime.emptySlots, partTime.shortfall],
+        ['part-time', 2, 6, 4]);
+      assert.deepEqual(partTime.slots.map((slot) => [slot.day, slot.labs.map((lab) => lab.section)]),
+        [['Sunday', ['B1']], ['Tuesday', ['A1', 'A2']]]);
+      const plan = await getPartTimePlanDB(getClient);
+      assert.deepEqual([plan.partTimeCredit, plan.teachersLeft, plan.shortfall, plan.more], [6, 1, 4, 3]);
+      assert.deepEqual(plan.busiest.map((slot) => [slot.day, slot.empty]), [['Tuesday', 4], ['Sunday', 2]]);
     } finally {
       client.release(true); // Close this connection and automatically discard its temporary tables.
     }

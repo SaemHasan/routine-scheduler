@@ -3,7 +3,7 @@ import { HttpError } from "../config/error-handle.js";
 import sma from "stablematch-common";
 import { findSessionalConflict, sessionalCapacityError } from "./sessionalRules.js";
 import { labCredit, theoryCredit, thesisCredit } from "./credit.js";
-import { forecastFullTimeCover } from "./sessionalForecast.js";
+import { DEFAULT_PART_TIME_CREDIT, forecastFullTimeCover, forecastPartTimeFill } from "./sessionalForecast.js";
 
 export async function getTemplate(key) {
   const query = "SELECT * FROM configs WHERE key=$1";
@@ -609,71 +609,96 @@ export async function getAllSessionalAssignment() {
   return result.rows;
 }
 
-// Every lab needs a full-time teacher. Which labs that still lack one must this
-// teacher take, so that they and the full-time teachers after them in
-// seniority can still cover every lab? (see sessionalForecast.js)
-export async function getSessionalForecastDB(initial, getClient = connect) {
+// The rows the Sessional Assign look-aheads work from (see sessionalForecast.js)
+async function loadForecastInput(client) {
   const session = "(SELECT value FROM configs WHERE key='CURRENT_SESSION')";
+  const config = Object.fromEntries((await client.query(
+    "SELECT key, value FROM configs WHERE key IN ('days', 'times', 'PART_TIME_CREDIT')"
+  )).rows.map((row) => {
+    try {
+      return [row.key, JSON.parse(row.value)];
+    } catch {
+      return [row.key, row.value];
+    }
+  }));
+  const teachers = (await client.query(`SELECT initial, seniority_rank, full_time_status,
+      teacher_credits_offered, offers_thesis_1, offers_thesis_2, offers_msc
+    FROM teachers WHERE active = 1`)).rows;
+  // The labs on Sessional Assign, one row per class
+  const labs = (await client.query(`SELECT sa.course_id, sa.batch, sa."section", sa."day", sa."time",
+      st.teacher_count, c.class_per_week
+    FROM schedule_assignment sa
+    JOIN courses c ON c.course_id = sa.course_id AND c.session = sa.session
+    LEFT JOIN sessional_types st ON st.code = (
+      CASE WHEN c."to" = 'CSE' THEN COALESCE(c.sessional_type, 'DEPT_SW') ELSE 'NON_DEPT' END)
+    WHERE sa.course_id LIKE 'CSE%' AND c.type = 1 AND sa.session = ${session}
+    ORDER BY sa.course_id, sa."section", sa."day", sa."time"`)).rows;
+  const assignments = (await client.query(`SELECT tsa.initial, tsa.course_id, tsa.batch, tsa."section",
+      tsa.share::float AS share, c.class_per_week, t.full_time_status
+    FROM teacher_sessional_assignment tsa
+    JOIN courses c ON c.course_id = tsa.course_id AND c.session = tsa.session
+    JOIN teachers t ON t.initial = tsa.initial
+    WHERE tsa.session = ${session} AND c.type = 1`)).rows;
+  // Each teacher's theory classes, whether named on the class or its section
+  const theory = (await client.query(`SELECT DISTINCT who.initial, sa."day", sa."time"
+    FROM schedule_assignment sa
+    JOIN courses c ON c.course_id = sa.course_id AND c.session = sa.session
+    LEFT JOIN courses_sections cs ON cs.course_id = sa.course_id AND cs.session = sa.session
+      AND cs.batch = sa.batch AND cs.section = sa.section AND cs.department = sa.department
+    CROSS JOIN LATERAL unnest(COALESCE(sa.teachers::text[], '{}') || COALESCE(cs.teachers::text[], '{}'))
+      AS who(initial)
+    WHERE sa.session = ${session} AND c.type = 0`)).rows;
+  // Theory load per course and its teachers, counted as in calculateTeacherTotalCredit
+  const courses = (await client.query(`SELECT MAX(c.class_per_week) AS class_per_week,
+      CASE WHEN MAX(c.optional) = 1 THEN MAX(c.optional_section_count)
+           ELSE COUNT(DISTINCT cs.section) END AS section_count,
+      ARRAY(SELECT DISTINCT t FROM courses_sections cs2, unnest(cs2.teachers) AS t
+        WHERE cs2.course_id = cs.course_id AND cs2.session = cs.session) AS teachers
+    FROM courses_sections cs
+    JOIN courses c ON c.course_id = cs.course_id AND c.session = cs.session
+    WHERE cs.session = ${session} AND cs.course_id ~ '[13579]$' AND cs.course_id LIKE 'CSE%'
+      AND c.type = 0
+    GROUP BY cs.course_id, cs.session`)).rows;
+
+  const credit = new Map(teachers.map((teacher) => [teacher.initial, thesisCredit(teacher)]));
+  const add = (who, amount) => {
+    if (credit.has(who)) credit.set(who, credit.get(who) + amount);
+  };
+  assignments.forEach((row) => add(row.initial, labCredit(row)));
+  courses.forEach((course) => course.teachers.forEach((who) =>
+    add(who, theoryCredit({ ...course, teacher_count: course.teachers.length }))));
+  const partTimeCredit = Number(config.PART_TIME_CREDIT);
+  return {
+    labs, assignments, theory,
+    teachers: teachers.map((teacher) => ({ ...teacher, credit: credit.get(teacher.initial) })),
+    times: (config.times ?? [8, 9, 10, 11, 12, 1, 2, 3, 4]).map(Number),
+    days: config.days ?? [],
+    partTimeCredit: partTimeCredit > 0 ? partTimeCredit : DEFAULT_PART_TIME_CREDIT,
+  };
+}
+
+// Every lab needs a full-time teacher, and part-time teachers fill the
+// teaching slots left. Which labs must this teacher take, so that the teachers
+// of their kind after them in seniority can still do that?
+export async function getSessionalForecastDB(initial, getClient = connect) {
   const client = await getClient();
   try {
-    const config = Object.fromEntries((await client.query(
-      "SELECT key, value FROM configs WHERE key IN ('days', 'times')"
-    )).rows.map((row) => [row.key, JSON.parse(row.value)]));
-    const teachers = (await client.query(`SELECT initial, seniority_rank, full_time_status,
-        teacher_credits_offered, offers_thesis_1, offers_thesis_2, offers_msc
-      FROM teachers WHERE active = 1`)).rows;
-    if (!teachers.some((teacher) => teacher.initial === initial)) {
-      throw new HttpError(404, "Teacher not found or inactive");
-    }
-    // The labs on Sessional Assign, one row per class
-    const labs = (await client.query(`SELECT sa.course_id, sa.batch, sa."section", sa."day", sa."time",
-        st.teacher_count
-      FROM schedule_assignment sa
-      JOIN courses c ON c.course_id = sa.course_id AND c.session = sa.session
-      LEFT JOIN sessional_types st ON st.code = (
-        CASE WHEN c."to" = 'CSE' THEN COALESCE(c.sessional_type, 'DEPT_SW') ELSE 'NON_DEPT' END)
-      WHERE sa.course_id LIKE 'CSE%' AND c.type = 1 AND sa.session = ${session}
-      ORDER BY sa.course_id, sa."section", sa."day", sa."time"`)).rows;
-    const assignments = (await client.query(`SELECT tsa.initial, tsa.course_id, tsa.batch, tsa."section",
-        tsa.share::float AS share, c.class_per_week, t.full_time_status
-      FROM teacher_sessional_assignment tsa
-      JOIN courses c ON c.course_id = tsa.course_id AND c.session = tsa.session
-      JOIN teachers t ON t.initial = tsa.initial
-      WHERE tsa.session = ${session} AND c.type = 1`)).rows;
-    // Each teacher's theory classes, whether named on the class or its section
-    const theory = (await client.query(`SELECT DISTINCT who.initial, sa."day", sa."time"
-      FROM schedule_assignment sa
-      JOIN courses c ON c.course_id = sa.course_id AND c.session = sa.session
-      LEFT JOIN courses_sections cs ON cs.course_id = sa.course_id AND cs.session = sa.session
-        AND cs.batch = sa.batch AND cs.section = sa.section AND cs.department = sa.department
-      CROSS JOIN LATERAL unnest(COALESCE(sa.teachers::text[], '{}') || COALESCE(cs.teachers::text[], '{}'))
-        AS who(initial)
-      WHERE sa.session = ${session} AND c.type = 0`)).rows;
-    // Theory load per course and its teachers, counted as in calculateTeacherTotalCredit
-    const courses = (await client.query(`SELECT MAX(c.class_per_week) AS class_per_week,
-        CASE WHEN MAX(c.optional) = 1 THEN MAX(c.optional_section_count)
-             ELSE COUNT(DISTINCT cs.section) END AS section_count,
-        ARRAY(SELECT DISTINCT t FROM courses_sections cs2, unnest(cs2.teachers) AS t
-          WHERE cs2.course_id = cs.course_id AND cs2.session = cs.session) AS teachers
-      FROM courses_sections cs
-      JOIN courses c ON c.course_id = cs.course_id AND c.session = cs.session
-      WHERE cs.session = ${session} AND cs.course_id ~ '[13579]$' AND cs.course_id LIKE 'CSE%'
-        AND c.type = 0
-      GROUP BY cs.course_id, cs.session`)).rows;
+    const input = await loadForecastInput(client);
+    const teacher = input.teachers.find((row) => row.initial === initial);
+    if (!teacher) throw new HttpError(404, "Teacher not found or inactive");
+    return teacher.full_time_status
+      ? forecastFullTimeCover({ ...input, initial })
+      : forecastPartTimeFill({ ...input, initial });
+  } finally {
+    client.release();
+  }
+}
 
-    const credit = new Map(teachers.map((teacher) => [teacher.initial, thesisCredit(teacher)]));
-    const add = (who, amount) => {
-      if (credit.has(who)) credit.set(who, credit.get(who) + amount);
-    };
-    assignments.forEach((row) => add(row.initial, labCredit(row)));
-    courses.forEach((course) => course.teachers.forEach((who) =>
-      add(who, theoryCredit({ ...course, teacher_count: course.teachers.length }))));
-    return forecastFullTimeCover({
-      initial, labs, assignments, theory,
-      teachers: teachers.map((teacher) => ({ ...teacher, credit: credit.get(teacher.initial) })),
-      times: (config.times ?? [8, 9, 10, 11, 12, 1, 2, 3, 4]).map(Number),
-      days: config.days ?? [],
-    });
+// Whether the part-time teachers can fill every teaching slot still empty
+export async function getPartTimePlanDB(getClient = connect) {
+  const client = await getClient();
+  try {
+    return forecastPartTimeFill(await loadForecastInput(client));
   } finally {
     client.release();
   }

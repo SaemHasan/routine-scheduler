@@ -35,6 +35,7 @@ import {
   getTheoryDistributionDB,
   getSessionalDistributionDB,
   getSessionalForecastDB,
+  getPartTimePlanDB,
 } from "./repository.js";
 import { HttpError } from "../config/error-handle.js";
 
@@ -164,6 +165,14 @@ export async function getSessionalTeachersAPI(req, res, next) {
 export async function getSessionalForecastAPI(req, res, next) {
   try {
     res.status(200).json(await getSessionalForecastDB(req.params.initial));
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function getPartTimePlanAPI(req, res, next) {
+  try {
+    res.status(200).json(await getPartTimePlanDB());
   } catch (err) {
     next(err);
   }

@@ -18,7 +18,7 @@ import { getDepartmentalSessionalSchedule } from '../api/sessional-schedule';
 import { getThesisSetup } from '../api/thesis';
 import { groupIntoSlots, hasRoomFor, isHalf, labPeriods, sessionalLoad, slotCount } from '../shared/sessionalTeachers';
 import TeacherCommitmentTable from './TeacherCommitmentTable';
-import FullTimeConstraint from './FullTimeConstraint';
+import SessionalConstraint from './SessionalConstraint';
 
 // UI components and utilities
 import toast from 'react-hot-toast';
@@ -1506,7 +1506,7 @@ export default function TeacherDetails(props) {
           </div>
         </div>
       </div>
-      <FullTimeConstraint initial={teacherId} forecast={forecastReady ? forecast : null}
+      <SessionalConstraint initial={teacherId} forecast={forecastReady ? forecast : null}
         status={forecastFailed ? 'failed' : forecastReady ? 'ready' : 'loading'} />
       {teacher && (
         <div>

@@ -3,6 +3,7 @@ import { Modal } from "react-bootstrap";
 import { getTeachers } from "../api/db-crud";
 import { getAllSessionalAssignment } from "../api/theory-assign";
 import TeacherDetails from "./TeacherDetails";
+import PartTimePlan from "./PartTimePlan";
 import toast from "react-hot-toast";
 import { slotCount } from '../shared/sessionalTeachers';
 
@@ -11,6 +12,7 @@ export default function TeachersList() {
   const [sessionalAssignments, setSessionalAssignments] = useState({});
   const [showModal, setShowModal] = useState(false);
   const [selectedTeacherInitial, setSelectedTeacherInitial] = useState(null);
+  const [planKey, setPlanKey] = useState(0); // checks the part-time plan again
   const buttonRefs = useRef({});
 
   // Function to fetch teachers and assignments data
@@ -108,6 +110,7 @@ export default function TeachersList() {
           Active Teachers
         </h3>
       </div>
+      <PartTimePlan refreshKey={planKey} />
       <div className="card">
         <div className="card-view">
           <div className="card-control-container">
@@ -181,7 +184,14 @@ export default function TeachersList() {
                       {teacher.initial}
                     </td>
                     <td>{teacher.name}</td>
-                    <td>{teacher.designation}</td>
+                    <td>
+                      {teacher.designation}
+                      {teacher.full_time_status === false && (
+                        <span className="badge ml-2" style={{ background: 'rgba(174, 117, 228, 0.15)', color: 'rgb(154, 77, 226)' }}>
+                          Part-time
+                        </span>
+                      )}
+                    </td>
                     <td
                       style={{
                         padding: "12px 22px",
@@ -297,7 +307,10 @@ export default function TeachersList() {
           {selectedTeacherInitial && (
             <TeacherDetails
               teacherId={selectedTeacherInitial}
-              onAssignmentChange={() => fetchTeachersAndAssignments()}
+              onAssignmentChange={() => {
+                fetchTeachersAndAssignments();
+                setPlanKey((key) => key + 1);
+              }}
             />
           )}
         </Modal.Body>

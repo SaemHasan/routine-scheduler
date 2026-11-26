@@ -42,6 +42,11 @@ export const getAllSessionalAssignment = () =>
 export const getSessionalForecast = (initial) =>
   axios.get(api_url(`/assign/sessional/forecast/${initial}`)).then((res) => res.data);
 
+// Whether the part-time teachers can fill every teaching slot left, and how
+// many more it takes if not
+export const getPartTimePlan = () =>
+  axios.get(api_url("/assign/sessional/part-time-plan")).then((res) => res.data);
+
 export const initiateSessional = () =>
   axios.get(api_url("/assign/sessional/initiate")).then((res) => res.data);
 
